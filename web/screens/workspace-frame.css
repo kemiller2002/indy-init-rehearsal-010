@@ -1,0 +1,9 @@
+/* Owner: ui-2. Workspace frame: header, save state and the investigation-section navigation (Forma tokens only). */
+.causa-frame { display: flex; flex-direction: column; gap: var(--ef-primitive-spacing-3, 0.75rem); min-inline-size: 0; }
+.causa-frame__header { min-inline-size: 0; }
+.causa-frame__text { overflow-wrap: anywhere; white-space: pre-wrap; }
+.causa-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ef-primitive-spacing-2, 0.5rem); }
+.causa-frame__record { display: flex; flex-direction: column; gap: var(--ef-primitive-spacing-3, 0.75rem); min-inline-size: 0; }
+.causa-save__text, .causa-save__freshness { margin: 0; overflow-wrap: anywhere; }
+.causa-frame__save-region { min-inline-size: 0; overflow-wrap: anywhere; }
+.causa-save-detail, .causa-conflict { min-inline-size: 0; }

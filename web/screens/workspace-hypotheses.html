@@ -1,0 +1,72 @@
+<!-- Owner: ui-3. Hypotheses section (Views/Workspace/Hypotheses.fs). INV-009, INV-010, INV-011, INV-026, INV-044. -->
+<template data-if="screen.investigation.hypotheses">
+  <section class="ef-section causa-analysis" aria-labelledby="causa-hypotheses-heading" data-requirement-id="INV-042">
+    <h2 class="ef-section-heading" id="causa-hypotheses-heading">Hypotheses</h2>
+    <template data-if="investigation.hypotheses.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.hypotheses.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-hypotheses" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-hypotheses" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
+        <template data-if="investigation.hypotheses.empty">
+          <p class="causa-analysis__empty">No hypotheses recorded yet.</p>
+        </template>
+        <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-hypotheses-heading" data-requirement-id="INV-010">
+          <template data-each="investigation.hypotheses.items" data-key="id">
+            <li>
+              <article class="ef-card causa-record" aria-label="Hypothesis">
+                <p class="ef-eyebrow">Hypothesis · <span data-text="state"></span></p>
+                <p class="causa-record__text" data-requirement-id="INV-026" data-text="statement"></p>
+                <template data-if="hasExplanation"><p class="causa-record__meta">Explanation: <span data-requirement-id="INV-011" data-text="explanation"></span></p></template>
+                <template data-if="hasLinks">
+                  <div class="causa-record__links" data-requirement-id="INV-044">
+                    <p class="causa-record__meta">Evidence assessed against this hypothesis</p>
+                    <p class="causa-record__lines" data-text="links"></p>
+                  </div>
+                </template>
+                <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a>
+              </article>
+            </li>
+          </template>
+        </ul>
+        <template data-if="investigation.hypothesis.record.offered">
+          <div class="ef-form ef-stack causa-editor" role="group" aria-label="New hypothesis">
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-hypothesis-statement">Hypothesis statement</label>
+              <textarea id="causa-hypothesis-statement" rows="3" maxlength="10000" required data-requirement-id="INV-026"
+                data-event="investigation.hypothesis.statement" data-on="input" data-bind-value="investigation.hypothesis.statement"></textarea>
+            </div>
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-hypothesis-explanation">Hypothesis explanation</label>
+              <textarea id="causa-hypothesis-explanation" rows="3" maxlength="10000" data-requirement-id="INV-011"
+                data-event="investigation.hypothesis.explanation" data-on="input" data-bind-value="investigation.hypothesis.explanation"></textarea>
+            </div>
+            <p class="causa-editor__reason" data-text="investigation.hypothesis.record.reason"></p>
+            <button type="button" class="ef-button" data-requirement-id="INV-009" data-event="investigation.hypothesis.record" data-bind-disabled="investigation.hypothesis.record.disabled">Record a hypothesis</button>
+          </div>
+        </template>
+      </div>
+    </template>
+    <template data-if="investigation.hypotheses.missing">
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.hypotheses.notLoaded"></p>
+        <p data-text="investigation.hypotheses.preserved"></p>
+        <p data-text="investigation.hypotheses.next"></p>
+      </div>
+    </template>
+  </section>
+</template>

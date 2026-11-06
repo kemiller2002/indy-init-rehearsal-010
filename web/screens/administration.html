@@ -1,8 +1,10 @@
-<!-- Owner: ui. Administration (UI-018, UI-020-O2, UI-031): read-only system facts, each with its status in words. -->
+<!-- Owner: ui (written by ui-2 acting as ui for T29). Administration (UI-018, UI-020-O2, UI-031, VER-007): read-only system
+     facts, each with its status in words (Verified, Known, Unknown, Unavailable, Failed), and the diagnostics. -->
 <template data-if="screen.administration">
   <section class="causa-screen causa-administration" aria-labelledby="administration-heading">
     <h1 id="administration-heading" data-text="administration.heading">Administration</h1>
     <p class="causa-intro" data-text="administration.intro"></p>
+    <p class="causa-note" data-requirement-id="UI-018">This page is read-only: it reports what this application found and offers no actions.</p>
     <dl class="ef-key-value-list causa-facts" aria-label="System facts">
       <template data-each="administration.facts" data-key="key">
         <div class="causa-fact">
@@ -11,5 +13,10 @@
         </div>
       </template>
     </dl>
+    <h2 id="administration-diagnostics">Diagnostics</h2>
+    <template data-if="administration.diagnostics.empty"><p class="causa-note">No problems have been recorded in this tab.</p></template>
+    <ul aria-labelledby="administration-diagnostics" data-requirement-id="UI-031">
+      <template data-each="administration.diagnostics" data-key="id"><li><code data-text="text"></code></li></template>
+    </ul>
   </section>
 </template>

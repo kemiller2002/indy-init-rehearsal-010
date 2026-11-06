@@ -1,0 +1,146 @@
+<!-- Owner: ui-3. Evidence section (Views/Workspace/Evidence.fs, Links.fs). INV-012, INV-013, INV-027, INV-028, INV-029,
+     INV-030, INV-031, INV-035, INV-038, INV-044. -->
+<template data-if="screen.investigation.evidence">
+  <section class="ef-section causa-analysis" aria-labelledby="causa-evidence-heading" data-requirement-id="INV-042">
+    <h2 class="ef-section-heading" id="causa-evidence-heading">Evidence</h2>
+    <template data-if="investigation.evidence.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.evidence.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-evidence" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-evidence" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
+        <template data-if="investigation.evidence.empty">
+          <p class="causa-analysis__empty">No evidence recorded yet.</p>
+        </template>
+        <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-evidence-heading" data-requirement-id="INV-013">
+          <template data-each="investigation.evidence.items" data-key="id">
+            <li>
+              <article class="ef-card causa-record" aria-label="Evidence">
+                <h3 class="ef-card__title" data-requirement-id="INV-027" data-text="label"></h3>
+                <p class="causa-record__text" data-requirement-id="INV-012" data-text="content"></p>
+                <template data-if="hasSource"><p class="causa-record__meta" data-requirement-id="INV-028">Source: <span data-text="source"></span></p></template>
+                <template data-if="hasUrl"><p class="causa-record__meta" data-requirement-id="INV-029">Link: <a rel="noopener noreferrer" target="_blank" data-bind-href="url" data-text="url"></a></p></template>
+                <p class="causa-record__meta">Category: <span data-text="category"></span> · Verification: <span data-text="verification"></span></p>
+                <p class="causa-record__meta" data-requirement-id="UI-005">Recorded by <span data-text="recordedBy"></span> at <span data-text="recordedAt"></span> (version <span data-text="recordedVersion"></span>) · <span data-text="capturedAtText"></span></p>
+                <template data-if="hasLinks">
+                  <div class="causa-record__links" data-requirement-id="INV-044">
+                    <p class="causa-record__meta">Assessed against</p>
+                    <p class="causa-record__lines" data-text="links"></p>
+                  </div>
+                </template>
+                <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a>
+              </article>
+            </li>
+          </template>
+        </ul>
+
+        <template data-if="investigation.evidence.record.offered">
+          <div class="ef-form ef-stack causa-editor" role="group" aria-label="New evidence">
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-evidence-label">Evidence label</label>
+              <input id="causa-evidence-label" type="text" maxlength="200" required data-requirement-id="INV-027"
+                data-event="investigation.evidence.label" data-on="input" data-bind-value="investigation.evidence.label">
+            </div>
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-evidence-source">Evidence source reference</label>
+              <input id="causa-evidence-source" type="text" maxlength="10000" data-requirement-id="INV-028"
+                data-event="investigation.evidence.source" data-on="input" data-bind-value="investigation.evidence.source">
+            </div>
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-evidence-url">Evidence source URL</label>
+              <input id="causa-evidence-url" type="url" maxlength="2000" pattern="https?://\S+" data-requirement-id="INV-029"
+                data-event="investigation.evidence.url" data-on="input" data-bind-value="investigation.evidence.url">
+            </div>
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-evidence-content">Evidence original content</label>
+              <textarea id="causa-evidence-content" rows="4" maxlength="10000" required data-requirement-id="INV-012"
+                data-event="investigation.evidence.content" data-on="input" data-bind-value="investigation.evidence.content"></textarea>
+            </div>
+            <p class="causa-editor__reason" data-text="investigation.evidence.record.reason"></p>
+            <button type="button" class="ef-button" data-event="investigation.evidence.record" data-bind-disabled="investigation.evidence.record.disabled">Record evidence</button>
+          </div>
+        </template>
+
+        <template data-if="investigation.link.relate.offered">
+          <div class="ef-form ef-stack causa-editor" role="group" aria-labelledby="causa-link-heading" data-requirement-id="INV-030">
+            <h3 id="causa-link-heading">Relate evidence to a hypothesis</h3>
+            <label class="ef-select-field">
+              <span class="ef-field__label">Evidence</span>
+              <span class="ef-select">
+                <select class="ef-select__input" data-event="investigation.link.evidence">
+                  <option value="" data-bind-selected="investigation.links.evidenceUnchosen">Choose evidence</option>
+                  <template data-each="investigation.links.evidenceOptions" data-key="id">
+                    <option data-bind-value="id" data-bind-selected="selected" data-text="label"></option>
+                  </template>
+                </select>
+                <span class="ef-select__indicator" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label class="ef-select-field">
+              <span class="ef-field__label">Hypothesis</span>
+              <span class="ef-select">
+                <select class="ef-select__input" data-event="investigation.link.hypothesis">
+                  <option value="" data-bind-selected="investigation.links.hypothesisUnchosen">Choose a hypothesis</option>
+                  <template data-each="investigation.links.hypothesisOptions" data-key="id">
+                    <option data-bind-value="id" data-bind-selected="selected" data-text="label"></option>
+                  </template>
+                </select>
+                <span class="ef-select__indicator" aria-hidden="true"></span>
+              </span>
+            </label>
+            <fieldset class="ef-choice-group" data-requirement-id="INV-031">
+              <legend class="ef-choice-group__legend">Evidence relationship kind</legend>
+              <label class="ef-choice"><input type="radio" name="causa-link-kind" value="supports" data-event="investigation.link.kind" data-bind-checked="investigation.link.kind.supports"><span class="ef-choice__content"><strong>supports</strong></span></label>
+              <label class="ef-choice"><input type="radio" name="causa-link-kind" value="contradicts" data-event="investigation.link.kind" data-bind-checked="investigation.link.kind.contradicts"><span class="ef-choice__content"><strong>contradicts</strong></span></label>
+              <label class="ef-choice"><input type="radio" name="causa-link-kind" value="consistent-with" data-event="investigation.link.kind" data-bind-checked="investigation.link.kind.consistent-with"><span class="ef-choice__content"><strong>consistent-with</strong></span></label>
+              <label class="ef-choice"><input type="radio" name="causa-link-kind" value="inconclusive" data-event="investigation.link.kind" data-bind-checked="investigation.link.kind.inconclusive"><span class="ef-choice__content"><strong>inconclusive</strong></span></label>
+            </fieldset>
+            <div class="ef-field">
+              <label class="ef-field__label" for="causa-link-rationale">Evidence relationship rationale</label>
+              <textarea id="causa-link-rationale" rows="3" maxlength="10000" required data-requirement-id="INV-038"
+                data-event="investigation.link.rationale" data-on="input" data-bind-value="investigation.link.rationale"></textarea>
+            </div>
+            <p class="causa-editor__reason" data-text="investigation.link.relate.reason"></p>
+            <div class="ef-cluster">
+              <button type="button" class="ef-button" data-event="investigation.link.relate" data-bind-disabled="investigation.link.relate.disabled">Link evidence to a hypothesis</button>
+              <button type="button" class="ef-button" data-event="investigation.link.reassess" data-bind-disabled="investigation.link.reassess.disabled">Reassess</button>
+            </div>
+          </div>
+        </template>
+
+        <section class="ef-stack" aria-labelledby="causa-assessments-heading" data-requirement-id="INV-035">
+          <h3 id="causa-assessments-heading">Assessment history</h3>
+          <template data-if="investigation.links.history.empty">
+            <p class="causa-analysis__empty">No evidence has been assessed against a hypothesis yet.</p>
+          </template>
+          <ol class="ef-stack causa-analysis__list" aria-labelledby="causa-assessments-heading">
+            <template data-each="investigation.links.history" data-key="id">
+              <li class="causa-relationship"><span data-text="evidence"></span> <strong data-text="kind"></strong> <span data-text="hypothesis"></span> (<span data-text="status"></span>): <span data-text="rationale"></span></li>
+            </template>
+          </ol>
+        </section>
+      </div>
+    </template>
+    <template data-if="investigation.evidence.missing">
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.evidence.notLoaded"></p>
+        <p data-text="investigation.evidence.preserved"></p>
+        <p data-text="investigation.evidence.next"></p>
+      </div>
+    </template>
+  </section>
+</template>
