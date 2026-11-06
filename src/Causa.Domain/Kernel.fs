@@ -85,6 +85,10 @@ module Kernel =
             | Error e -> Blocked [ { Code = "invariant.violation"; Message = e.Reason } ]
         | decision, _ -> decision
 
+    /// Every capability with the engine's reasons (boundary B), under the composed policy and for this actor.
+    let capabilities (policies: PolicySet) (actor: ActorContext) (s: Investigation) : Capability list =
+        Capabilities.evaluate policies actor s
+
     /// The IF41-DOMAIN kernel.
     let domain : DomainKernel =
         { Decide = decide

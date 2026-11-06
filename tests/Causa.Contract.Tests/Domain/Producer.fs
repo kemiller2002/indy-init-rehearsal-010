@@ -148,6 +148,8 @@ module Producer =
             let expected =
                 match c with
                 | Core(MarkCorrectiveActionImplemented _) -> false // the corrective action is Proposed, not InProgress
+                | Core(ConfirmCause _) -> false // the core cause-confirmation gate: h21 is only plausible
+                | Core ResolveInvestigation -> false // the core resolution gate: no conclusion, criterion unverified
                 | _ -> true
             let actual = decisionOf "active" c
             Assert.True((ok = expected), $"active: {c} -> {actual}")

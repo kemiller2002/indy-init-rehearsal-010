@@ -184,13 +184,16 @@ module Decide =
                 (fun () -> [ ProposalRejected(id, reason) ])
         | AttachExtension _ -> UnsupportedSemantics [ "AttachExtension: causa-storage v1.0.0 has no extension namespace" ]
 
-    /// IF41-DOMAIN Decide. Total over every command and state.
-    let decide (_policies: PolicySet) (actor: ActorContext) (state: Investigation option) (command: CommandEnvelope) : Decision =
+    /// IF41-DOMAIN Decide. Total over every command and state. Order (STATE-TRANSITION-TABLES section 16): semantics
+    /// (extensions, unknown policy components), duplicate command, expected version, actor, structural transition, then
+    /// the composed policy's gates, whose blockers are all returned.
+    let decide (policies: PolicySet) (actor: ActorContext) (state: Investigation option) (command: CommandEnvelope) : Decision =
         let actual = state |> Option.map (fun s -> s.Version) |> Option.defaultValue AggregateVersion.zero
-        match command.Command with
-        | Extension(id, _) ->
+        match command.Command, Policy.rules policies with
+        | Extension(id, _), _ ->
             UnsupportedSemantics [ $"{id.Namespace.Value}/{id.Name.Value}@{id.Version.Value}" ]
-        | Core core ->
+        | Core _, Error unknown -> UnsupportedSemantics unknown
+        | Core core, Ok rules ->
             match state |> Option.bind (fun s -> s.Correlations.TryFind command.CommandId) with
             | Some events -> Duplicate events
             | None ->
@@ -207,4 +210,10 @@ module Decide =
                             Blocked [ b "investigation.missing" $"{Commands.name core} needs a started investigation." ]
                         | _, Some s when s.Id <> command.Investigation ->
                             Blocked [ b "investigation.mismatch" "The command names a different investigation." ]
-                        | _, Some s -> onExisting s core
+                        | _, Some s ->
+                            match onExisting s core with
+                            | Allowed events ->
+                                match Policy.evaluate rules s core with
+                                | [] -> Allowed events
+                                | blockers -> Blocked blockers
+                            | other -> other
