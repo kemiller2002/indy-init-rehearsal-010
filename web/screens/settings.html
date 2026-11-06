@@ -1,0 +1,32 @@
+<!-- Owner: ui (written by ui-2 acting as ui for T29). Settings (UI-019, UI-020-O2): only the preferences this build
+     honours, each with its scope and effective value; the data repository connection is shown apart, as a fact GitHub
+     verified, never as a preference, and no credential appears here. -->
+<template data-if="screen.settings">
+  <section class="causa-screen causa-settings" aria-labelledby="settings-heading">
+    <h1 id="settings-heading" data-text="settings.heading">Settings</h1>
+    <p class="causa-intro" data-text="settings.intro"></p>
+    <form class="ef-form causa-preferences" aria-label="Preferences" data-requirement-id="UI-019">
+      <fieldset class="ef-choice-group causa-choice" aria-describedby="settings-motion-scope">
+        <legend class="ef-choice-group__legend">Motion</legend>
+        <label class="ef-choice"><input type="radio" name="motion" value="system" data-event="settings.motion" data-bind-checked="settings.motion.system"><span class="ef-choice__content">Follow the device setting</span></label>
+        <label class="ef-choice"><input type="radio" name="motion" value="reduce" data-event="settings.motion" data-bind-checked="settings.motion.reduce"><span class="ef-choice__content">Reduce motion</span></label>
+        <p class="causa-note causa-setting__effective">In effect: <span data-text="settings.motion.effective"></span></p>
+        <p class="causa-note" id="settings-motion-scope">Scope: <span data-text="settings.motion.scope"></span></p>
+      </fieldset>
+      <fieldset class="ef-choice-group causa-choice" aria-describedby="settings-text-size-scope">
+        <legend class="ef-choice-group__legend">Text size</legend>
+        <label class="ef-choice"><input type="radio" name="text-size" value="default" data-event="settings.text-size" data-bind-checked="settings.text-size.default"><span class="ef-choice__content">Default</span></label>
+        <label class="ef-choice"><input type="radio" name="text-size" value="large" data-event="settings.text-size" data-bind-checked="settings.text-size.large"><span class="ef-choice__content">Larger</span></label>
+        <p class="causa-note causa-setting__effective">In effect: <span data-text="settings.text-size.effective"></span></p>
+        <p class="causa-note" id="settings-text-size-scope">Scope: <span data-text="settings.text-size.scope"></span></p>
+      </fieldset>
+      <p class="causa-note" data-text="settings.scope"></p>
+    </form>
+    <section class="causa-settings__connection" aria-labelledby="settings-connection-heading">
+      <h2 id="settings-connection-heading">Data repository</h2>
+      <p>Repository: <span data-text="settings.connection.repository"></span></p>
+      <p>Connection: <span data-text="settings.connection"></span> <span class="ef-status-lozenge" data-bind-data-state="settings.connection.tone" data-text="settings.connection.status"></span></p>
+      <p class="causa-note" data-text="settings.connection.note"></p>
+    </section>
+  </section>
+</template>

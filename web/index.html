@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title data-text="app.title">Causa</title>
+  <link rel="icon" href="causa-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="forma/all.css">
   <link rel="stylesheet" href="causa-theme.css">
   <link rel="stylesheet" href="causa.css">
@@ -15,34 +16,59 @@
   <script type="module" src="boundary.js"></script>
 </head>
 <body class="causa">
+  <a class="ef-skip-link causa-skip" href="#main">Skip to main content</a>
+  <div class="causa-app" data-bind-data-leave-guard="app.leave-guard" data-bind-data-motion="shell.motion" data-bind-data-text-size="shell.text-size">
   <header class="ef-site-header causa-masthead">
-    <div class="ef-site-header__inner"><span class="ef-site-header__name">Causa</span></div>
+    <div class="ef-site-header__inner causa-masthead__inner">
+      <span class="ef-site-header__brand causa-brand"><svg class="causa-mark" viewBox="0 0 32 32" role="img" aria-label="Causa" focusable="false"><rect class="causa-mark__ground" width="32" height="32" rx="7"/><path class="causa-mark__link" d="M9 10 L16 22 L23 10"/><circle class="causa-mark__cause" cx="9" cy="10" r="3.5"/><circle class="causa-mark__unknown" cx="23" cy="10" r="3.5"/><circle class="causa-mark__effect" cx="16" cy="22" r="3.5"/></svg><span class="ef-site-header__name" aria-hidden="true">Causa</span></span>
+      <p class="causa-connection" data-text="shell.connection"></p>
+    </div>
   </header>
-  <nav class="ef-navigation-shell causa-primary" aria-label="Primary" data-requirement-id="UI-020">
-    <ul class="causa-primary__list">
-      <li><a href="#/investigations" data-bind-aria-current="nav.investigations.current">Investigations</a></li>
-      <li><a href="#/administration" data-bind-aria-current="nav.administration.current">Administration</a></li>
-      <li><a href="#/settings" data-bind-aria-current="nav.settings.current">Settings</a></li>
-    </ul>
-  </nav>
-  <main id="main" class="ef-container causa-main" data-requirement-id="WASM-LOAD-001">
-    <p class="ef-spinner causa-loading" role="status" data-bind-hidden="app.started">
-      <span class="ef-spinner__indicator" aria-hidden="true"></span>
-      <span class="ef-spinner__label">Loading Causa…</span>
-    </p>
-    <section class="ef-fault causa-load-failed" id="causa-load-failed" role="alert" aria-labelledby="causa-load-failed-title" data-requirement-id="WASM-LOAD-005" hidden>
-      <div class="ef-fault__body">
-        <h1 class="ef-fault__title" id="causa-load-failed-title">Causa could not start</h1>
-        <p class="ef-fault__message">The application did not load in this browser. Nothing was saved or sent, and your repository is unchanged.</p>
-        <p class="ef-fault__message">Retry loads the application again.</p>
-        <button type="button" class="ef-button" id="causa-retry">Retry</button>
+  <div class="ef-navigation-shell causa-shell" data-requirement-id="UI-020">
+    <details class="ef-navigation-shell__compact causa-compact" open>
+      <summary>Menu</summary>
+      <nav aria-label="Primary" class="causa-primary">
+        <a href="#/investigations" data-bind-aria-current="nav.investigations.current">Investigations</a>
+        <a href="#/administration" data-bind-aria-current="nav.administration.current">Administration</a>
+        <a href="#/settings" data-bind-aria-current="nav.settings.current">Settings</a>
+      </nav>
+    </details>
+    <nav class="ef-navigation-shell__persistent causa-primary" aria-label="Primary">
+        <a href="#/investigations" data-bind-aria-current="nav.investigations.current">Investigations</a>
+        <a href="#/administration" data-bind-aria-current="nav.administration.current">Administration</a>
+        <a href="#/settings" data-bind-aria-current="nav.settings.current">Settings</a>
+    </nav>
+    <main id="main" class="ef-navigation-shell__content causa-main" tabindex="-1" data-requirement-id="WASM-LOAD-001">
+      <div class="causa-loading" role="status" data-bind-hidden="app.started">
+        <svg class="causa-mark causa-mark--large" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect class="causa-mark__ground" width="32" height="32" rx="7"/><path class="causa-mark__link" d="M9 10 L16 22 L23 10"/><circle class="causa-mark__cause" cx="9" cy="10" r="3.5"/><circle class="causa-mark__unknown" cx="23" cy="10" r="3.5"/><circle class="causa-mark__effect" cx="16" cy="22" r="3.5"/></svg>
+        <p class="ef-spinner"><span class="ef-spinner__indicator" aria-hidden="true"></span><span class="ef-spinner__label">Loading Causa…</span></p>
       </div>
-    </section>
-    <template data-if="app.offline">
-      <p class="ef-alert causa-offline" role="status">You are offline. Changes stay in this tab until the connection returns.</p>
-    </template>
+      <section class="ef-fault causa-load-failed" id="causa-load-failed" role="alert" aria-labelledby="causa-load-failed-title" data-requirement-id="WASM-LOAD-005" hidden>
+        <div class="ef-fault__body">
+          <h1 class="ef-fault__title" id="causa-load-failed-title">Causa could not start</h1>
+          <p class="ef-fault__message">The application did not load in this browser. Nothing was saved or sent, and your repository is unchanged.</p>
+          <p class="ef-fault__message">Retry loads the application again.</p>
+          <button type="button" class="ef-button causa-action" id="causa-retry">Retry</button>
+        </div>
+      </section>
+      <template data-if="app.offline">
+        <p class="ef-alert causa-offline" role="status">You are offline. Changes stay in this tab until the connection returns.</p>
+      </template>
+      <template data-if="shell.investigation">
+        <section class="causa-context" aria-label="Current investigation" data-requirement-id="UI-029">
+          <p class="causa-context__line"><span class="ef-status-lozenge" data-bind-data-state="shell.investigation.kind-state" data-text="shell.investigation.kind"></span>
+            <span class="causa-context__where">Workspace <code data-text="shell.investigation.workspace"></code>, investigation <code data-text="shell.investigation.id"></code></span></p>
+          <nav class="causa-sections" aria-label="Investigation sections">
+            <ul class="causa-sections__list">
+              <template data-each="shell.sections" data-key="key"><li><a data-bind-href="href" data-bind-aria-current="current" data-text="label"></a></li></template>
+            </ul>
+          </nav>
+        </section>
+      </template>
 <!-- screens -->
-  </main>
+    </main>
+  </div>
+  </div>
   <div class="causa-visually-hidden" aria-live="polite" data-text="announce.polite"></div>
   <div class="causa-visually-hidden" aria-live="assertive" data-text="announce.assertive"></div>
 </body>

@@ -4,7 +4,9 @@
 import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
-const port = 4321;
+// CAUSA_TEST_PORT lets several worktrees on one machine each serve their own build (a reused server would be
+// another worktree's); an existing server is reused only when CAUSA_REUSE_SERVER is set.
+const port = Number(process.env.CAUSA_TEST_PORT || 4321);
 const origin = `http://127.0.0.1:${port}`;
 const preinstalledChromium = existsSync("/opt/pw-browsers/chromium") ? { executablePath: "/opt/pw-browsers/chromium" } : {};
 
@@ -19,5 +21,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions: preinstalledChromium } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
-  webServer: { command: `python3 -m http.server ${port} --bind 127.0.0.1`, url: origin, reuseExistingServer: !process.env.CI, timeout: 60_000 }
+  // `npm run build` writes the application to dist/ (served at /dist/); the repository root stays served for the
+  // scaffold pages. Set CAUSA_APP_URL to run the application specs against a deployed build instead.
+  webServer: { command: `npm run build && python3 -m http.server ${port} --bind 127.0.0.1 2> /dev/null`, url: origin, reuseExistingServer: !process.env.CI && !!process.env.CAUSA_REUSE_SERVER, timeout: 300_000 }
 });

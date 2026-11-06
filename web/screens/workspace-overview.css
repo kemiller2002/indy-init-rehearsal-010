@@ -1,0 +1,16 @@
+/* Owner: ui-3. Analysis sections (shared by overview, hypotheses, evidence, causal analysis, timeline): Forma tokens only. */
+.causa-analysis__body { gap: var(--ef-primitive-spacing-4, 1rem); }
+.causa-analysis__list { list-style: none; margin: 0; padding: 0; }
+.causa-analysis__empty { color: var(--ef-color-text-secondary); }
+.causa-record__text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.causa-record__meta { margin: 0; color: var(--ef-color-text-secondary); overflow-wrap: anywhere; }
+.causa-record__lines { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.causa-editor { max-width: 48rem; }
+.causa-editor__reason:empty { display: none; }
+.causa-overview__facts dd { overflow-wrap: anywhere; }
+.causa-analysis__version { margin: 0; color: var(--ef-color-text-secondary); }
+.causa-unavailable p { margin: 0; }
+.causa-inspector { border-inline-start: 4px solid var(--ef-color-border-functional); }
+.causa-record__open { display: inline-block; min-height: 44px; line-height: 44px; }
+.causa-record__open[aria-current="true"] { font-weight: var(--ef-primitive-font-weight-bold, 700); }
+.causa-analysis a { min-height: 24px; }
