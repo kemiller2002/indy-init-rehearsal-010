@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "protocolVersion": "1.0.0",
   "repository": "indy-init-rehearsal-010",
-  "actor": "domain",
+  "actor": "ui2",
   "startedAt": "2026-11-06T16:40:13.993Z",
-  "updatedAt": "2026-11-06T17:28:20Z",
+  "updatedAt": "2026-11-06T17:47:27Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -85,6 +85,17 @@
       "updatedAt": "2026-11-06T17:28:20Z",
       "telemetryExecutionIds": [
         "EXE-20261106T172820760Z-67e0e29a"
+      ]
+    },
+    {
+      "id": "WI-0036",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:47:27Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T174727982Z-77028d8c"
       ]
     }
   ]
