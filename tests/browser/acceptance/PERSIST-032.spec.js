@@ -1,15 +1,12 @@
 // Owner: ui (written by ui-2, approved by integration authority). PERSIST-032: save-state language, checked on the text the
 // application shows in every reachable state.
 import { test, expect } from '@playwright/test';
-import { open, requireGitHub } from '../support/app.mjs';
+import { open, providerEnv, useProvider, submitConnection, forward } from '../support/app.mjs';
 
 // ---- Driving one investigation through the real engine and provider (shared by the ui-2 save-state specs) ----------
-// The designated test repository, as the governed journeys name it. Without it the provider cannot be reached: the
-// test fails as BLOCKED (never skipped, never answered by a substitute).
-const env = {
-  token: process.env.CAUSA_GITHUB_TOKEN, owner: process.env.CAUSA_TEST_OWNER, repo: process.env.CAUSA_TEST_REPO,
-  branch: process.env.CAUSA_TEST_BRANCH || 'main',
-};
+// The stateful GitHub fake playwright.config.ts starts (the plan's "test build ... with the stateful fake"), or the
+// designated test repository when CAUSA_PROVIDER=github. Without the provider the test fails as BLOCKED (never skipped).
+const env = providerEnv;
 const field = (page, name) => page.getByLabel(name, { exact: true });
 const button = (page, name) => page.getByRole('button', { name, exact: true });
 const saveState = (page) => page.getByRole('status', { name: 'Save state' });
@@ -18,21 +15,14 @@ const marker = (label) => `${label}-${Date.now().toString(36)}-${Math.random().t
 const go = (page, hash) => page.evaluate((h) => { location.hash = h; }, hash);
 const isMutation = (request) => request.method() === 'POST' && /\/graphql$/.test(new URL(request.url()).pathname) && (request.postData() || '').includes('createCommitOnBranch');
 
-/// Opens the application and, when it is not connected yet, connects to the designated test repository with the
-/// connection form's labels (integration contract: "Repository owner", "Repository", "Branch", "Token").
+/// Opens the application and, when it is not connected yet, connects to the provider's repository with the connection
+/// form's exact labels (integration contract: "Repository owner", "Repository", "Branch", "Token"; support/app.mjs).
 const connected = async (page) => {
-  requireGitHub('the save states need the real provider');
+  await useProvider(page, 'the save states need a connected provider');
   await open(page, '#/investigations');
   const owner = field(page, 'Repository owner');
-  const connect = page.getByRole('button', { name: /connect/i }).first();
-  if (!(await owner.isVisible().catch(() => false)) && (await connect.isVisible().catch(() => false))) await connect.click();
   if (await owner.isVisible().catch(() => false)) {
-    if (!env.token || !env.owner || !env.repo) throw new Error('BLOCKED: CAUSA_GITHUB_TOKEN, CAUSA_TEST_OWNER and CAUSA_TEST_REPO are not set; the save states need the real provider.');
-    await owner.fill(env.owner);
-    await field(page, 'Repository').fill(env.repo);
-    await field(page, 'Branch').fill(env.branch);
-    await field(page, 'Token').fill(env.token);
-    await connect.click();
+    await submitConnection(page);
     await expect(owner).toBeHidden({ timeout: 20000 });
   }
 };
@@ -70,7 +60,7 @@ const refuseNextMutation = async (page, status = 422) => {
 const loseNextAnswer = async (page) => {
   let used = false;
   await page.route('**/graphql', async (route) => {
-    if (!used && isMutation(route.request())) { used = true; await route.fetch().catch(() => null); return route.abort('connectionreset'); }
+    if (!used && isMutation(route.request())) { used = true; await forward(route).catch(() => null); return route.abort('connectionreset'); }
     return route.fallback();
   });
 };
@@ -81,7 +71,7 @@ const holdNextMutation = async (page) => {
   let release; const gate = new Promise((r) => { release = r; });
   let used = false;
   await page.route('**/graphql', async (route) => {
-    if (!used && isMutation(route.request())) { used = true; await gate; return route.continue(); }
+    if (!used && isMutation(route.request())) { used = true; await gate; return route.fallback(); }
     return route.fallback();
   });
   return () => release();
