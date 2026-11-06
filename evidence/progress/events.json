@@ -31,5 +31,41 @@
       "PERSIST-025"
     ],
     "at": "2026-11-06T16:58:00Z"
+  },
+  {
+    "kind": "implementation-completed",
+    "workItem": "T18",
+    "requirements": [
+      "AR-010",
+      "AR-014",
+      "PERSIST-008",
+      "PERSIST-025"
+    ],
+    "commit": "160f1c0b0f7b986d09736253ead26b814b32b590",
+    "at": "2026-11-06T17:28:31Z"
+  },
+  {
+    "kind": "implementation-completed",
+    "workItem": "T11",
+    "requirements": [
+      "AR-011",
+      "VER-004",
+      "VER-006",
+      "VER-008"
+    ],
+    "commit": "7e018394774b9a33365ef1b50118739155df3d89",
+    "at": "2026-11-06T17:28:31Z"
+  },
+  {
+    "kind": "suite-blocked",
+    "suite": "SU-DOTNET-LIVE",
+    "cause": "Verification gate run 42257038170 step 14: create-github-app-token: client-id input empty; CAUSA_ACCEPTANCE_APP_CLIENT_ID/CAUSA_ACCEPTANCE_APP_KEY are not available to kemiller2002/indy-init-rehearsal-010 (owner action)",
+    "at": "2026-11-06T17:28:31Z"
+  },
+  {
+    "kind": "suite-blocked",
+    "suite": "SU-BROWSER-LIVE",
+    "cause": "same: no test-repository credential in the competition repository; governed journeys J1-J3 cannot reach api.github.com",
+    "at": "2026-11-06T17:28:31Z"
   }
 ]
