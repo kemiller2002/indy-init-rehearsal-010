@@ -52,7 +52,27 @@
       "updatedAt": "2026-11-06T19:02:35Z",
       "telemetryExecutionIds": [
         "EXE-20261106T190236259Z-7fbd4a96"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "367ca092cff1d5260634769a",
+        "recordedAt": "2026-11-06T19:07:46Z",
+        "executionId": "EXE-20261106T190236259Z-7fbd4a96",
+        "repository": "indy-init-rehearsal-010",
+        "branch": "slice/SL-WI-GEN-VER",
+        "commit": "81740456921ba7bd428f226aee03114f4809827d",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
+        },
+        "remoteBranch": "slice/SL-WI-GEN-VER",
+        "remoteCommit": "81740456921ba7bd428f226aee03114f4809827d",
+        "summary": "VER-010-O1/O2 acceptance tests written (commit 8174045, pushed); O2 passes, O1 fails only on VER-007 (T29 unimplemented)",
+        "nextAction": "Re-run VER-010-O1 after T29 lands VER007Tests; CI records the acceptance reference",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }
