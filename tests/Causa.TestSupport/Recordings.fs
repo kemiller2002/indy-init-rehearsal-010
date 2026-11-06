@@ -78,6 +78,18 @@ module Recordings =
     let refAnswer (branch: string) (oid: string) =
         sprintf """{"ref":"refs/heads/%s","node_id":"REF_synthetic","url":"https://api.github.com/repos/o/r/git/refs/heads/%s","object":{"sha":"%s","type":"commit","url":"https://api.github.com/repos/o/r/git/commits/%s"}}""" branch branch oid oid
 
+    /// The contents API answer for a file of 1 to 100 MB: no content, `encoding: none` (GH-LARGE-FILE).
+    let largeFileAnswer (path: string) (blobSha: string) (size: int) =
+        let name = path.Split('/') |> Array.last
+        sprintf """{"name":%s,"path":%s,"sha":"%s","size":%d,"type":"file","content":"","encoding":"none"}""" (quote name) (quote path) blobSha size
+
+    /// GitHub's answer when a GraphQL field does not exist on a type (schema validation: no error `type`).
+    let graphQlFieldMissing =
+        """{"errors":[{"path":["query","repository","object","... on Commit","m"],"extensions":{"code":"undefinedField","typeName":"Commit","fieldName":"file"},"locations":[{"line":1,"column":180}],"message":"Field 'file' doesn't exist on type 'Commit'"}]}"""
+
+    /// An installation token refused on the GraphQL endpoint (HTTP 403, REST error form).
+    let graphQlEndpointRefused = resourceNotAccessible
+
     let fileAnswer (path: string) (blobSha: string) (bytes: byte[]) =
         let name = path.Split('/') |> Array.last
         sprintf
@@ -96,7 +108,7 @@ module Recordings =
                     match parent with
                     | Some p -> sprintf """[{"sha":"%s"}]""" p
                     | None -> "[]"
-                sprintf """{"sha":"%s","commit":{"message":%s},"parents":%s}""" sha (quote message) parents)
+                sprintf """{"sha":"%s","commit":{"message":%s,"committer":{"name":"GitHub","date":"2026-11-06T17:00:00Z"}},"parents":%s}""" sha (quote message) parents)
             |> String.concat ","
         sprintf """{"status":"%s","ahead_by":%d,"behind_by":%d,"total_commits":%d,"commits":[%s]}""" status aheadBy behindBy aheadBy items
 
@@ -105,7 +117,7 @@ module Recordings =
             match parent with
             | Some p -> sprintf """[{"sha":"%s"}]""" p
             | None -> "[]"
-        sprintf """{"sha":"%s","commit":{"message":%s},"parents":%s}""" sha (quote message) parents
+        sprintf """{"sha":"%s","commit":{"message":%s,"committer":{"name":"GitHub","date":"2026-11-06T17:00:00Z"}},"parents":%s}""" sha (quote message) parents
 
     let repositoryAnswer (owner: string) (name: string) (push: bool) =
         sprintf
