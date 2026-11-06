@@ -91,3 +91,46 @@ module Kernel =
           Evolve = Evolve.evolve
           Replay = replay
           Project = project }
+
+/// T14 interface freeze: the domain's versioned manifest of the boundaries it produces (REHEARSAL-AGENT-INTERFACE-FREEZE
+/// boundaries A-C; D and E belong to persistence and report). A breaking change to any type named here is a new
+/// contract version through the coordinator; Causa.Domain.Tests.Identity checks the frozen shapes against this manifest.
+[<RequireQualifiedAccess>]
+module InterfaceManifest =
+    type Operation = { Name: string; Signature: string; Errors: string list }
+
+    type Boundary =
+        { Id: string
+          Title: string
+          Types: string list
+          Operations: Operation list }
+
+    /// The frozen package and contract this domain implements.
+    let contract = "IF41-DOMAIN"
+    let version = "4.1.5"
+    /// The causa-storage release whose event payloads the domain types carry field for field.
+    let storageContract = "causa-storage-v1.0.0"
+
+    let boundaries: Boundary list =
+        [ { Id = "A"
+            Title = "Command submission"
+            Types = [ "CommandEnvelope"; "Command"; "CoreCommand"; "PolicySet"; "ActorContext"; "Decision"; "Blocker" ]
+            Operations =
+              [ { Name = "Decide"
+                  Signature = "PolicySet -> ActorContext -> Investigation option -> CommandEnvelope -> Decision"
+                  Errors = [ "Blocked"; "RequiresReview"; "UnsupportedSemantics"; "Conflict"; "Duplicate" ] } ] }
+          { Id = "B"
+            Title = "Versioned projection"
+            Types = [ "Investigation"; "InvestigationProjection"; "EventEnvelope"; "EventProvenance"; "EventPayload"; "CoreEvent" ]
+            Operations =
+              [ { Name = "Evolve"
+                  Signature = "Investigation option -> EventEnvelope -> Result<Investigation, ProjectionError>"
+                  Errors = [ "ProjectionError" ] }
+                { Name = "Project"; Signature = "Investigation -> InvestigationProjection"; Errors = [] } ] }
+          { Id = "C"
+            Title = "Replay"
+            Types = [ "ReplayError" ]
+            Operations =
+              [ { Name = "Replay"
+                  Signature = "EventEnvelope list -> Result<Investigation, ReplayError>"
+                  Errors = [ "EmptyHistory"; "NonContiguousVersion"; "IllegalEvent"; "UnknownEventKind" ] } ] } ]
