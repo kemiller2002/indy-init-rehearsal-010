@@ -1,0 +1,38 @@
+{
+  "schema": "indy-init.r9-spec-preflight/1",
+  "verdict": "PASS",
+  "package": "requirements-compiled/v4.1.5 4.1.5 manifest 3c54fffa3eeafb3717e15ed172726c527851a3db1fe696ecf183f7b6b02b9977",
+  "inputs": {
+    "machines": "/home/user/Indy-init/requirements-compiled/v4.1.5/state-machine-contracts.json sha256 d58d21f9c11b23238402727c39ce6045a960dbf248fe0f58bf3a30a2bc4a8bc2",
+    "invariants": "/home/user/Indy-init/requirements-compiled/v4/invariants.json sha256 0c1b59e02ab16b36ca91f1b390390943677e9735f5371903d9a08ddddc960cad",
+    "interfaces": "/home/user/Indy-init/requirements-compiled/v4.1.5/analysis/interface-specifications.json sha256 b10e13cc64750fc4100bd877f17bbd288d20d8fad573fa73555445b8f8ec403c",
+    "catalog": "/home/user/Indy-init/docs/COMMAND-EVENT-CATALOG.md sha256 785a649ddb35b0da2cce198a2646b78b797d57cf03f746e4f57933731ab09604"
+  },
+  "expected": {
+    "machines": 5,
+    "transitions": 101,
+    "invariants": 25,
+    "operations": 35,
+    "catalogCommands": 134
+  },
+  "perceptaExit": 0,
+  "report": {
+    "analysed": {
+      "catalogCommands": 134,
+      "invariants": 25,
+      "machines": 5,
+      "operations": 35,
+      "transitions": 101,
+      "types": 171
+    },
+    "blocked": false,
+    "blockingContradictions": [],
+    "missingDecisions": [],
+    "missingInterfaces": [],
+    "schema": "percepta.specification-preflight/1",
+    "suggestedOwnerActions": [],
+    "unsupportedVerificationObligations": [],
+    "warnings": []
+  },
+  "causes": []
+}

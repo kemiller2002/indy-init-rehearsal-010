@@ -1,0 +1,3683 @@
+{
+  "schema": "praxis.verification-manifest/1",
+  "compiler": {
+    "name": "praxis requirements manifest",
+    "version": "1.0.0"
+  },
+  "catalogId": "CAT-CAUSA-INVESTIGATION",
+  "catalogStatus": "ratified",
+  "source": {
+    "commit": "89f5840523b9e1185a5dbcd2a29d0799fe728598",
+    "catalogSha256": "7e5e8a400b52d79218e2fb42927d5cb122cc0e6c8ab002f146b33198647ce53c"
+  },
+  "screens": [
+    {
+      "id": "investigation-list",
+      "route": "#/"
+    },
+    {
+      "id": "investigation-start",
+      "route": "#/investigations/new"
+    },
+    {
+      "id": "investigation-workspace",
+      "route": "#/investigations/{id}"
+    }
+  ],
+  "facts": [
+    "domain-profile-selected"
+  ],
+  "counts": {
+    "requirements": 44,
+    "requiredRequirements": 39,
+    "obligations": 277,
+    "mandatoryObligations": 229,
+    "byType": {
+      "ui-field": 15,
+      "ui-control": 12,
+      "action": 10,
+      "navigation": 0,
+      "validation-rule": 3,
+      "data-contract": 0,
+      "state-transition": 0,
+      "workflow-outcome": 4,
+      "accessibility": 0
+    },
+    "byLevel": {
+      "V1": 81,
+      "V2": 66,
+      "V3": 39,
+      "V4": 45,
+      "V5": 46
+    },
+    "retired": 0
+  },
+  "requirements": [
+    {
+      "id": "INV-001",
+      "type": "ui-field",
+      "screen": "investigation-start",
+      "name": "Problem statement",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-001/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-001/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-002",
+      "type": "ui-field",
+      "screen": "investigation-start",
+      "name": "Title",
+      "component": "text-input",
+      "required": false,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-002/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": false
+        },
+        {
+          "id": "INV-002/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": false
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-003",
+      "type": "ui-control",
+      "screen": "investigation-start",
+      "name": "Domain or profile indicator",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "when",
+        "facts": [
+          {
+            "fact": "domain-profile-selected",
+            "equals": true
+          }
+        ]
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-003/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-003/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-003/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-004",
+      "type": "action",
+      "screen": "investigation-start",
+      "name": "Start investigation",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-004/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-004/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-004/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-004/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-004/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-004/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-005",
+      "type": "ui-control",
+      "screen": "investigation-start",
+      "name": "Persistence destination indicator",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-005/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-005/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-005/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-005/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-006",
+      "type": "ui-field",
+      "screen": "investigation-start",
+      "name": "Investigation identifier",
+      "component": "text-input",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": null,
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.3"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-006/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-006/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-007",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Creation timestamp",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.3"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-007/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-007/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-007/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-008",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Original problem statement",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/INVESTIGATION-ACCEPTANCE-SCENARIOS.md",
+          "requirement": "A96"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.2"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [
+        "INV-001"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-008/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-008/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-008/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-008/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-008/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-009",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Record a hypothesis",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R2.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S02"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-009/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-009/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-009/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-009/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-009/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-009/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-010",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Hypotheses",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S02"
+        }
+      ],
+      "dependsOn": [
+        "INV-009"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-010/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-010/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-010/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-010/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-011",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Hypothesis explanation",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R2.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S04"
+        }
+      ],
+      "dependsOn": [
+        "INV-009"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-011/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-011/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-011/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-011/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-011/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-011/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-012",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence original content",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S05"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-012/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-012/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-012/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-012/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-012/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-012/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-013",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Evidence",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-005"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S02"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-013/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-013/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-013/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-014",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Record an observation",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S02"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-014/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-014/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-014/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-014/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-014/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-014/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-015",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Save",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-007"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R10.1"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-015/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-015/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-015/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-015/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-015/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-015/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-016",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Save state",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-030"
+        },
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-006"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-016/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-016/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-016/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-016/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-017",
+      "type": "workflow-outcome",
+      "screen": "investigation-workspace",
+      "name": "Reopening restores the saved investigation",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-021"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R10.7"
+        }
+      ],
+      "dependsOn": [
+        "INV-014",
+        "INV-015"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-017/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-017/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-018",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Investigation state",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R2.2"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S02"
+        }
+      ],
+      "dependsOn": [
+        "INV-004"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-018/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-018/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-018/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-018/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-019",
+      "type": "validation-rule",
+      "screen": "investigation-start",
+      "name": "Problem statement must not be empty",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [
+        "INV-001"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-019/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-019/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-019/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-020",
+      "type": "validation-rule",
+      "screen": "investigation-start",
+      "name": "Title length",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": 200,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [
+        "INV-002"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-020/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-020/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-020/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-021",
+      "type": "validation-rule",
+      "screen": "investigation-start",
+      "name": "Problem statement length",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S01"
+        }
+      ],
+      "dependsOn": [
+        "INV-001"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-021/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-021/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-021/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-022",
+      "type": "action",
+      "screen": "investigation-start",
+      "name": "Cancel investigation start",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-022/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-022/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-022/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-022/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-022/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-022/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-023",
+      "type": "ui-field",
+      "screen": "investigation-start",
+      "name": "Primary investigative question",
+      "component": "textarea",
+      "required": false,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-023/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": false
+        },
+        {
+          "id": "INV-023/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": false
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-024",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Observation text",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/DESIGN-DECISION-BOUNDARIES.md",
+          "requirement": "D-001"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.1"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.2"
+        }
+      ],
+      "dependsOn": [
+        "INV-014"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "observation id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-024/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-024/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-025",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Observation source reference",
+      "component": "text-input",
+      "required": false,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.2"
+        }
+      ],
+      "dependsOn": [
+        "INV-014"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "observation id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-025/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": false
+        },
+        {
+          "id": "INV-025/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": false
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-026",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Hypothesis statement",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/DESIGN-DECISION-BOUNDARIES.md",
+          "requirement": "D-001"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R2.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S03"
+        }
+      ],
+      "dependsOn": [
+        "INV-009"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "hypothesis id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-026/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-026/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-027",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence label",
+      "component": "text-input",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 200,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.1"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S05"
+        }
+      ],
+      "dependsOn": [
+        "INV-013"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "evidence id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-027/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-027/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-028",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence source reference",
+      "component": "text-input",
+      "required": false,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.2"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S05"
+        }
+      ],
+      "dependsOn": [
+        "INV-013"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "evidence id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-028/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": false
+        },
+        {
+          "id": "INV-028/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": false
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-029",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence source URL",
+      "component": "url-input",
+      "required": false,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": 2000,
+        "pattern": "^https?://[^\\s]+$",
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-005"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.5"
+        },
+        {
+          "document": "docs/SCREEN-CONTRACTS.md",
+          "requirement": "S05"
+        }
+      ],
+      "dependsOn": [
+        "INV-013"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "evidence id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-029/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": false
+        },
+        {
+          "id": "INV-029/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": false
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-030",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Link evidence to a hypothesis",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-005"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-23"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.3"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.4"
+        }
+      ],
+      "dependsOn": [
+        "INV-010",
+        "INV-013"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-030/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-030/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-031",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence relationship kind",
+      "component": "radio-group",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": [
+          "supports",
+          "contradicts",
+          "consistent-with",
+          "inconclusive"
+        ]
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-23"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.3"
+        }
+      ],
+      "dependsOn": [
+        "INV-030"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "relationship id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-031/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V3/select",
+          "level": "V3",
+          "check": "select",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-031/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-032",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Record a conclusion",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R6.1"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R6.4"
+        },
+        {
+          "document": "docs/STATE-TRANSITION-TABLES.md",
+          "requirement": "STATE-TRANSITION-TABLES§14-conclusion-behavior"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-032/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-032/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-033",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Conclusion statement",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/DESIGN-DECISION-BOUNDARIES.md",
+          "requirement": "D-001"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R6.4"
+        }
+      ],
+      "dependsOn": [
+        "INV-032"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "conclusion id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-033/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-033/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-034",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Edit investigation details",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R1.3"
+        }
+      ],
+      "dependsOn": [
+        "INV-001",
+        "INV-002",
+        "INV-023"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-034/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-034/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-035",
+      "type": "workflow-outcome",
+      "screen": "investigation-workspace",
+      "name": "Editing keeps identity and history",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-005"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R15.4"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R2.4"
+        }
+      ],
+      "dependsOn": [
+        "INV-024",
+        "INV-026",
+        "INV-027",
+        "INV-034"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-035/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-035/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-035/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-035/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-035/V5/update",
+          "level": "V5",
+          "check": "update",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-036",
+      "type": "action",
+      "screen": "investigation-workspace",
+      "name": "Cancel a content editor",
+      "component": "button",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-21"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "editor"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-036/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-036/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-036/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-036/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-036/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-036/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-037",
+      "type": "workflow-outcome",
+      "screen": "investigation-workspace",
+      "name": "All content survives a reload from GitHub",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-021"
+        },
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-049"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-20"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R10.7"
+        }
+      ],
+      "dependsOn": [
+        "INV-001",
+        "INV-002",
+        "INV-012",
+        "INV-023",
+        "INV-024",
+        "INV-026",
+        "INV-027",
+        "INV-028",
+        "INV-030",
+        "INV-031",
+        "INV-033"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-037/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-037/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-037/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-037/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        },
+        {
+          "id": "INV-037/V5/isolation",
+          "level": "V5",
+          "check": "isolation",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-038",
+      "type": "ui-field",
+      "screen": "investigation-workspace",
+      "name": "Evidence relationship rationale",
+      "component": "textarea",
+      "required": true,
+      "visible": true,
+      "editable": true,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 10000,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-23"
+        },
+        {
+          "document": "docs/REQUIREMENTS.md",
+          "requirement": "R3.3"
+        }
+      ],
+      "dependsOn": [
+        "INV-030"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "repeated",
+        "key": "relationship id"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-038/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V3/editable",
+          "level": "V3",
+          "check": "editable",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V3/enter",
+          "level": "V3",
+          "check": "enter",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V4/validation",
+          "level": "V4",
+          "check": "validation",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V4/rejects",
+          "level": "V4",
+          "check": "rejects",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V5/save",
+          "level": "V5",
+          "check": "save",
+          "mandatory": true
+        },
+        {
+          "id": "INV-038/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-039",
+      "type": "ui-control",
+      "screen": "investigation-list",
+      "name": "Investigations",
+      "component": "region",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-001"
+        },
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-022"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-039/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-039/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-039/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-039/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-039/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-039/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-040",
+      "type": "action",
+      "screen": "investigation-list",
+      "name": "Open investigation",
+      "component": "link",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-001"
+        },
+        {
+          "document": "docs/OWNER-DECISIONS-2026-10-26.md",
+          "requirement": "OD-INDY-13"
+        }
+      ],
+      "dependsOn": [
+        "INV-039"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "obligations": [
+        {
+          "id": "INV-040/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-040/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-040/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-040/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-040/V3/activate",
+          "level": "V3",
+          "check": "activate",
+          "mandatory": true
+        },
+        {
+          "id": "INV-040/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-041",
+      "type": "ui-control",
+      "screen": "investigation-list",
+      "name": "Primary navigation",
+      "component": "region",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-020"
+        },
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-029"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-041/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-041/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-041/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-041/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-042",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Investigation sections",
+      "component": "region",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-026"
+        },
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-029"
+        }
+      ],
+      "dependsOn": [],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-042/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-042/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-042/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-042/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-043",
+      "type": "ui-control",
+      "screen": "investigation-workspace",
+      "name": "Save state outcomes",
+      "component": "display",
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/CAUSA-PERSISTENCE-REQUIREMENTS.md",
+          "requirement": "PERSIST-030"
+        },
+        {
+          "document": "docs/CAUSA-UI-EXPERIENCE-REQUIREMENTS.md",
+          "requirement": "UI-006"
+        }
+      ],
+      "dependsOn": [
+        "INV-016"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V2"
+      ],
+      "obligations": [
+        {
+          "id": "INV-043/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-043/V1/exists",
+          "level": "V1",
+          "check": "exists",
+          "mandatory": true
+        },
+        {
+          "id": "INV-043/V2/visible",
+          "level": "V2",
+          "check": "visible",
+          "mandatory": true
+        },
+        {
+          "id": "INV-043/V2/accessible",
+          "level": "V2",
+          "check": "accessible",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "INV-044",
+      "type": "workflow-outcome",
+      "screen": "investigation-workspace",
+      "name": "A link is shown on both the evidence and the hypothesis",
+      "component": null,
+      "required": true,
+      "visible": true,
+      "editable": false,
+      "validation": {
+        "minLength": null,
+        "maxLength": null,
+        "pattern": null,
+        "options": []
+      },
+      "sources": [
+        {
+          "document": "docs/OWNER-DECISIONS-2026-11-03.md",
+          "requirement": "OD-INDY-23"
+        }
+      ],
+      "dependsOn": [
+        "INV-030"
+      ],
+      "applicability": {
+        "rule": "always"
+      },
+      "instancing": {
+        "scope": "single"
+      },
+      "levels": [
+        "V1",
+        "V4",
+        "V5"
+      ],
+      "obligations": [
+        {
+          "id": "INV-044/V1/mapped",
+          "level": "V1",
+          "check": "mapped",
+          "mandatory": true
+        },
+        {
+          "id": "INV-044/V4/outcome",
+          "level": "V4",
+          "check": "outcome",
+          "mandatory": true
+        },
+        {
+          "id": "INV-044/V5/reload",
+          "level": "V5",
+          "check": "reload",
+          "mandatory": true
+        }
+      ],
+      "mappings": []
+    }
+  ],
+  "retired": [],
+  "contentHash": "c061da4543e38856e6b14836a3d2c491b96a43b1dd2aa1e986ae95b6016bda08"
+}

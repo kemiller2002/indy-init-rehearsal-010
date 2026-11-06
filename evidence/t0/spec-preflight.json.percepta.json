@@ -1,0 +1,18 @@
+{
+  "analysed": {
+    "catalogCommands": 134,
+    "invariants": 25,
+    "machines": 5,
+    "operations": 35,
+    "transitions": 101,
+    "types": 171
+  },
+  "blocked": false,
+  "blockingContradictions": [],
+  "missingDecisions": [],
+  "missingInterfaces": [],
+  "schema": "percepta.specification-preflight/1",
+  "suggestedOwnerActions": [],
+  "unsupportedVerificationObligations": [],
+  "warnings": []
+}

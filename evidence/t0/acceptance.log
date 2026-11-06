@@ -1,0 +1,2 @@
+acceptance preflight: READY
+  COND-ACC-READY [verifier] the authoritative verifier accepts the pinned baseline and approvals
