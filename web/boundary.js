@@ -14,6 +14,20 @@ globalThis.fetch = (input, init = {}) => {
   return nativeFetch(input, method === "GET" ? { ...init, cache: "no-store" } : init);
 };
 
+// PERSIST-019: the engine says (data-leave-guard="on") while any investigation is not Saved; the boundary registers a
+// beforeunload handler only then, so a saved tab stays eligible for the back/forward cache. Mechanism only.
+const warnOnLeave = (event) => { event.preventDefault(); event.returnValue = ""; };
+const app = document.querySelector(".causa-app");
+let guarded = false;
+const applyGuard = () => {
+  const wanted = app?.getAttribute("data-leave-guard") === "on";
+  if (wanted === guarded) return;
+  guarded = wanted;
+  if (wanted) window.addEventListener("beforeunload", warnOnLeave);
+  else window.removeEventListener("beforeunload", warnOnLeave);
+};
+if (app) new MutationObserver(applyGuard).observe(app, { attributes: true, attributeFilter: ["data-leave-guard"] });
+
 const loading = document.querySelector(".causa-loading");
 const failed = document.getElementById("causa-load-failed");
 

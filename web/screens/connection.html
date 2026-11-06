@@ -34,5 +34,17 @@
         </div>
       </form>
     </template>
+    <template data-if="connection.can-disconnect">
+      <p class="ef-actions"><button type="button" class="ef-button" data-event="connection.disconnect">Disconnect</button></p>
+    </template>
+    <template data-if="connection.confirming">
+      <div class="ef-alert causa-connection-confirm" role="alertdialog" aria-labelledby="causa-connection-confirm-text">
+        <p id="causa-connection-confirm-text" data-text="connection.confirm-text"></p>
+        <p class="ef-actions">
+          <button type="button" class="ef-button" data-event="connection.disconnect">Disconnect and drop unsaved changes</button>
+          <button type="button" class="ef-button" data-event="connection.keep">Keep working</button>
+        </p>
+      </div>
+    </template>
   </section>
 </template>

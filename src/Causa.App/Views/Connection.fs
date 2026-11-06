@@ -34,7 +34,19 @@ module Connection =
             | Connecting _
             | Reauthenticating -> true
             | _ -> false
+        let connected =
+            match model.Connection with
+            | Connected _
+            | CredentialRefused -> true
+            | _ -> false
+        let confirming = connected && Drafts.get state ConnectForm.ConfirmDisconnect <> ""
+        let unsaved =
+            model.Sessions |> Map.toList |> List.filter (fun (_, s) -> match s.State with Causa.Persistence.SaveState.Saved _ -> false | _ -> true) |> List.length
         [ Bind.text "connection.summary" (summary state)
+          Bind.flag "connection.can-disconnect" (connected && not confirming)
+          Bind.flag "connection.confirming" confirming
+          Bind.text "connection.confirm-text" (
+              sprintf "%d investigation(s) in this tab have changes that are not saved to GitHub. Disconnecting drops them and the token from this tab." unsaved)
           Bind.flag "connection.form" form
           Bind.flag "connection.busy" busy
           Bind.text ConnectForm.Owner (Drafts.get state ConnectForm.Owner)

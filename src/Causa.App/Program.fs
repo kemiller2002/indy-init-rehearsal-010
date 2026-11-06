@@ -358,7 +358,12 @@ module Program =
                     match state.Model.Connection with
                     | CredentialRefused -> Some [ EngineMsg(Connection(ConnectionInput.ReconnectSubmitted credential)) ]
                     | _ -> Some [ EngineMsg(Connection(ConnectionInput.ConnectSubmitted(repo, credential))) ]
-            | ConnectForm.Disconnect -> Some [ EngineMsg(Connection ConnectionInput.DisconnectConfirmed) ]
+            // T-N08, T-N09: confirmation is asked first when anything in the tab is not Saved (PERSIST-019).
+            | ConnectForm.Disconnect ->
+                let unsaved = state.Model.Sessions |> Map.exists (fun _ s -> match s.State with SaveState.Saved _ -> false | _ -> true)
+                if unsaved && d ConnectForm.ConfirmDisconnect = "" then Some [ DraftChanged(ConnectForm.ConfirmDisconnect, "1") ]
+                else Some [ DraftsCleared [ ConnectForm.ConfirmDisconnect ]; EngineMsg(Connection ConnectionInput.DisconnectConfirmed) ]
+            | ConnectForm.KeepConnection -> Some [ DraftsCleared [ ConnectForm.ConfirmDisconnect ] ]
             | "new.start" ->
                 let f = Start.form state
                 match Start.validateForm f, Start.workingCopy state.Model |> Option.bind Writable.ofAddress, guidOf f.Identifier with

@@ -27,6 +27,10 @@ module View =
           Bind.text "app.title" (UiAdapter.titleAt state.Route (UiRoutes.isReport (Routes.hashOf state.Model.Route)))
           Bind.text "app.route" (UiRoutes.href state.Route)
           Bind.flag "app.offline" (state.Model.Network = NetworkState.Offline)
+          // PERSIST-019-O1: the leave warning is wanted while any investigation of the tab is not Saved (the boundary
+          // registers beforeunload only then).
+          Bind.text "app.leave-guard" (
+              if state.Model.Sessions |> Map.exists (fun _ s -> match s.State with SaveState.Saved _ -> false | _ -> true) then "on" else "off")
           for name in UiRoutes.screenNames do
               Bind.flag ("screen." + name) (name = current)
           let report = UiRoutes.isReport (Routes.hashOf state.Model.Route)
