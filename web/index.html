@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Owner: integration. The application shell. build.fsx inlines every web/screens/*.html fragment at the screens
+     marker; each fragment is one <template data-if="screen.<name>"> (Limen 0.9.1 binding grammar). The shell renders
+     before the .NET WebAssembly engine starts; the engine's first view hides the loading status. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-text="app.title">Causa</title>
+  <link rel="stylesheet" href="forma/all.css">
+  <link rel="stylesheet" href="causa-theme.css">
+  <link rel="stylesheet" href="causa.css">
+  <script type="module" src="boundary.js"></script>
+</head>
+<body class="causa">
+  <header class="ef-site-header causa-masthead">
+    <div class="ef-site-header__inner"><span class="ef-site-header__name">Causa</span></div>
+  </header>
+  <nav class="ef-navigation-shell causa-primary" aria-label="Primary" data-requirement-id="UI-020">
+    <ul class="causa-primary__list">
+      <li><a href="#/investigations" data-bind-aria-current="nav.investigations.current">Investigations</a></li>
+      <li><a href="#/administration" data-bind-aria-current="nav.administration.current">Administration</a></li>
+      <li><a href="#/settings" data-bind-aria-current="nav.settings.current">Settings</a></li>
+    </ul>
+  </nav>
+  <main id="main" class="ef-container causa-main" data-requirement-id="WASM-LOAD-001">
+    <p class="ef-spinner causa-loading" role="status" data-bind-hidden="app.started">
+      <span class="ef-spinner__indicator" aria-hidden="true"></span>
+      <span class="ef-spinner__label">Loading Causa…</span>
+    </p>
+    <section class="ef-fault causa-load-failed" id="causa-load-failed" role="alert" aria-labelledby="causa-load-failed-title" data-requirement-id="WASM-LOAD-005" hidden>
+      <div class="ef-fault__body">
+        <h1 class="ef-fault__title" id="causa-load-failed-title">Causa could not start</h1>
+        <p class="ef-fault__message">The application did not load in this browser. Nothing was saved or sent, and your repository is unchanged.</p>
+        <p class="ef-fault__message">Retry loads the application again.</p>
+        <button type="button" class="ef-button" id="causa-retry">Retry</button>
+      </div>
+    </section>
+    <template data-if="app.offline">
+      <p class="ef-alert causa-offline" role="status">You are offline. Changes stay in this tab until the connection returns.</p>
+    </template>
+<!-- screens -->
+  </main>
+  <div class="causa-visually-hidden" aria-live="polite" data-text="announce.polite"></div>
+  <div class="causa-visually-hidden" aria-live="assertive" data-text="announce.assertive"></div>
+</body>
+</html>
