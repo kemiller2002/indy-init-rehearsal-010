@@ -18,12 +18,17 @@ test('UI-022-O1', async ({ page }) => {
 
 test('UI-022-O2', async ({ page }) => {
   // No footer carries build SHAs, component inventories or build times.
-  await open(page, routes.Investigations);
-  const footers = page.locator('footer');
-  for (const f of await footers.all()) {
-    const text = await f.innerText();
-    expect(text).not.toMatch(sha);
-    expect(text).not.toMatch(/build|Limen|Forma|\.NET/i);
+  // Whatever the page puts outside its content (header, navigation, any footer) carries no build metadata.
+  for (const route of [routes.Investigations, routes.Settings]) {
+    await open(page, route);
+    const chrome = await page.locator('body').evaluate((b) => {
+      const copy = b.cloneNode(true);
+      copy.querySelectorAll('main, template, script, style').forEach((e) => e.remove());
+      return copy.textContent;
+    });
+    expect(chrome, route).toContain('Investigations');
+    expect(chrome, route).not.toMatch(sha);
+    expect(chrome, route).not.toMatch(/\bbuild\b|Limen|Forma|\.NET|\d{4}-\d\d-\d\dT\d\d:\d\d/i);
   }
 });
 
@@ -43,7 +48,9 @@ test('UI-022-O4', async ({ page }) => {
   await open(page, routes.Investigations);
   const main = await page.locator('main').innerText();
   expect(main).not.toMatch(/Expected lifecycle|replay|Declared/i);
-  for (const h of await page.locator('main h2').allTextContents()) expect(h).not.toMatch(/^[0-9a-f-]{36}$/);
+  const headings = await page.locator('main h2').allTextContents();
+  expect(headings.length).toBeGreaterThan(0);
+  for (const h of headings) expect(h).not.toMatch(/^[0-9a-f-]{36}$/);
 });
 
 test('UI-022-O5', async ({ page }) => {

@@ -37,6 +37,7 @@ test('UI-026-O4', async ({ page }) => {
   await investigationWithContent(page);
   await section(page, 'Causal Analysis');
   const sectionEl = page.locator('[data-requirement-id="UI-026"]');
+  await expect(sectionEl.getByRole('listitem').first()).toBeVisible();
   await expect(sectionEl.getByRole('textbox')).toHaveCount(0);
   await expect(sectionEl.getByRole('button')).toHaveCount(0);
   await expect(sectionEl.locator('[draggable="true"]')).toHaveCount(0);

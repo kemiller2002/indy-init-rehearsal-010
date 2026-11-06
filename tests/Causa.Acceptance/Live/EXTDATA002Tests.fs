@@ -22,7 +22,8 @@ module EXTDATA002Tests =
         Assert.Equal(BindingValue.Flag false, view["investigations.connected"])
         Assert.Equal(BindingValue.Text "Not connected", view["shell.connection"])
         Assert.Equal(BindingValue.Items [], view["investigations.items"])
-        Assert.Empty(effects)
+        // Only the page's own build record is read at start (same origin, no credential); nothing from GitHub.
+        Assert.Equal<Causa.App.Ui.AppEffect list>([ Causa.App.Ui.ReadBuildInfo ], effects)
         // The explicit action, as the page names it.
         let fragment = File.ReadAllText(Repo.at "web/screens/connection.html")
         Assert.Contains(">Connect data repository</button>", fragment)
@@ -36,7 +37,8 @@ module EXTDATA002Tests =
         // No implicit demo import: before Connect nothing is requested, listed or loaded, whatever the route.
         for hash in [ ""; "#/investigations"; "#/new"; "#/investigation/workspaces%2Fdemo%2Fhistorical-v1/6f1b3c1e-8d7a-4c55-9a51-2f0b1d7e9c11/overview" ] do
             let state, effects = Update.init hash
-            Assert.Empty(effects)
+            // Only the page's own build record is read at start (same origin, no credential); nothing from GitHub.
+            Assert.Equal<Causa.App.Ui.AppEffect list>([ Causa.App.Ui.ReadBuildInfo ], effects)
             let model, more = Update.stepAt DateTimeOffset.UtcNow (Navigate(Routes.route hash)) state.Model
             Assert.Empty(more |> List.filter (function Http _ -> true | _ -> false))
             Assert.True(model.Loads.IsEmpty && model.Listings.IsEmpty)

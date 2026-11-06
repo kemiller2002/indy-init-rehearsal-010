@@ -36,5 +36,6 @@ test('UI-030-O4', async ({ page }) => {
   await investigationWithContent(page);
   await expect(page.getByRole('navigation', { name: 'Investigation sections' }).getByRole('link', { name: 'Corrective Actions' })).toHaveCount(0);
   await section(page, 'Overview');
+  await expect(page.getByRole('button', { name: 'Record an observation', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Record a conclusion' })).toHaveCount(0);
 });

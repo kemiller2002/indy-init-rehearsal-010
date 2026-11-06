@@ -175,7 +175,8 @@ module EXTDATA001Tests =
         // The application starts with no investigation content: nothing is listed, loaded or held before Connect.
         let state, effects = Update.init ""
         Assert.True(state.Model.Listings.IsEmpty && state.Model.Loads.IsEmpty && state.Model.Sessions.IsEmpty)
-        Assert.Empty(effects)
+        // Only the page's own build record is read at start (same origin, no credential); nothing from GitHub.
+        Assert.Equal<Causa.App.Ui.AppEffect list>([ Causa.App.Ui.ReadBuildInfo ], effects)
 
     [<Fact>]
     let ``EXT-DATA-001-O2`` () =

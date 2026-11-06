@@ -93,3 +93,25 @@ export const contentText = (page) => page.locator('main').evaluate((m) => {
   copy.querySelectorAll('[aria-label="Current investigation"] .causa-context__where').forEach((e) => e.remove());
   return copy.innerText ?? copy.textContent;
 });
+
+/// Where the provider's REST API is: the double in harness mode, api.github.com otherwise.
+export const providerBase = env.provider === 'github' ? 'https://api.github.com' : env.double;
+
+/// Writes a stored causa-storage v1.0.0 history from the vendored contract fixtures into a working copy of the test
+/// repository through the provider's contents API (never through the app), and returns the route that opens it. Used
+/// where only a stored history can hold the content (a conclusion: the frozen contract has no command for it).
+export const seedStoredHistory = async (fixtureId, run = 'ui-acceptance') => {
+  const { readFileSync } = await import('node:fs');
+  const workspace = `workspaces/demo/causa-app-${run}`;
+  const source = new URL(`../../fixtures/causa-data/e8259df74add723765c57a5b1a5888d9c3f707af/fixtures/v1.0.0/investigations/${fixtureId}/`, import.meta.url);
+  const headers = { authorization: `Bearer ${env.token}`, accept: 'application/vnd.github+json', 'content-type': 'application/json' };
+  for (const file of ['manifest.json', 'events.ndjson', 'snapshot.json']) {
+    const url = `${providerBase}/repos/${env.owner}/${env.repo}/contents/${workspace}/investigations/${fixtureId}/${file}`;
+    const existing = await fetch(`${url}?ref=${env.branch}`, { headers });
+    const sha = existing.ok ? (await existing.json()).sha : undefined;
+    const content = readFileSync(new URL(file, source)).toString('base64');
+    const put = await fetch(url, { method: 'PUT', headers, body: JSON.stringify({ message: `seed ${fixtureId}`, content, branch: env.branch, ...(sha ? { sha } : {}) }) });
+    if (!put.ok) throw new Error(`seeding ${file} failed: ${put.status}`);
+  }
+  return `#/investigation/${encodeURIComponent(workspace)}/${fixtureId}/overview`;
+};

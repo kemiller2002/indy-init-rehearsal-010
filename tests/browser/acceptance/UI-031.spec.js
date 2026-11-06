@@ -42,6 +42,7 @@ test('UI-031-O5', async ({ page }) => {
   await connect(page);
   for (const route of [routes.Administration, routes.Settings, routes.Investigations]) {
     await open(page, route);
+    await expect(page.getByRole('heading', { level: 1 }), route).toBeVisible();
     await expect(page.locator('main'), route).not.toContainText(/\brole(s)?\b.*(admin|member)|Manage users/i);
     expect(await page.content(), route).not.toContain(env.token);
   }

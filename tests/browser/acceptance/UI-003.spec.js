@@ -32,6 +32,7 @@ test('UI-003-O3', async ({ page }) => {
   await investigationWithContent(page);
   await section(page, 'Timeline');
   await expect(page.getByText('Events are listed in the order they were recorded (by version). Times are the times each event occurred.')).toBeVisible();
+  await expect(events(page).first()).toBeVisible();
   await expect(page.getByRole('list', { name: 'Investigation events' }).getByRole('button')).toHaveCount(0);
   await expect(page.getByRole('list', { name: 'Investigation events' }).getByRole('textbox')).toHaveCount(0);
 });

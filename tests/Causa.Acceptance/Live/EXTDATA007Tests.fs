@@ -31,7 +31,9 @@ module EXTDATA007Tests =
         AppDriver.connect t |> ignore
         let connected = text (stateOf t.Model "#/investigations") "connection.summary"
         // Authorized and empty: a fresh branch whose working copy holds nothing yet.
-        let empty = text (stateOf t.Model "#/investigations") "investigations.status"
+        let emptyState = stateOf t.Model "#/investigations"
+        Assert.Equal(BindingValue.Flag true, (View.render emptyState |> Map.ofList)["investigations.empty"])
+        let empty = text emptyState "investigations.emptyText"
         Assert.Contains("no investigations", empty)
         // Loading, then incompatible: a forged investigation read and refused.
         let forged = Guid.NewGuid()

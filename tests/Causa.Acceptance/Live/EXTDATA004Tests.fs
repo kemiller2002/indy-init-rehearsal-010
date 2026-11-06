@@ -69,7 +69,8 @@ module EXTDATA004Tests =
         let reloaded, effects = Update.init "#/investigations"
         Assert.True(reloaded.Credential.IsNone && reloaded.Model.Context.IsNone)
         Assert.Equal(Disconnected, reloaded.Model.Connection)
-        Assert.Empty(effects)
+        // Only the page's own build record is read at start (same origin, no credential); nothing from GitHub.
+        Assert.Equal<Causa.App.Ui.AppEffect list>([ Causa.App.Ui.ReadBuildInfo ], effects)
         Assert.Equal(BindingValue.Flag true, (View.render reloaded |> Map.ofList)["connection.form"])
 
     let o4 (create: string -> GitHubProvider) =

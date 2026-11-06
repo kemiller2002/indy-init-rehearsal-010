@@ -36,6 +36,7 @@ test('UI-015-O4', async ({ page }) => {
   // What is not verified is shown as unknown or unavailable, never as passed.
   await open(page, '#/administration');
   const facts = page.getByRole('definition');
+  expect(await facts.count()).toBeGreaterThanOrEqual(8);
   const text = (await facts.allTextContents()).join(' | ');
   expect(text).not.toMatch(/\bPASS\b|\bpassed\b/i);
   await expect(page.locator('.causa-fact').filter({ hasText: 'Deployed commit' })).toContainText(/Unavailable|Unknown|Known/);

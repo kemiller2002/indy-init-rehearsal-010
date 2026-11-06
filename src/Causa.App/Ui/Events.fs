@@ -23,6 +23,8 @@ type AppMsg =
     | DraftsCleared of keys: string list
     /// A live-region message the engine's handling of an action produced without an engine message (a refused form).
     | Announced of Politeness * string
+    /// The build record was read (its text) or could not be read (why).
+    | BuildRead of Result<string, string>
 
 /// What the integration engine asks the browser to do: the frozen IF41-APP host effects plus same-origin navigation.
 type AppEffect =
@@ -31,6 +33,8 @@ type AppEffect =
     | PushLocation of hash: string
     /// Subscribe to the browser's connectivity (limen.lifecycle), once after Initialize.
     | SubscribeConnectivity
+    /// Read the page's own build record (./build-info.json, same origin, no credential), once after Initialize.
+    | ReadBuildInfo
 
 [<RequireQualifiedAccess>]
 module Events =

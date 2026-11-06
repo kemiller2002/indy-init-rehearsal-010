@@ -21,6 +21,8 @@ module Program =
         | HttpResult of HttpOutcome
         /// The browser's connectivity (limen.lifecycle: the subscription's first state, then each change).
         | Connectivity of online: bool
+        /// The answer to the build record read (same origin): its text, or why it could not be read.
+        | BuildInfo of Result<string, string>
         /// A limen.schedule timeout fired; its correlation id names the timer.
         | TimerDue of correlationId: string
         /// Results of effects the engine does not wait on (navigation) and messages it does not use.
@@ -87,6 +89,10 @@ module Program =
         // Cancelled (the engine never cancels) and anything unclassified: the request may have reached the provider.
         | _ -> NotAnswered(id, LostAfterSending)
 
+    /// The correlation id of the build record read; never an http-<n> id, so it never reaches the GitHub machines.
+    [<Literal>]
+    let BuildInfoCorrelation = "build-info"
+
     let decode (json: string) : Inbound =
         use doc = JsonDocument.Parse json
         let m = doc.RootElement
@@ -102,6 +108,16 @@ module Program =
             | None -> Ignored
         | Some "EffectResult" ->
             match prop m "result" with
+            | Some r when str r "kind" = Some "HttpResult" && str r "correlationId" = Some BuildInfoCorrelation ->
+                match prop r "outcome" with
+                | Some o when str o "kind" = Some "Success" ->
+                    let status = prop o "status" |> Option.bind (fun s -> match s.TryGetInt32() with | true, v -> Some v | _ -> None)
+                    match status, prop o "body" with
+                    | Some 200, Some b when b.ValueKind = JsonValueKind.String -> BuildInfo(Ok(textOf b))
+                    | Some 200, Some b -> BuildInfo(Ok(b.GetRawText()))
+                    | s, _ -> BuildInfo(Error(sprintf "build-info.json answered %s" (s |> Option.map string |> Option.defaultValue "without a status")))
+                | Some o -> BuildInfo(Error(sprintf "build-info.json could not be read (%s)" (str o "kind" |> Option.defaultValue "no outcome")))
+                | None -> BuildInfo(Error "build-info.json could not be read")
             | Some r when str r "kind" = Some "HttpResult" ->
                 match str r "correlationId" |> Option.bind requestIdOf, prop r "outcome" with
                 | Some id, Some outcome -> HttpResult(httpOutcome id outcome)
@@ -217,6 +233,18 @@ module Program =
             w.WriteString("format", "text")
             w.WriteString("data", content)
             w.WriteEndObject()
+            w.WriteEndObject()
+        | ReadBuildInfo ->
+            w.WriteStartObject()
+            w.WriteString("kind", "Http")
+            w.WriteString("correlationId", BuildInfoCorrelation)
+            w.WriteString("method", "GET")
+            w.WriteString("url", "./build-info.json")
+            w.WriteStartObject("headers")
+            w.WriteEndObject()
+            w.WriteNumber("timeoutMs", 10000)
+            w.WriteString("response", "text")
+            w.WriteString("credentials", "omit")
             w.WriteEndObject()
         | SubscribeConnectivity ->
             w.WriteStartObject()
@@ -490,6 +518,7 @@ module Program =
                     | None -> { s with Announcements = [] }, []
             | Located hash, Some s -> Update.updateAt env (LocationChanged hash) s
             | HttpResult outcome, Some s -> Update.updateAt env (EngineMsg(Browser(HttpCompleted outcome))) s
+            | BuildInfo read, Some s -> Update.updateAt env (BuildRead read) s
             | Connectivity online, Some s -> Update.updateAt env (EngineMsg(Browser(ConnectivityChanged online))) s
             | TimerDue id, Some s ->
                 match id.Split('|') with

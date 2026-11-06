@@ -65,7 +65,7 @@ module View =
           Causa.App.Views.Workspace.Inspector.view
           Causa.App.Views.Graph.view
           Causa.App.Views.Report.view
-          Causa.App.Views.Administration.view
+          (fun s -> Causa.App.Views.Administration.viewWith s.Build s)
           Causa.App.Views.Settings.view
           Causa.App.Views.NotFound.view ]
 

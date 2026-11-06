@@ -12,7 +12,9 @@ test('UI-039-O1', async ({ page }) => {
   const v = await investigationWithContent(page);
   for (const name of ['Overview', 'Hypotheses', 'Evidence']) {
     await section(page, name);
-    for (const href of await page.getByRole('link', { name: 'Details' }).evaluateAll((as) => as.map((a) => a.getAttribute('href')))) expect(href, name).toMatch(/\?record=[0-9a-f-]{36}$/);
+    const hrefs = await page.getByRole('link', { name: 'Details' }).evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+    expect(hrefs.length, name).toBeGreaterThan(0);
+    for (const href of hrefs) expect(href, name).toMatch(/\?record=[0-9a-f-]{36}$/);
   }
   expect(v.h1).toBeTruthy();
 });

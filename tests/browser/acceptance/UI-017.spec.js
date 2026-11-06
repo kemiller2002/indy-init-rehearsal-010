@@ -27,6 +27,7 @@ test('UI-017-O2', async ({ page }) => {
 test('UI-017-O3', async ({ page }) => {
   // The catalog/replay paragraph is absent from the investigation catalog.
   await open(page, '#/investigations');
+  await expect(page.getByRole('heading', { name: 'Investigations', level: 1 })).toBeVisible();
   await expect(page.getByText(/The active catalog historical-v1/)).toHaveCount(0);
 });
 

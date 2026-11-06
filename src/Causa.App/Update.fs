@@ -533,8 +533,10 @@ module Update =
               Route = UiRoutes.parse (Routes.hashOf route)
               Drafts = Map.empty
               Credential = None
-              Announcements = [] }
+              Announcements = []
+              Build = None }
             (model, effects)
+        |> fun (state, effects) -> state, effects @ [ ReadBuildInfo ]
 
     let updateAt (env: HostEnv) (msg: AppMsg) (state: AppState) : AppState * AppEffect list =
         let step m model = stepAt env.Now m model
@@ -552,6 +554,7 @@ module Update =
         | DraftsCleared keys -> { state with Drafts = keys |> List.fold (fun d k -> Map.remove k d) state.Drafts; Announcements = [] }, []
         | CredentialEntered credential -> { state with Credential = Some credential; Announcements = [] }, []
         | Announced(p, text) -> { state with Announcements = [ p, text ] }, []
+        | BuildRead read -> { state with Build = Some read; Announcements = [] }, []
 
     /// One message at the host's clock.
     let update (msg: AppMsg) (state: AppState) : AppState * AppEffect list =
