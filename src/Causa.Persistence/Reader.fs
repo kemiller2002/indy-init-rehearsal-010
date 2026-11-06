@@ -445,3 +445,660 @@ module FileSets =
                     { Manifest = fileOf (Projection.manifest wire events snapshot)
                       Events = events
                       Snapshot = fileOf snapshot })))
+
+/// The wire-to-domain mapping (CONTRACT sections 5-7): every registered event decodes to its domain case or fails
+/// closed with the field it cannot read.
+[<RequireQualifiedAccess>]
+module WireDecode =
+    type private D<'T> = Result<'T, string>
+
+    let private fieldOf (name: string) (o: JsonValue) : D<JsonValue> =
+        match o with
+        | JObject members ->
+            match members |> List.tryFind (fst >> (=) name) with
+            | Some(_, v) -> Ok v
+            | None -> Error(sprintf "missing field %s" name)
+        | _ -> Error(sprintf "expected an object holding %s" name)
+
+    let private textOf (v: JsonValue) name : D<NonEmptyText> =
+        match v with
+        | JString s -> NonEmptyText.create s |> Result.mapError (fun e -> sprintf "%s: %s" name e)
+        | _ -> Error(sprintf "%s is not a string" name)
+
+    let private text (name: string) (o: JsonValue) = fieldOf name o |> Result.bind (fun v -> textOf v name)
+
+    let private optText (name: string) (o: JsonValue) : D<NonEmptyText option> =
+        fieldOf name o
+        |> Result.bind (function
+            | JNull -> Ok None
+            | v -> textOf v name |> Result.map Some)
+
+    let private uuidRegex = Text.RegularExpressions.Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\z")
+
+    let private guidOf (v: JsonValue) name : D<Guid> =
+        match v with
+        | JString s when uuidRegex.IsMatch s && s <> "00000000-0000-0000-0000-000000000000" -> Ok(Guid s)
+        | _ -> Error(sprintf "%s is not a canonical non-nil UUID" name)
+
+    let private guid (name: string) (o: JsonValue) = fieldOf name o |> Result.bind (fun v -> guidOf v name)
+
+    let private guids (name: string) (o: JsonValue) : D<Guid list> =
+        fieldOf name o
+        |> Result.bind (function
+            | JArray xs ->
+                xs |> List.fold (fun acc x -> acc |> Result.bind (fun l -> guidOf x name |> Result.map (fun g -> g :: l))) (Ok []) |> Result.map List.rev
+            | _ -> Error(sprintf "%s is not an array" name))
+
+    let private enumOf (e: WireEnum<'T>) (name: string) (o: JsonValue) : D<'T> =
+        match fieldOf name o with
+        | Ok(JString s) ->
+            match WireEnum.tryParse e s with
+            | Some v -> Ok v
+            | None -> Error(sprintf "%s: %s is not a %s" name s e.Name)
+        | Ok _ -> Error(sprintf "%s is not a string" name)
+        | Error e -> Error e
+
+    let private optTime (name: string) (o: JsonValue) : D<DateTimeOffset option> =
+        match fieldOf name o with
+        | Ok JNull -> Ok None
+        | Ok(JString s) ->
+            match parseTimestamp s with
+            | Some t -> Ok(Some t)
+            | None -> Error(sprintf "%s is not a millisecond UTC timestamp" name)
+        | Ok _ -> Error(sprintf "%s is not a timestamp" name)
+        | Error e -> Error e
+
+    let private str (name: string) (o: JsonValue) : D<string> =
+        match fieldOf name o with
+        | Ok(JString s) -> Ok s
+        | Ok _ -> Error(sprintf "%s is not a string" name)
+        | Error e -> Error e
+
+    type private ResultBuilder() =
+        member _.Bind(r: Result<'a, 'e>, f: 'a -> Result<'b, 'e>) = Result.bind f r
+        member _.Return(v) = Ok v
+        member _.ReturnFrom(r) = r
+
+    let private res = ResultBuilder()
+
+    let private hypothesisTransition (p: JsonValue) : D<HypothesisTransition> =
+        res {
+            let! id = guid "hypothesisId" p
+            let! from = enumOf Enums.hypothesisState "from" p
+            let! reason = text "reason" p
+            let! evidence = guids "evidenceIds" p
+            return { HypothesisId = HypothesisId id; From = from; Reason = reason; EvidenceIds = evidence |> List.map EvidenceId }
+        }
+
+    /// The domain event of one wire payload.
+    let payload (eventType: string) (p: JsonValue) : D<CoreEvent> =
+        match eventType with
+        | "InvestigationStarted" ->
+            res {
+                let! title = text "title" p
+                let! obs = guid "observationId" p
+                let! original = text "original" p
+                return InvestigationStarted { Title = title; ObservationId = ObservationId obs; Original = original }
+            }
+        | "LifecycleChanged" ->
+            res {
+                let! from = enumOf Enums.lifecycle "from" p
+                let! command = str "command" p
+                let! reason = optText "reason" p
+                let need () =
+                    match reason with
+                    | Some r -> Ok r
+                    | None -> Error "reason is required for this command"
+                match command with
+                | "activateInvestigation" -> return InvestigationActivated from
+                | "markAwaitingEvidence" ->
+                    let! r = need ()
+                    return InvestigationMarkedAwaitingEvidence(from, r)
+                | "markAwaitingVerification" -> return InvestigationMarkedAwaitingVerification from
+                | "resolveInvestigation" -> return InvestigationResolved from
+                | "closeInvestigation" -> return InvestigationClosed from
+                | "reopenInvestigation" ->
+                    let! r = need ()
+                    return InvestigationReopened(from, r)
+                | "verificationFailed" ->
+                    let! r = need ()
+                    return InvestigationVerificationFailed r
+                | other -> return! Error(sprintf "command %s is not a lifecycleCommand" other)
+            }
+        | "ObservationRecorded" ->
+            res {
+                let! id = guid "observationId" p
+                let! original = text "original" p
+                let! at = optTime "observedAt" p
+                return ObservationRecorded { ObservationId = ObservationId id; Original = original; ObservedAt = at }
+            }
+        | "HypothesisRecorded" ->
+            res {
+                let! id = guid "hypothesisId" p
+                let! statement = text "statement" p
+                let! mechanism = optText "mechanism" p
+                return HypothesisRecorded { HypothesisId = HypothesisId id; Statement = statement; Mechanism = mechanism }
+            }
+        | "HypothesisTransitioned" ->
+            res {
+                let! t = hypothesisTransition p
+                let! command = str "command" p
+                match command with
+                | "markPlausible" -> return HypothesisMarkedPlausible t
+                | "markSupported" -> return HypothesisMarkedSupported t
+                | "markWeakened" -> return HypothesisWeakened t
+                | "falsify" -> return HypothesisFalsified t
+                | "supersede" -> return HypothesisSuperseded t
+                | "reopen" -> return HypothesisReopened t
+                | other -> return! Error(sprintf "command %s is not a hypothesisCommand" other)
+            }
+        | "EvidenceAdmitted" ->
+            res {
+                let! id = guid "evidenceId" p
+                let! kind = enumOf Enums.contentKind "contentKind" p
+                let! content = text "content" p
+                let! category = enumOf Enums.evidenceCategory "category" p
+                let! source = text "source" p
+                let! at = optTime "capturedAt" p
+                return
+                    EvidenceAdmitted
+                        { EvidenceId = EvidenceId id; ContentKind = kind; Content = content; Category = category; Source = source; CapturedAt = at }
+            }
+        | "EvidenceSuperseded" ->
+            res {
+                let! id = guid "evidenceId" p
+                let! replacement = guid "replacementEvidenceId" p
+                let! reason = text "reason" p
+                return EvidenceSuperseded { EvidenceId = EvidenceId id; ReplacementEvidenceId = EvidenceId replacement; Reason = reason }
+            }
+        | "EvidenceVerificationAssessed" ->
+            res {
+                let! id = guid "evidenceId" p
+                let! v = enumOf Enums.verificationStatus "verification" p
+                return EvidenceVerificationAssessed { EvidenceId = EvidenceId id; Verification = v }
+            }
+        | "EvidenceRelated" ->
+            res {
+                let! id = guid "relationshipId" p
+                let! e = guid "evidenceId" p
+                let! h = guid "hypothesisId" p
+                let! kind = enumOf Enums.relationshipKind "kind" p
+                let! rationale = optText "rationale" p
+                return
+                    EvidenceRelationshipRecorded
+                        { RelationshipId = EvidenceRelationshipId id; EvidenceId = EvidenceId e; HypothesisId = HypothesisId h; Kind = kind; Rationale = rationale }
+            }
+        | "UnknownIdentified" ->
+            res {
+                let! id = guid "unknownId" p
+                let! q = text "question" p
+                let! m = enumOf Enums.materiality "materiality" p
+                return UnknownIdentified { UnknownId = UnknownId id; Question = q; Materiality = m }
+            }
+        | "UnknownTransitioned" ->
+            res {
+                let! id = guid "unknownId" p
+                let! s = enumOf Enums.unknownState "state" p
+                let! b = text "basis" p
+                return UnknownTransitioned { UnknownId = UnknownId id; State = s; Basis = b }
+            }
+        | "AssumptionRecorded" ->
+            res {
+                let! id = guid "assumptionId" p
+                let! prop = text "proposition" p
+                let! m = enumOf Enums.materiality "materiality" p
+                return AssumptionRecorded { AssumptionId = AssumptionId id; Proposition = prop; Materiality = m }
+            }
+        | "AssumptionTransitioned" ->
+            res {
+                let! id = guid "assumptionId" p
+                let! s = enumOf Enums.assumptionState "state" p
+                return AssumptionTransitioned { AssumptionId = AssumptionId id; State = s }
+            }
+        | "ContradictionRecorded" ->
+            res {
+                let! id = guid "contradictionId" p
+                let! st = text "statement" p
+                let! ev = guids "evidenceIds" p
+                let! m = enumOf Enums.materiality "materiality" p
+                return ContradictionRecorded { ContradictionId = ContradictionId id; Statement = st; EvidenceIds = ev |> List.map EvidenceId; Materiality = m }
+            }
+        | "ContradictionTransitioned" ->
+            res {
+                let! id = guid "contradictionId" p
+                let! s = enumOf Enums.contradictionState "state" p
+                let! b = text "basis" p
+                return ContradictionTransitioned { ContradictionId = ContradictionId id; State = s; Basis = b }
+            }
+        | "PredictionRecorded" ->
+            res {
+                let! id = guid "predictionId" p
+                let! h = guid "hypothesisId" p
+                let! st = text "statement" p
+                let! strength = enumOf Enums.predictionStrength "strength" p
+                let! timing = enumOf Enums.predictionTiming "timing" p
+                return
+                    PredictionRecorded
+                        { PredictionId = PredictionId id; HypothesisId = HypothesisId h; Statement = st; Strength = strength; Timing = timing }
+            }
+        | "ActionRecorded" ->
+            res {
+                let! id = guid "actionId" p
+                let! kind = enumOf Enums.actionKind "kind" p
+                let! purpose = text "purpose" p
+                let! targets = guids "targetHypothesisIds" p
+                return
+                    InvestigationActionRecorded
+                        { ActionId = InvestigationActionId id; Kind = kind; Purpose = purpose; TargetHypothesisIds = targets |> List.map HypothesisId }
+            }
+        | "ActionTransitioned" ->
+            res {
+                let! id = guid "actionId" p
+                let! s = enumOf Enums.actionState "state" p
+                return InvestigationActionTransitioned { ActionId = InvestigationActionId id; State = s }
+            }
+        | "FindingRecorded" ->
+            res {
+                let! id = guid "findingId" p
+                let! a = guid "actionId" p
+                let! r = text "originalResult" p
+                let! i = optText "interpretation" p
+                return FindingRecorded { FindingId = FindingId id; ActionId = InvestigationActionId a; OriginalResult = r; Interpretation = i }
+            }
+        | "NegativeKnowledgeEstablished" ->
+            res {
+                let! id = guid "negativeKnowledgeId" p
+                let! st = text "statement" p
+                let! scope = text "scope" p
+                let! basis = guids "basisEvidenceIds" p
+                return
+                    NegativeKnowledgeEstablished
+                        { NegativeKnowledgeId = NegativeKnowledgeId id; Statement = st; Scope = scope; BasisEvidenceIds = basis |> List.map EvidenceId }
+            }
+        | "CausalAssertionRecorded" ->
+            res {
+                let! id = guid "causeId" p
+                let! outcome = text "outcome" p
+                let! members = fieldOf "members" p
+                let! mechanism = optText "mechanism" p
+                let! ms =
+                    match members with
+                    | JArray xs ->
+                        xs
+                        |> List.fold
+                            (fun acc m ->
+                                acc
+                                |> Result.bind (fun l ->
+                                    res {
+                                        let! h = guid "hypothesisId" m
+                                        let! role = enumOf Enums.causeRole "role" m
+                                        return ({ HypothesisId = HypothesisId h; Role = role }: CausalMember) :: l
+                                    }))
+                            (Ok [])
+                        |> Result.map List.rev
+                    | _ -> Error "members is not an array"
+                return CausalAssertionRecorded { CauseId = CausalAssertionId id; Outcome = outcome; Members = ms; Mechanism = mechanism }
+            }
+        | "CausalAssertionConfirmed" ->
+            res {
+                let! id = guid "causeId" p
+                let! policy = text "policy" p
+                return CauseConfirmed { CauseId = CausalAssertionId id; Policy = policy }
+            }
+        | "CausalAssertionReopened" ->
+            res {
+                let! id = guid "causeId" p
+                let! reason = text "reason" p
+                return ConfirmedCauseReopened(CausalAssertionId id, reason)
+            }
+        | "CorrectiveActionRecorded" ->
+            res {
+                let! id = guid "correctiveActionId" p
+                let! kind = enumOf Enums.correctiveActionKind "kind" p
+                let! d = text "description" p
+                let! targets = guids "targetCauseIds" p
+                return
+                    CorrectiveActionRecorded
+                        { CorrectiveActionId = CorrectiveActionId id; Kind = kind; Description = d; TargetCauseIds = targets |> List.map CausalAssertionId }
+            }
+        | "CorrectiveActionTransitioned" ->
+            res {
+                let! g = guid "correctiveActionId" p
+                let id = CorrectiveActionId g
+                let! s = enumOf Enums.correctiveActionState "state" p
+                match s with
+                | CorrectiveActionState.Approved -> return CorrectiveActionApproved id
+                | CorrectiveActionState.InProgress -> return CorrectiveActionStarted id
+                | CorrectiveActionState.Implemented -> return CorrectiveActionImplemented id
+                | CorrectiveActionState.AwaitingVerificationOfEffect -> return CorrectiveActionAwaitingVerificationOfEffect id
+                | CorrectiveActionState.VerifiedEffective -> return CorrectiveActionVerifiedEffective id
+                | CorrectiveActionState.VerificationFailed -> return CorrectiveActionVerificationFailed id
+                | CorrectiveActionState.ReworkRequired -> return CorrectiveActionReworkRequired id
+                | CorrectiveActionState.Cancelled -> return CorrectiveActionCancelled id
+                | CorrectiveActionState.Proposed -> return! Error "proposed is not a correctiveActionTarget"
+            }
+        | "CriterionRecorded" ->
+            res {
+                let! id = guid "criterionId" p
+                let! c = guid "correctiveActionId" p
+                let! e = text "expectedOutcome" p
+                let! m = optText "method" p
+                return
+                    VerificationCriterionRecorded
+                        { CriterionId = VerificationCriterionId id; CorrectiveActionId = CorrectiveActionId c; ExpectedOutcome = e; Method = m }
+            }
+        | "VerificationRecorded" ->
+            res {
+                let! id = guid "verificationId" p
+                let! c = guid "criterionId" p
+                let! o = enumOf Enums.verificationOutcome "outcome" p
+                let! ev = guids "evidenceIds" p
+                return
+                    VerificationRecorded
+                        { VerificationId = VerificationId id; CriterionId = VerificationCriterionId c; Outcome = o; EvidenceIds = ev |> List.map EvidenceId }
+            }
+        | "ConclusionRecorded" ->
+            res {
+                let! id = guid "conclusionId" p
+                let! st = text "statement" p
+                let! strength = enumOf Enums.conclusionStrength "strength" p
+                let! causes = guids "causeIds" p
+                let! residual = optText "residualUncertainty" p
+                return
+                    ConclusionRecorded
+                        { ConclusionId = ConclusionId id
+                          Statement = st
+                          Strength = strength
+                          CauseIds = causes |> List.map CausalAssertionId
+                          ResidualUncertainty = residual }
+            }
+        | "ProposalRecorded" ->
+            res {
+                let! id = guid "proposalId" p
+                let! kind = enumOf Enums.proposalKind "kind" p
+                let! t = text "text" p
+                let! r = optText "rationale" p
+                return ProposalRecorded { ProposalId = ProposalId id; Kind = kind; ProposalText = t; Rationale = r }
+            }
+        | "ProposalWasAccepted" ->
+            res {
+                let! id = guid "proposalId" p
+                let! target = guid "targetId" p
+                return ProposalAccepted(ProposalId id, target)
+            }
+        | "ProposalWasRejected" ->
+            res {
+                let! id = guid "proposalId" p
+                let! reason = text "reason" p
+                return ProposalRejected(ProposalId id, reason)
+            }
+        | other -> Error(sprintf "unregistered eventType %s" other)
+
+    let actor (a: JsonValue) : D<Actor> =
+        res {
+            let! id = text "actorId" a
+            let! kind = str "kind" a
+            match kind with
+            | "human" -> return { ActorId = id; Kind = ActorKind.Human }
+            | "system" -> return { ActorId = id; Kind = ActorKind.System }
+            | "agent" ->
+                let! provider = text "provider" a
+                let! model = text "model" a
+                return { ActorId = id; Kind = ActorKind.Agent(provider, model) }
+            | other -> return! Error(sprintf "actor kind %s" other)
+        }
+
+    /// The domain envelope of one events.ndjson line.
+    let envelope (line: JsonValue) : D<EventEnvelope> =
+        res {
+            let! eventId = guid "eventId" line
+            let! inv = guid "investigationId" line
+            let! version =
+                match fieldOf "aggregateVersion" line with
+                | Ok(JInt v) when v >= 1L -> Ok v
+                | _ -> Error "aggregateVersion is not a positive integer"
+            let! eventType = str "eventType" line
+            let! occurredAt =
+                str "occurredAt" line
+                |> Result.bind (fun s -> parseTimestamp s |> Option.map Ok |> Option.defaultValue (Error "occurredAt is not a timestamp"))
+            let! actorJson = fieldOf "actor" line
+            let! a = actor actorJson
+            let! correlation = guid "correlationId" line
+            let! formatVersion = str "formatVersion" line
+            let! semanticVersion = str "semanticVersion" line
+            let! p = fieldOf "payload" line
+            let! event = payload eventType p
+            return
+                { EventId = EventId eventId
+                  Investigation = InvestigationId inv
+                  Version = AggregateVersion version
+                  Provenance =
+                    { OccurredAt = occurredAt
+                      Actor = a
+                      CorrelationId = correlation
+                      FormatVersion = formatVersion
+                      SemanticVersion = semanticVersion }
+                  Payload = CoreEvent event }
+        }
+
+/// The CONTRACT section 11.1 reader: an investigation directory's file set is verified stage by stage and the first
+/// failing stage is reported; a verified file set yields the replayed investigation (fail closed, section 11.2).
+[<RequireQualifiedAccess>]
+module StorageReader =
+    let private registered =
+        set
+            [ "InvestigationStarted"; "LifecycleChanged"; "ObservationRecorded"; "HypothesisRecorded"; "HypothesisTransitioned"
+              "EvidenceAdmitted"; "EvidenceSuperseded"; "EvidenceVerificationAssessed"; "EvidenceRelated"; "UnknownIdentified"
+              "UnknownTransitioned"; "AssumptionRecorded"; "AssumptionTransitioned"; "ContradictionRecorded"; "ContradictionTransitioned"
+              "PredictionRecorded"; "ActionRecorded"; "ActionTransitioned"; "FindingRecorded"; "NegativeKnowledgeEstablished"
+              "CausalAssertionRecorded"; "CausalAssertionConfirmed"; "CausalAssertionReopened"; "CorrectiveActionRecorded"
+              "CorrectiveActionTransitioned"; "CriterionRecorded"; "VerificationRecorded"; "ConclusionRecorded"; "ProposalRecorded"
+              "ProposalWasAccepted"; "ProposalWasRejected" ]
+
+    let private envelopeKeys =
+        set [ "formatVersion"; "eventId"; "investigationId"; "aggregateVersion"; "eventType"; "occurredAt"; "actor"; "semanticVersion"; "correlationId"; "payload" ]
+
+    let private manifestKeys =
+        set
+            [ "aggregateVersion"; "createdAt"; "domainPacks"; "eventCount"; "eventsSha256"; "formatVersion"; "investigationId"; "schemaVersion"
+              "semanticVersion"; "snapshotSha256"; "snapshotVersion"; "updatedAt" ]
+
+    let private snapshotKeys =
+        set [ "aggregateVersion"; "formatVersion"; "generatedAt"; "investigationId"; "projectionVersion"; "semanticVersion"; "state" ]
+
+    let private stage code file line detail = VerificationFailure.ReaderStage(code, file, line, detail)
+
+    let private utf8 = Text.UTF8Encoding(false, true)
+
+    let private decodeText (file: string) (bytes: byte[]) : Result<string, VerificationFailure> =
+        if bytes.Length = 0 then Error(stage "CAUSA.ENCODING" file None "empty file")
+        elif bytes.Length >= 3 && bytes[0] = 0xEFuy && bytes[1] = 0xBBuy && bytes[2] = 0xBFuy then Error(stage "CAUSA.ENCODING" file None "byte order mark")
+        else
+            try
+                let s = utf8.GetString bytes
+                if s.Contains '\r' then Error(stage "CAUSA.ENCODING" file None "CR in file")
+                elif not (s.EndsWith "\n") then Error(stage "CAUSA.ENCODING" file None "missing final LF")
+                else Ok s
+            with _ -> Error(stage "CAUSA.ENCODING" file None "invalid UTF-8")
+
+    let private keysOf (v: JsonValue) =
+        match v with
+        | JObject m -> m |> List.map fst |> set
+        | _ -> Set.empty
+
+    let private versionsOk (v: JsonValue) (file: string) (line: int option) =
+        [ "formatVersion"; "schemaVersion"; "semanticVersion" ]
+        |> List.tryPick (fun k ->
+            match field k v with
+            | Some(JString s) when s <> "1.0.0" -> Some(stage "CAUSA.UNSUPPORTED_VERSION" file line (sprintf "%s %s" k s))
+            | _ -> None)
+
+    /// Verifies one investigation's file set read at `commit` from `address`, for the investigation `expected` names
+    /// (when given). Stages 1-14, 16 and 17 are this reader's; stage 15 (admissibility) is the domain kernel's replay.
+    let verify
+        (kernel: DomainKernel)
+        (expected: InvestigationId option)
+        (address: WorkspaceAddress.T)
+        (commit: CommitOid)
+        (files: FileSet)
+        : Result<VerifiedInvestigation, VerificationFailure list> =
+        let fail f = Error [ f ]
+        let parseFile file text =
+            match parse (text: string).[.. text.Length - 2] with
+            | Ok v -> Ok v
+            | Error e -> Error(stage "CAUSA.JSON_MALFORMED" file None e)
+        match decodeText "manifest.json" files.Manifest, decodeText "events.ndjson" files.Events, decodeText "snapshot.json" files.Snapshot with
+        | Error e, _, _
+        | _, Error e, _
+        | _, _, Error e -> fail e
+        | Ok manifestText, Ok eventsText, Ok snapshotText ->
+            let lines = eventsText.[.. eventsText.Length - 2].Split('\n') |> List.ofArray
+            if lines |> List.exists ((=) "") then fail (stage "CAUSA.ENCODING" "events.ndjson" None "blank line")
+            else
+            match parseFile "manifest.json" manifestText, parseFile "snapshot.json" snapshotText with
+            | Error e, _
+            | _, Error e -> fail e
+            | Ok manifest, Ok snapshot ->
+            let parsedLines =
+                lines |> List.mapi (fun i l -> i + 1, l, parse l)
+            match parsedLines |> List.tryPick (fun (i, _, r) -> match r with Error e -> Some(i, e) | Ok _ -> None) with
+            | Some(i, e) -> fail (stage "CAUSA.JSON_MALFORMED" "events.ndjson" (Some i) e)
+            | None ->
+            let events = parsedLines |> List.map (fun (i, l, r) -> i, l, (match r with Ok v -> v | Error _ -> JNull))
+            // Stage 4: canonical bytes.
+            let nonCanonical =
+                if canonical manifest + "\n" <> manifestText then Some(stage "CAUSA.NON_CANONICAL" "manifest.json" None "not RFC 8785")
+                elif canonical snapshot + "\n" <> snapshotText then Some(stage "CAUSA.NON_CANONICAL" "snapshot.json" None "not RFC 8785")
+                else events |> List.tryPick (fun (i, l, v) -> if canonical v <> l then Some(stage "CAUSA.NON_CANONICAL" "events.ndjson" (Some i) "not RFC 8785") else None)
+            match nonCanonical with
+            | Some f -> fail f
+            | None ->
+            // Stage 5: versions.
+            let unsupported =
+                versionsOk manifest "manifest.json" None
+                |> Option.orElse (versionsOk snapshot "snapshot.json" None)
+                |> Option.orElse (events |> List.tryPick (fun (i, _, v) -> versionsOk v "events.ndjson" (Some i)))
+            match unsupported with
+            | Some f -> fail f
+            | None ->
+            // Stage 6: registered event types.
+            let unknownType =
+                events
+                |> List.tryPick (fun (i, _, v) ->
+                    match field "eventType" v with
+                    | Some(JString t) when not (registered.Contains t) -> Some(stage "CAUSA.UNKNOWN_EVENT_TYPE" "events.ndjson" (Some i) t)
+                    | _ -> None)
+            match unknownType with
+            | Some f -> fail f
+            | None ->
+            // Stage 7: closed structures and typed decoding (each event decodes to its domain case).
+            let schema =
+                let badTime (v: JsonValue) k = (str k v |> Option.bind parseTimestamp).IsNone
+                if keysOf manifest <> manifestKeys then Some(stage "CAUSA.SCHEMA_VIOLATION" "manifest.json" None "manifest fields")
+                elif badTime manifest "createdAt" || badTime manifest "updatedAt" then Some(stage "CAUSA.SCHEMA_VIOLATION" "manifest.json" None "timestamp")
+                elif badTime snapshot "generatedAt" then Some(stage "CAUSA.SCHEMA_VIOLATION" "snapshot.json" None "timestamp")
+                elif keysOf snapshot <> snapshotKeys then Some(stage "CAUSA.SCHEMA_VIOLATION" "snapshot.json" None "snapshot fields")
+                else
+                    events
+                    |> List.tryPick (fun (i, _, v) ->
+                        if keysOf v <> envelopeKeys then Some(stage "CAUSA.SCHEMA_VIOLATION" "events.ndjson" (Some i) "envelope fields")
+                        else
+                            match WireDecode.envelope v with
+                            | Error e -> Some(stage "CAUSA.SCHEMA_VIOLATION" "events.ndjson" (Some i) e)
+                            | Ok decoded when
+                                (match decoded.Provenance.Actor.Kind with ActorKind.Agent _ -> true | _ -> false)
+                                && str "eventType" v <> Some "ProposalRecorded" ->
+                                Some(stage "CAUSA.SCHEMA_VIOLATION" "events.ndjson" (Some i) "an agent actor may record only proposals")
+                            | Ok { Payload = CoreEvent(EvidenceAdmitted ev) } when
+                                ev.ContentKind = ContentKind.Artifact
+                                && not (ev.Content.Value.StartsWith "http://" || ev.Content.Value.StartsWith "https://") ->
+                                Some(stage "CAUSA.SCHEMA_VIOLATION" "events.ndjson" (Some i) "an artifact is referenced by an absolute http(s) URL")
+                            | Ok decoded ->
+                                // Closed payloads: re-encoding must give exactly the stored payload fields.
+                                match WireEvents.envelope decoded with
+                                | Ok again when keysOf (field "payload" again |> Option.defaultValue JNull) = keysOf (field "payload" v |> Option.defaultValue JNull) -> None
+                                | _ -> Some(stage "CAUSA.SCHEMA_VIOLATION" "events.ndjson" (Some i) "payload fields"))
+            match schema with
+            | Some f -> fail f
+            | None ->
+            let decoded = events |> List.map (fun (_, _, v) -> match WireDecode.envelope v with Ok e -> e | Error e -> failwith e)
+            let n = int64 events.Length
+            let firstAt = events |> List.head |> fun (_, _, v) -> field "occurredAt" v
+            let lastAt = events |> List.last |> fun (_, _, v) -> field "occurredAt" v
+            let manifestId = str "investigationId" manifest
+            // Stage 8: manifest.
+            let mismatch =
+                if integer "aggregateVersion" manifest <> Some n || integer "eventCount" manifest <> Some n then Some "counts"
+                elif field "createdAt" manifest <> firstAt || field "updatedAt" manifest <> lastAt then Some "created/updated times"
+                else
+                    match expected with
+                    | Some(InvestigationId g) when manifestId <> Some(uuidText g) -> Some "investigationId differs from the directory"
+                    | _ -> None
+            match mismatch with
+            | Some m -> fail (stage "CAUSA.MANIFEST_MISMATCH" "manifest.json" None m)
+            | None ->
+            // Stage 9: events digest.
+            if str "eventsSha256" manifest <> Some(sha256Hex files.Events) then fail (stage "CAUSA.EVENTS_HASH_MISMATCH" "manifest.json" None "eventsSha256")
+            else
+            // Stage 10: one investigation.
+            match events |> List.tryFind (fun (_, _, v) -> str "investigationId" v <> manifestId) with
+            | Some(i, _, _) -> fail (stage "CAUSA.INVESTIGATION_MISMATCH" "events.ndjson" (Some i) "another investigation")
+            | None ->
+            // Stage 11: unique event ids.
+            let ids = decoded |> List.map _.EventId
+            if (List.distinct ids).Length <> ids.Length then fail (stage "CAUSA.EVENT_ID_DUPLICATE" "events.ndjson" None "duplicate eventId")
+            else
+            // Stage 12: versions 1..N.
+            match decoded |> List.indexed |> List.tryFind (fun (i, e) -> e.Version <> AggregateVersion(int64 (i + 1))) with
+            | Some(i, _) -> fail (stage "CAUSA.SEQUENCE_INVALID" "events.ndjson" (Some(i + 1)) "aggregateVersion")
+            | None ->
+            // Stage 13: event id derivation.
+            let derived (e: EventEnvelope) =
+                let (InvestigationId inv) = e.Investigation
+                let (AggregateVersion v) = e.Version
+                EventId(eventId inv v e.Provenance.CorrelationId)
+            match decoded |> List.indexed |> List.tryFind (fun (_, e) -> e.EventId <> derived e) with
+            | Some(i, _) -> fail (stage "CAUSA.EVENT_ID_MISMATCH" "events.ndjson" (Some(i + 1)) "eventId derivation")
+            | None ->
+            // Stage 14: a correlation id names one group.
+            let groups =
+                decoded
+                |> List.fold
+                    (fun (acc: Guid list) e ->
+                        match acc with
+                        | last :: _ when last = e.Provenance.CorrelationId -> acc
+                        | _ -> e.Provenance.CorrelationId :: acc)
+                    []
+            if (List.distinct groups).Length <> groups.Length then fail (stage "CAUSA.CORRELATION_REUSED" "events.ndjson" None "correlationId")
+            else
+            // Stage 15: admissibility (the domain kernel's replay).
+            match kernel.Replay decoded with
+            | Error e -> Error [ VerificationFailure.ReplayRejected e; stage "CAUSA.HISTORY_INADMISSIBLE" "events.ndjson" None (sprintf "%A" e) ]
+            | Ok investigation ->
+            // Stage 16: snapshot digest.
+            if str "snapshotSha256" manifest <> Some(digest snapshot) then fail (stage "CAUSA.SNAPSHOT_HASH_MISMATCH" "manifest.json" None "snapshotSha256")
+            else
+            // Stage 17: snapshot equals the projection of the replayed history.
+            match Projection.snapshot (events |> List.map (fun (_, _, v) -> v)) with
+            | Ok projected when canonical projected = canonical snapshot ->
+                Ok { Investigation = investigation; History = decoded; ReadAt = commit; Address = address; Bytes = files }
+            | Ok _ -> fail (stage "CAUSA.SNAPSHOT_MISMATCH" "snapshot.json" None "snapshot differs from the projection of the history")
+            | Error e -> fail (stage "CAUSA.SNAPSHOT_MISMATCH" "snapshot.json" None e)
+
+    /// The IF41-STORAGE codec over the domain kernel.
+    let codec (kernel: DomainKernel) : StorageCodec =
+        { PathOf = fun (Workspace w) (InvestigationId g) -> RepoPath(sprintf "%s/investigations/%s" w (uuidText g))
+          Encode =
+            fun basis appended ->
+                match FileSets.append basis.Bytes basis.History appended with
+                | Ok fs -> fs
+                | Error(WireError e) -> failwithf "CAUSA.UNREPRESENTABLE: %s" e
+          EncodeNew =
+            fun id history ->
+                match FileSets.ofHistory history with
+                | Error(WireError e) -> Error [ VerificationFailure.ReaderStage("CAUSA.UNREPRESENTABLE", "events.ndjson", None, e) ]
+                | Ok fs ->
+                    // Only a file set that verifies is ever sent.
+                    let probe = WorkspaceAddress.catalog (Workspace "probe")
+                    verify kernel (Some id) probe (CommitOid "unsaved") fs |> Result.map (fun _ -> fs)
+          Verify = fun address commit files -> verify kernel None address commit files }

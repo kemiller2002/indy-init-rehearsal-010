@@ -55,7 +55,10 @@ type FakeState =
       Tokens: Map<string, FakeAccess>
       Faults: (FaultTarget * FakeFault) list
       Log: FakeLogEntry list
-      Counter: int64 }
+      Counter: int64
+      /// GraphQL Blob.text is truncated above this many bytes (GitHub truncates large blobs), so a reader must fall back
+      /// to the Git blobs API.
+      TruncateTextAbove: int }
 
 /// A stateful fake of the GitHub API the application uses: REST repository, refs, contents, commits and compare, and
 /// GraphQL createCommitOnBranch. It keeps real commit ancestry, enforces expectedHeadOid, accepts commits from simulated
@@ -87,7 +90,8 @@ module StatefulFake =
           Tokens = Map.ofList tokens
           Faults = []
           Log = []
-          Counter = 0L }
+          Counter = 0L
+          TruncateTextAbove = 1048576 }
 
     let private newCommit (state: FakeState) (parent: string) (tree: Map<string, byte[]>) (message: string) (author: string) =
         let counter = state.Counter + 1L
@@ -223,10 +227,52 @@ module StatefulFake =
                         let state, oid = newCommit state head tree text "app"
                         { state with Branches = state.Branches.Add(branchName, oid) }, Reply(200, Recordings.commitCreated oid)
 
+    /// The GraphQL read of one investigation's three files at a commit or at the branch head (GitHubRequests.investigationFiles).
+    let private filesQuery (state: FakeState) (body: string) : FakeState * Reply =
+        use doc = JsonDocument.Parse body
+        let v = doc.RootElement.GetProperty("variables")
+        let get (n: string) = getString v n |> Option.defaultValue ""
+        let rev = get "rev"
+        let target =
+            if rev.StartsWith "refs/heads/" then state.Branches.TryFind(rev.Substring 11)
+            elif state.Commits.ContainsKey rev then Some rev
+            else None
+        match target, get "owner" = state.Owner && get "name" = state.Name with
+        | _, false -> state, Reply(200, """{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","path":["repository"],"message":"Could not resolve to a Repository."}]}""")
+        | None, true -> state, Reply(200, """{"data":{"repository":{"object":null}}}""")
+        | Some oid, true ->
+            let tree = state.Commits[oid].Tree
+            let entry (path: string) =
+                match tree.TryFind path with
+                | Some bytes when bytes.Length > state.TruncateTextAbove ->
+                    sprintf
+                        """{"object":{"oid":"%s","text":%s,"isTruncated":true,"byteSize":%d}}"""
+                        (blobSha bytes)
+                        (JsonSerializer.Serialize(Encoding.UTF8.GetString(bytes, 0, state.TruncateTextAbove)))
+                        bytes.Length
+                | Some bytes ->
+                    sprintf
+                        """{"object":{"oid":"%s","text":%s,"isTruncated":false,"byteSize":%d}}"""
+                        (blobSha bytes)
+                        (JsonSerializer.Serialize(Encoding.UTF8.GetString bytes))
+                        bytes.Length
+                | None -> "null"
+            state,
+            Reply(
+                200,
+                sprintf
+                    """{"data":{"repository":{"object":{"oid":"%s","committedDate":"2026-11-06T17:00:00Z","m":%s,"e":%s,"s":%s}}}}"""
+                    oid
+                    (entry (get "m"))
+                    (entry (get "e"))
+                    (entry (get "s"))
+            )
+
     let private read (state: FakeState) (request: HttpRequest) (access: FakeAccess) : FakeState * Reply =
         let uri = Uri request.Url
         let segments = uri.AbsolutePath.Trim('/').Split('/') |> Array.map Uri.UnescapeDataString |> List.ofArray
         match request.Method, segments with
+        | Post, [ "graphql" ] when (request.Body |> Option.defaultValue "").Contains "\"rev\"" -> filesQuery state (request.Body |> Option.defaultValue "{}")
         | Post, [ "graphql" ] ->
             if access <> ReadWrite then state, Reply(200, Recordings.graphQlForbidden)
             else mutate state (request.Body |> Option.defaultValue "") false
@@ -275,11 +321,25 @@ module StatefulFake =
                             entries
                             |> List.map (fun (n, t) -> sprintf """{"name":%s,"path":%s,"type":"%s"}""" (JsonSerializer.Serialize n) (JsonSerializer.Serialize(prefix + n)) t)
                         state, Reply(200, "[" + String.Join(",", items) + "]")
+        | Get, [ "repos"; _; _; "git"; "blobs"; sha ] ->
+            let found =
+                state.Commits |> Map.toSeq |> Seq.collect (fun (_, c) -> c.Tree |> Map.toSeq |> Seq.map snd) |> Seq.tryFind (fun b -> blobSha b = sha)
+            match found with
+            | Some bytes ->
+                state, Reply(200, sprintf """{"sha":"%s","node_id":"B","size":%d,"url":"u","content":"%s","encoding":"base64"}""" sha bytes.Length (Convert.ToBase64String bytes))
+            | None -> state, Reply(404, Recordings.notFound)
         | Get, [ "repos"; _; _; "commits"; oid ] ->
             match resolve state oid with
             | Some o ->
                 let c = state.Commits[o]
-                state, Reply(200, Recordings.commitAnswer c.Oid c.Message c.Parent)
+                let before = c.Parent |> Option.map (fun p -> state.Commits[p].Tree) |> Option.defaultValue Map.empty
+                let changed =
+                    Set.union (c.Tree |> Map.keys |> set) (before |> Map.keys |> set)
+                    |> Set.filter (fun p -> c.Tree.TryFind p <> before.TryFind p)
+                    |> Set.toList
+                let files = changed |> List.map (fun p -> sprintf """{"filename":%s}""" (JsonSerializer.Serialize p)) |> String.concat ","
+                let body = Recordings.commitAnswer c.Oid c.Message c.Parent
+                state, Reply(200, body.Substring(0, body.Length - 1) + sprintf ""","files":[%s]}""" files)
             | None -> state, Reply(422, sprintf """{"message":"No commit found for SHA: %s","status":"422"}""" oid)
         | Get, "repos" :: _ :: _ :: "compare" :: range ->
             let r = String.Join("/", range)
@@ -313,6 +373,7 @@ module StatefulFake =
         match GitHubRequests.operationOf request with
         | Some(CommitOnBranch _)
         | Some CreateBranch -> true
+        | Some(ReadInvestigationAt _) -> false
         | _ -> request.Method = Post
 
     let private isStaleMutation (state: FakeState) (request: HttpRequest) =
@@ -772,3 +833,406 @@ module Probes =
           Classified = classified
           HeadAfter = after
           MarkerAtHead = carries }
+
+/// Fixtures and a driver for the save machines: a real investigation history encoded and verified through the
+/// causa-storage codec, a stateful fake holding it in a working copy, and a loop that executes the machines' requests
+/// against the fake exactly as the App engine does with Limen (send, interpret, step).
+[<RequireQualifiedAccess>]
+module SaveKit =
+    open Causa.Domain
+
+    let guid (n: int) = Guid(sprintf "00000000-0000-4000-8000-%012d" n)
+
+    let text (s: string) =
+        match NonEmptyText.create s with
+        | Ok t -> t
+        | Error e -> failwith e
+
+    let now = DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero)
+    let investigationId = InvestigationId(guid 1)
+    let actor: Actor = { ActorId = text "causa-web"; Kind = ActorKind.Human }
+
+    let envelope (version: int64) (correlation: Guid) (event: CoreEvent) : EventEnvelope =
+        { EventId = EventId(Canonical.eventId (guid 1) version correlation)
+          Investigation = investigationId
+          Version = AggregateVersion version
+          Provenance =
+            { OccurredAt = now.AddSeconds(float version)
+              Actor = actor
+              CorrelationId = correlation
+              FormatVersion = Events.formatVersion
+              SemanticVersion = Events.semanticVersion }
+          Payload = CoreEvent event }
+
+    let started: InvestigationStarted =
+        { Title = text "Payment failures"; ObservationId = ObservationId(guid 2); Original = text "Checkout fails" }
+
+    let history = [ envelope 1L (guid 500) (InvestigationStarted started) ]
+
+    let observation (n: int) (words: string) =
+        ObservationRecorded { ObservationId = ObservationId(guid (3000 + n)); Original = text words; ObservedAt = None }
+
+    /// An unsaved command: one more observation.
+    let edit (n: int) : CommandEnvelope =
+        { CommandId = guid (2000 + n)
+          Investigation = investigationId
+          ExpectedVersion = None
+          Command = Core(RecordObservation { ObservationId = ObservationId(guid (3000 + n)); Original = text $"edit {n}"; ObservedAt = None }) }
+
+    let startCommand (id: InvestigationId) : CommandEnvelope =
+        let (InvestigationId g) = id
+        { CommandId = Guid.NewGuid()
+          Investigation = id
+          ExpectedVersion = None
+          Command = Core(StartInvestigation { Title = text "New investigation"; ObservationId = ObservationId(Guid.NewGuid()); Original = text (sprintf "Problem %O" g) }) }
+
+    let run = "kit"
+
+    let writable =
+        WorkspaceAddress.workingCopy [] run |> Option.bind Writable.ofAddress |> Option.defaultWith (fun () -> failwith "working copy refused")
+
+    let address = Writable.address writable
+    let workspace = address.Workspace
+
+    let dir (InvestigationId g) =
+        let (Workspace w) = workspace
+        sprintf "%s/investigations/%s" w (g.ToString("D"))
+
+    let filesOf (h: EventEnvelope list) : FileSet =
+        match FileSets.ofHistory h with
+        | Ok fs -> fs
+        | Error e -> failwithf "%A" e
+
+    /// A version of the investigation at `commit`, verified exactly as a load verifies it.
+    let verified (commit: CommitOid) (h: EventEnvelope list) : VerifiedInvestigation =
+        match StorageReader.verify Kernel.domain (Some investigationId) address commit (filesOf h) with
+        | Ok v -> v
+        | Error e -> failwithf "fixture does not verify: %A" e
+
+    let repoFiles (id: InvestigationId) (fs: FileSet) =
+        let d = dir id
+        [ d + "/manifest.json", fs.Manifest; d + "/events.ndjson", fs.Events; d + "/snapshot.json", fs.Snapshot ]
+
+    /// A fake repository whose branch head holds the fixture investigation, and its verified version at that head.
+    let repository () =
+        let running =
+            StatefulFake.start (
+                StatefulFake.initial "owner" "repo" "main" (("README.md", "x"B) :: repoFiles investigationId (filesOf history)) [ "kit-token", ReadWrite ]
+            )
+        let head = CommitOid((running.Current()).Branches["main"])
+        running, verified head history
+
+    let connection: ConnectionContext =
+        { Repository = { Owner = "owner"; Name = "repo"; Branch = "main" }
+          Credential = Credential.create "kit-token" }
+
+    /// Request contexts with increasing identities (the engine's NextId).
+    type Clock =
+        { mutable Next: int64
+          mutable Now: DateTimeOffset
+          mutable ElsewhereInFlight: bool
+          mutable Connection: ConnectionContext }
+
+    let clock () = { Next = 100L; Now = now; ElsewhereInFlight = false; Connection = connection }
+
+    let context (c: Clock) : RequestContext =
+        { Connection = c.Connection; NextId = RequestId c.Next; MutationInFlightElsewhere = c.ElsewhereInFlight; Now = c.Now }
+
+    let advance (c: Clock) (effects: SaveEffect list) =
+        if effects |> List.exists (function Send _ -> true | _ -> false) then c.Next <- c.Next + 1L
+
+    let requests (effects: SaveEffect list) = effects |> List.choose (function Send r -> Some r | _ -> None)
+
+    let isMutation (r: HttpRequest) = GitHubRequests.operationOf r |> Option.exists (function CommitOnBranch _ -> true | _ -> false)
+
+    let stepOk (m: SaveMachine) (c: Clock) (s: InvestigationSession) (input: SaveInput) =
+        match m.Step (context c) s input with
+        | Ok(next, effects) ->
+            advance c effects
+            next, effects
+        | Error f -> failwithf "%s refused: %s" f.Input f.Reason
+
+    /// Executes the session's outstanding request and every follow-up request through `execute` until the session
+    /// awaits nothing; returns the final session, every event stepped, every request sent and every other effect.
+    let driveAll (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
+        let rec loop (s: InvestigationSession) (pending: HttpRequest list) events sent (others: SaveEffect list) (budget: int) =
+            match pending with
+            | [] -> s, List.rev events, List.rev sent, others
+            | _ when budget = 0 -> failwith "the save did not settle"
+            | r :: rest ->
+                let outcome = execute r
+                match m.Interpret (context c) s outcome with
+                | Interpretation.NextRequest(next, request) ->
+                    c.Next <- c.Next + 1L
+                    loop next (rest @ [ request ]) events (r :: sent) others (budget - 1)
+                | MachineEvent input ->
+                    match m.Step (context c) s input with
+                    | Ok(next, effects) ->
+                        advance c effects
+                        let more =
+                            match next.State with
+                            | SaveState.Conflict _ -> []
+                            | _ -> requests effects
+                        let rest' = effects |> List.filter (function Send _ -> false | _ -> true)
+                        loop next (rest @ more) (input :: events) (r :: sent) (others @ rest') (budget - 1)
+                    | Error f -> failwithf "%s refused in %s: %s" f.Input f.State f.Reason
+        loop session first [] [] [] 40
+
+    let drive (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
+        let s, events, sent, _ = driveAll m c execute session first
+        s, events, sent
+
+/// The SM-SAVE / SM-CONFLICT / SM-LOAD transition-test fixture (state-machine-contracts.json).
+module MachineKit =
+    open Causa.Domain
+
+    let m () : SaveMachine = saveMachine
+    let baseHead = CommitOid "c0"
+    let baseVerified = SaveKit.verified baseHead SaveKit.history
+    let remoteHistory = SaveKit.history @ [ SaveKit.envelope 2L (SaveKit.guid 501) (SaveKit.observation 99 "other writer") ]
+    let remoteVerified = SaveKit.verified (CommitOid "c2") remoteHistory
+    let outstanding = RequestId 7L
+
+    let ctxWith (next: int64) (elsewhere: bool) (at: DateTimeOffset) : RequestContext =
+        { Connection = SaveKit.connection; NextId = RequestId next; MutationInFlightElsewhere = elsewhere; Now = at }
+
+    let ctx = ctxWith 40L false SaveKit.now
+
+    let confirmation (commit: string) =
+        let fs = SaveKit.filesOf SaveKit.history
+        match Confirmation.ofReadBack SaveKit.investigationId (CommitOid commit) SaveKit.now fs fs with
+        | Some c -> c
+        | None -> failwith "equal bytes confirm"
+
+    let saved () = (m ()).Initial SaveKit.writable baseVerified
+    let unsaved () = { saved () with State = SaveState.Unsaved; Unsaved = [ SaveKit.edit 1 ] }
+    let saving (awaiting: Awaiting) = { unsaved () with State = SaveState.Saving; Outstanding = Some(outstanding, awaiting); Mutations = 1 }
+    let offline () = { unsaved () with State = SaveState.Offline }
+    let conflict (view: ConflictView) = { unsaved () with State = SaveState.Conflict view }
+    let unknown (left: int) (reads: int) (awaiting: Awaiting option) =
+        { unsaved () with
+            State = SaveState.UnknownOutcome left
+            ReconcileReads = reads
+            Mutations = 1
+            Outstanding = awaiting |> Option.map (fun a -> outstanding, a) }
+    let failed () = { unsaved () with State = SaveState.SaveFailed RepositoryKeptChanging }
+
+    let stateName (s: SaveState) =
+        match s with
+        | SaveState.Saved _ -> "Saved"
+        | SaveState.Unsaved -> "Unsaved"
+        | SaveState.Saving -> "Saving"
+        | SaveState.Offline -> "Offline"
+        | SaveState.Conflict _ -> "Conflict"
+        | SaveState.UnknownOutcome _ -> "UnknownOutcome"
+        | SaveState.SaveFailed _ -> "SaveFailed"
+
+    let step (c: RequestContext) (s: InvestigationSession) (input: SaveInput) =
+        match (m ()).Step c s input with
+        | Ok r -> r
+        | Error f -> failwithf "%s/%s refused: %s" f.State f.Input f.Reason
+
+    let sends (effects: SaveEffect list) = effects |> List.choose (function Send r -> Some r | _ -> None)
+    let mutations (effects: SaveEffect list) = sends effects |> List.filter SaveKit.isMutation
+    let schedules (effects: SaveEffect list) = effects |> List.choose (function ScheduleReconcileRead(_, ms) -> Some ms | _ -> None)
+    let work (s: InvestigationSession) = s.Unsaved @ s.AfterInFlight
+
+/// End-to-end save scenarios: a fresh machine (its own tab memory), a fake repository holding the fixture
+/// investigation, and an executor that records every request it sends.
+[<RequireQualifiedAccess>]
+module SaveScenario =
+    type T =
+        { Machine: SaveMachine
+          Fake: StatefulFake.Running
+          Clock: SaveKit.Clock
+          mutable Session: InvestigationSession
+          mutable Sent: HttpRequest list
+          mutable Events: SaveInput list
+          /// Runs before each request reaches the fake (simulated other writers, injected faults).
+          mutable Before: HttpRequest -> unit }
+
+    let create () : T =
+        let machine = SaveMachines.create SaveMachines.support
+        let running, verified = SaveKit.repository ()
+        { Machine = machine
+          Fake = running
+          Clock = SaveKit.clock ()
+          Session = machine.Initial SaveKit.writable verified
+          Sent = []
+          Events = []
+          Before = ignore }
+
+    let execute (sc: T) : Execute =
+        fun r ->
+            sc.Before r
+            sc.Sent <- sc.Sent @ [ r ]
+            sc.Fake.Execute r
+
+    let input (sc: T) (i: SaveInput) =
+        let next, effects = SaveKit.stepOk sc.Machine sc.Clock sc.Session i
+        sc.Session <- next
+        sc.Events <- sc.Events @ [ i ]
+        let final, events, _, others = SaveKit.driveAll sc.Machine sc.Clock (execute sc) next (SaveKit.requests effects)
+        sc.Session <- final
+        sc.Events <- sc.Events @ events
+        effects @ others
+
+    let edit (sc: T) (n: int) = input sc (SaveInput.Edit(SaveKit.edit n)) |> ignore
+
+    /// The timer of a ScheduleReconcileRead fired (the engine calls ReconcileDue); the read is executed and driven.
+    let reconcileDue (sc: T) =
+        match sc.Machine.ReconcileDue (SaveKit.context sc.Clock) sc.Session with
+        | Ok(next, effects) ->
+            SaveKit.advance sc.Clock effects
+            let final, events, _, others = SaveKit.driveAll sc.Machine sc.Clock (execute sc) next (SaveKit.requests effects)
+            sc.Session <- final
+            sc.Events <- sc.Events @ events
+            effects @ others
+        | Error f -> failwithf "ReconcileDue refused: %s" f.Reason
+
+    let head (sc: T) = CommitOid((sc.Fake.Current()).Branches["main"])
+
+    let mutations (sc: T) = sc.Sent |> List.filter SaveKit.isMutation
+
+    let reads (sc: T) = sc.Sent |> List.filter (SaveKit.isMutation >> not)
+
+    let otherWriter (sc: T) (files: (string * byte[]) list) =
+        sc.Fake.Update(fun s -> StatefulFake.otherWriterCommits "main" "other writer" files [] s |> fst)
+
+    let stateName (sc: T) = MachineKit.stateName sc.Session.State
+
+/// The same save scenarios against the real test repository (PERSIST-025-O3): a fresh branch, a new investigation in
+/// a fresh working copy created and saved by the application itself, then edits, saves and reads through the real API.
+[<RequireQualifiedAccess>]
+module LiveRun =
+    open Causa.Domain
+
+    type T =
+        { Machine: SaveMachine
+          Provider: GitHubProvider
+          Clock: SaveKit.Clock
+          Id: InvestigationId
+          Writable: Writable.T
+          mutable Session: InvestigationSession
+          mutable Sent: HttpRequest list
+          mutable Events: SaveInput list
+          mutable Before: HttpRequest -> unit }
+
+    let private truncate (t: DateTimeOffset) = DateTimeOffset(t.UtcTicks - t.UtcTicks % TimeSpan.TicksPerMillisecond, TimeSpan.Zero)
+
+    let execute (run: T) : Execute =
+        fun r ->
+            run.Before r
+            run.Sent <- run.Sent @ [ r ]
+            run.Provider.Execute r
+
+    let input (run: T) (i: SaveInput) =
+        run.Clock.Now <- truncate DateTimeOffset.UtcNow
+        let next, effects = SaveKit.stepOk run.Machine run.Clock run.Session i
+        run.Session <- next
+        run.Events <- run.Events @ [ i ]
+        let final, events, _, others = SaveKit.driveAll run.Machine run.Clock (execute run) next (SaveKit.requests effects)
+        run.Session <- final
+        run.Events <- run.Events @ events
+        effects @ others
+
+    let edit (run: T) (words: string) =
+        let command: CommandEnvelope =
+            { CommandId = Guid.NewGuid()
+              Investigation = run.Id
+              ExpectedVersion = None
+              Command = Core(RecordObservation { ObservationId = ObservationId(Guid.NewGuid()); Original = SaveKit.text words; ObservedAt = None }) }
+        input run (SaveInput.Edit command) |> ignore
+        command
+
+    let head (run: T) = Scenarios.readHead run.Provider |> Probes.ok "head"
+
+    let prefix (run: T) =
+        let (Workspace w) = (Writable.address run.Writable).Workspace
+        let (InvestigationId g) = run.Id
+        sprintf "%s/investigations/%s" w (g.ToString("D"))
+
+    /// A new tab (its own machine and tab memory) on the same branch and investigation, opened from GitHub.
+    let openInNewTab (run: T) : Result<VerifiedInvestigation, LoadFailure> =
+        let machine = SaveMachines.create SaveMachines.support
+        let clock = SaveKit.clock ()
+        clock.Connection <- run.Provider.Connection
+        clock.Next <- 900_000L + int64 (Random.Shared.Next 1000)
+        let r: InvestigationRef = { Address = Writable.address run.Writable; Id = run.Id }
+        match machine.StepLoad (SaveKit.context clock) NotLoaded (LoadInput.OpenRequested r) with
+        | Error f -> failwithf "%A" f
+        | Ok(state, effects) ->
+            let rec loop state (requests: HttpRequest list) =
+                match requests with
+                | [] -> failwith "the load sent nothing"
+                | req :: _ ->
+                    clock.Next <- clock.Next + 1L
+                    match machine.InterpretLoad (SaveKit.context clock) state (run.Provider.Execute req) with
+                    | LoadEvent(LoadInput.LoadVerified v) -> Ok v
+                    | LoadEvent(LoadInput.LoadRejected f) -> Error f
+                    | LoadNextRequest(next, req') -> loop next [ req' ]
+                    | other -> failwithf "%A" other
+            loop state (SaveKit.requests effects)
+
+    /// A fresh branch, a fresh working copy and a new investigation the application creates and saves (C1).
+    let createOn (provider: GitHubProvider) (label: string) : T =
+        let machine = SaveMachines.create SaveMachines.support
+        let clock = SaveKit.clock ()
+        clock.Connection <- provider.Connection
+        let runId = "live-" + Guid.NewGuid().ToString("N").Substring(0, 12)
+        let writable = WorkspaceAddress.workingCopy [] runId |> Option.bind Writable.ofAddress |> Option.get
+        let id = InvestigationId(Guid.NewGuid())
+        let head = Scenarios.readHead provider |> Probes.ok "head"
+        let start: CommandEnvelope =
+            { CommandId = Guid.NewGuid()
+              Investigation = id
+              ExpectedVersion = None
+              Command =
+                Core(
+                    StartInvestigation
+                        { Title = SaveKit.text ("Live provider conformance " + label)
+                          ObservationId = ObservationId(Guid.NewGuid())
+                          Original = SaveKit.text "Synthetic investigation written by the live suite." }
+                ) }
+        let run =
+            { Machine = machine
+              Provider = provider
+              Clock = clock
+              Id = id
+              Writable = writable
+              Session = Persistence.createInvestigation writable head start true
+              Sent = []
+              Events = []
+              Before = ignore }
+        input run SaveInput.SaveRequested |> ignore
+        match run.Session.State with
+        | SaveState.Saved _ -> run
+        | other -> failwithf "live: the new investigation did not save: %A (events %A)" other run.Events
+
+    let create (label: string) : T = createOn (LiveGitHub.freshBranch (LiveGitHub.require ()) label) label
+
+    let mutations (run: T) = run.Sent |> List.filter SaveKit.isMutation
+
+    /// The commits after `from` on the branch (oldest first), with their messages.
+    let commitsSince (run: T) (CommitOid from) : (string * string) list =
+        let request = GitHubRequests.compare (Scenarios.nextId ()) run.Provider.Connection (CommitOid from) 1
+        match Scenarios.send run.Provider (CompareFrom(CommitOid from)) request with
+        | _, Ok answer ->
+            use doc = JsonDocument.Parse answer.Body
+            [ for c in doc.RootElement.GetProperty("commits").EnumerateArray() ->
+                  string (c.GetProperty("sha").GetString()), string (c.GetProperty("commit").GetProperty("message").GetString()) ]
+        | _, Error e -> failwithf "compare: %A" e
+
+    /// The paths a commit changed (REST commit `files`).
+    let changedPaths (run: T) (CommitOid oid) : string list =
+        let request = GitHubRequests.commit (Scenarios.nextId ()) run.Provider.Connection (CommitOid oid)
+        match Scenarios.send run.Provider (ReadCommit(CommitOid oid)) request with
+        | _, Ok answer ->
+            use doc = JsonDocument.Parse answer.Body
+            match doc.RootElement.TryGetProperty "files" with
+            | true, files -> [ for f in files.EnumerateArray() -> string (f.GetProperty("filename").GetString()) ]
+            | _ -> []
+        | _, Error e -> failwithf "commit: %A" e
+
+    let record (run: T) (test: string) (commits: CommitOid list) =
+        ProviderEvidence.record run.Provider test commits [ "investigation", (let (InvestigationId g) = run.Id in g.ToString()) ] |> ignore
