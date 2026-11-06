@@ -21,6 +21,12 @@ export const button = (page, name) => page.getByRole('button', { name, exact: tr
 export const sections = (page) => page.getByRole('navigation', { name: 'Investigation sections' });
 export const section = async (page, name) => { await sections(page).getByRole('link', { name, exact: true }).click(); };
 
+/// The first candidate with a visible match, else the first candidate (verification/journeys/support.mjs).
+const firstVisible = async (candidates) => {
+  for (const l of candidates) if ((await l.count()) && (await l.first().isVisible())) return l.first();
+  return candidates[0].first();
+};
+
 /// Routes the browser's GitHub requests to the double (harness mode) and connects through the application's own form.
 export const connect = async (page) => {
   if (env.provider !== 'github') {
@@ -33,12 +39,14 @@ export const connect = async (page) => {
     });
   }
   await open(page, '#/investigations');
-  const owner = page.getByLabel('Repository owner', { exact: true }).or(page.getByLabel(/owner/i)).first();
+  // As verification/journeys/support.mjs connect: the exact label first, then the first visible pattern match (a
+  // bare /^repo/i would also match "Repository owner", which comes first in the DOM).
+  const owner = await firstVisible([page.getByLabel('Repository owner', { exact: true }), page.getByLabel(/owner/i)]);
   if (!(await owner.isVisible().catch(() => false))) await page.getByRole('button', { name: /connect/i }).first().click();
-  await owner.fill(env.owner);
-  await page.getByLabel('Repository', { exact: true }).or(page.getByLabel(/repository name|^repo/i)).first().fill(env.repo);
-  await page.getByLabel(/branch/i).first().fill(env.branch);
-  await page.getByLabel(/token|credential/i).first().fill(env.token);
+  await (await firstVisible([page.getByLabel('Repository owner', { exact: true }), page.getByLabel(/owner/i)])).fill(env.owner);
+  await (await firstVisible([page.getByLabel('Repository', { exact: true }), page.getByLabel(/repository name|^repo/i)])).fill(env.repo);
+  await (await firstVisible([page.getByLabel(/branch/i)])).fill(env.branch);
+  await (await firstVisible([page.getByLabel(/token|credential/i)])).fill(env.token);
   await page.getByRole('button', { name: /connect/i }).first().click();
   await expect(page.locator('.causa-connection')).toContainText(/Connected/, { timeout: 20000 });
 };
