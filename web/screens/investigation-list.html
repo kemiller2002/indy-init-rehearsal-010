@@ -1,10 +1,13 @@
-<!-- Owner: ui. investigation-list (UI-001, UI-020, UI-022): the Investigations destination. The connection region is
-     added here by its slice. -->
+<!-- Owner: ui. investigation-list (UI-001, UI-020, UI-022): the Investigations destination. The data repository region
+     follows (connection fragment). -->
 <template data-if="screen.investigations">
   <section class="causa-screen causa-investigations" aria-labelledby="investigations-heading">
     <h1 id="investigations-heading" data-text="investigations.heading">Investigations</h1>
     <template data-if="investigations.status">
       <p class="causa-note" data-text="investigations.status"></p>
+    </template>
+    <template data-if="investigations.can-start">
+      <p class="ef-actions"><a class="ef-button" href="#/new">New investigation</a></p>
     </template>
     <template data-if="investigations.loading">
       <p class="ef-spinner" role="status"><span class="ef-spinner__indicator" aria-hidden="true"></span><span class="ef-spinner__label" data-text="investigations.loadingText"></span></p>

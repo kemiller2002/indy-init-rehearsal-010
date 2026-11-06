@@ -1,4 +1,4 @@
-// Owner: ui. The Investigations destination (UI-001, UI-020, UI-022, UI-023, UI-024): before Connect it says how to
+// Owner: ui (final state by the integration lane, merging T17's listing and Connect with ui-3's cards). The Investigations destination (UI-001, UI-020, UI-022, UI-023, UI-024): before Connect it says how to
 // start; after it, every listed investigation with its title, where it lives, its actual lifecycle and counts when it
 // has been opened and verified (never invented, never an unknown shown as zero), and an Open investigation link that
 // keeps its identity (workspace and id) in the route. Keys start with "investigations.".
@@ -37,23 +37,32 @@ module InvestigationList =
           Contradictions: string
           Href: string }
 
-    let private rowOf (model: Model) (item: ListedInvestigation) : Row =
-        let (Workspace workspace) = item.Ref.Address.Workspace
-        let role = item.Ref.Address.Role
-        let target = { Workspace = workspace; Role = role; Id = item.Ref.Id }
+    let private rowOf (model: Model) (r: InvestigationRef) (listedTitle: string option) : Row =
+        let (Workspace workspace) = r.Address.Workspace
+        let role = r.Address.Role
+        let target = { Workspace = workspace; Role = role; Id = r.Id }
         let verified =
-            match model.Loads.TryFind item.Ref with
+            match model.Loads.TryFind r with
             | Some(Loaded v) -> Some v.Investigation
             | _ -> None
+        // The current state: verified, with this tab's unsaved commands (a new investigation has no verified version).
+        let current = Working.current model r
+        let pending = not (Working.pending (Map.tryFind r model.Sessions)).IsEmpty
         let count f = verified |> Option.map (f >> string) |> Option.defaultValue unknownCount
         let status =
-            match model.Loads.TryFind item.Ref, verified with
+            match model.Loads.TryFind r, verified with
+            | _, _ when pending && verified.IsNone -> "New, not saved yet"
+            | _, Some s when pending -> (Causa.App.Workspace.Words.lifecycle s.Lifecycle |> fun w -> string (System.Char.ToUpperInvariant w[0]) + w.Substring 1) + ", with unsaved changes in this tab"
             | _, Some s -> Causa.App.Workspace.Words.lifecycle s.Lifecycle |> fun w -> string (System.Char.ToUpperInvariant w[0]) + w.Substring 1
             | Some(Loading _), _ -> "Opening investigation"
             | Some(LoadFailed _), _ -> "Could not be opened"
             | _ -> "Not opened yet"
-        { Key = workspace + "|" + Ids.text (Ids.investigation item.Ref.Id)
-          Title = item.Title |> Option.defaultValue "Untitled investigation"
+        { Key = workspace + "|" + Ids.text (Ids.investigation r.Id)
+          // A working copy lists ids only; its title is read when the investigation is opened (a few at a time).
+          Title =
+            current |> Option.map (fun s -> s.Title.Value)
+            |> Option.orElse listedTitle
+            |> Option.defaultValue ("Untitled investigation " + Ids.text (Ids.investigation r.Id))
           Where = (if role = WorkspaceRole.WorkingCopy then "Your working copy" else "Catalog, read only")
           Status = status
           LastActivity = verified |> Option.map (fun s -> Causa.App.Workspace.Words.instant s.UpdatedAt) |> Option.defaultValue unknownCount
@@ -66,12 +75,25 @@ module InvestigationList =
                 |> Map.count)
           Href = UiRoutes.href (WorkspaceRoute(target, Overview)) }
 
+    /// Every investigation the engine holds: each listed one, and this tab's new ones not listed yet.
     let rows (model: Model) (sortBy: string) : Row list =
-        model.Listings
-        |> Map.toList
-        |> List.collect (fun (_, listing) -> listing.Investigations |> List.map (rowOf model))
+        let listed =
+            model.Listings
+            |> Map.toList
+            |> List.collect (fun (_, listing) -> listing.Investigations |> List.map (fun i -> i.Ref, i.Title))
+        let known = listed |> List.map fst |> Set.ofList
+        let created = model.Sessions |> Map.toList |> List.map fst |> List.filter (known.Contains >> not) |> List.map (fun r -> r, None)
+        created @ listed
+        |> List.map (fun (r, t) -> rowOf model r t)
         |> List.distinctBy (fun r -> r.Key)
         |> if sortBy = "workspace" then List.sortBy (fun r -> r.Where, r.Title) else List.sortBy (fun r -> r.Title, r.Where)
+
+    /// The New investigation action is offered whenever connected: the Start screen states why a start is not possible
+    /// (read-only access, the working copy not listed) rather than the action silently missing.
+    let canStart (model: Model) =
+        match model.Connection with
+        | Connected _ -> true
+        | _ -> false
 
     let view (state: AppState) : (string * ViewValue) list =
         let connected = match state.Model.Connection with Connected _ -> true | _ -> false
@@ -81,6 +103,7 @@ module InvestigationList =
         let listed = not state.Model.Listings.IsEmpty
         [ Bind.text "investigations.heading" "Investigations"
           Bind.flag "investigations.connected" connected
+          Bind.flag "investigations.can-start" (canStart state.Model)
           Bind.text "investigations.status" (if connected then "" else notConnected)
           Bind.flag "investigations.loading" listing
           Bind.text "investigations.loadingText" openingList
