@@ -4,7 +4,7 @@
   "repository": "indy-init-rehearsal-010",
   "actor": "persistence2",
   "startedAt": "2026-11-06T16:40:13.993Z",
-  "updatedAt": "2026-11-06T18:29:32Z",
+  "updatedAt": "2026-11-06T19:00:13Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -195,6 +195,17 @@
       "updatedAt": "2026-11-06T18:29:32Z",
       "telemetryExecutionIds": [
         "EXE-20261106T182933325Z-3c4d97ec"
+      ]
+    },
+    {
+      "id": "WI-0016",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T19:00:13Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T190013910Z-28df8205"
       ]
     }
   ]
