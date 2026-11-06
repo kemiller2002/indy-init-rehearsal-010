@@ -142,9 +142,13 @@ module Persistence =
     let workingCopy (catalogs: Workspace list) (run: string) : Writable.T option =
         WorkspaceAddress.workingCopy catalogs run |> Option.bind Writable.ofAddress
 
-    /// Opening an investigation: the load state and the request to send (T-L01).
-    let openInvestigation (ctx: RequestContext) (r: InvestigationRef) : Result<LoadState * SaveEffect list, SaveFault> =
-        (machine ()).StepLoad ctx NotLoaded (LoadInput.OpenRequested r)
+    /// Opening an investigation (SM-LOAD OpenRequested): online, the load state and the one request that reads the
+    /// branch head and the investigation's files at it (T-L01); known offline, UnavailableOffline and nothing sent
+    /// (T-L02). From LoadFailed it reads again with a new request identity (T-L08).
+    let openInvestigation (ctx: RequestContext) (online: bool) (current: LoadState) (r: InvestigationRef) : Result<LoadState * SaveEffect list, SaveFault> =
+        match current, online with
+        | NotLoaded, false -> Ok(UnavailableOffline, [])
+        | _ -> (machine ()).StepLoad ctx current (LoadInput.OpenRequested r)
 
     /// Creating an investigation in a working copy at the head the listing read (C1): the session holds its
     /// StartInvestigation command; nothing is written until the user saves.

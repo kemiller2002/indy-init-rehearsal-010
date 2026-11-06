@@ -951,3 +951,58 @@ module SaveKit =
                         loop next (rest @ more) (input :: events) (r :: sent) (budget - 1)
                     | Error f -> failwithf "%s refused in %s: %s" f.Input f.State f.Reason
         loop session first [] [] 40
+
+/// The SM-SAVE / SM-CONFLICT / SM-LOAD transition-test fixture (state-machine-contracts.json).
+module MachineKit =
+    open Causa.Domain
+
+    let m () : SaveMachine = saveMachine
+    let baseHead = CommitOid "c0"
+    let baseVerified = SaveKit.verified baseHead SaveKit.history
+    let remoteHistory = SaveKit.history @ [ SaveKit.envelope 2L (SaveKit.guid 501) (SaveKit.observation 99 "other writer") ]
+    let remoteVerified = SaveKit.verified (CommitOid "c2") remoteHistory
+    let outstanding = RequestId 7L
+
+    let ctxWith (next: int64) (elsewhere: bool) (at: DateTimeOffset) : RequestContext =
+        { Connection = SaveKit.connection; NextId = RequestId next; MutationInFlightElsewhere = elsewhere; Now = at }
+
+    let ctx = ctxWith 40L false SaveKit.now
+
+    let confirmation (commit: string) =
+        let fs = SaveKit.filesOf SaveKit.history
+        match Confirmation.ofReadBack SaveKit.investigationId (CommitOid commit) SaveKit.now fs fs with
+        | Some c -> c
+        | None -> failwith "equal bytes confirm"
+
+    let saved () = (m ()).Initial SaveKit.writable baseVerified
+    let unsaved () = { saved () with State = SaveState.Unsaved; Unsaved = [ SaveKit.edit 1 ] }
+    let saving (awaiting: Awaiting) = { unsaved () with State = SaveState.Saving; Outstanding = Some(outstanding, awaiting); Mutations = 1 }
+    let offline () = { unsaved () with State = SaveState.Offline }
+    let conflict (view: ConflictView) = { unsaved () with State = SaveState.Conflict view }
+    let unknown (left: int) (reads: int) (awaiting: Awaiting option) =
+        { unsaved () with
+            State = SaveState.UnknownOutcome left
+            ReconcileReads = reads
+            Mutations = 1
+            Outstanding = awaiting |> Option.map (fun a -> outstanding, a) }
+    let failed () = { unsaved () with State = SaveState.SaveFailed RepositoryKeptChanging }
+
+    let stateName (s: SaveState) =
+        match s with
+        | SaveState.Saved _ -> "Saved"
+        | SaveState.Unsaved -> "Unsaved"
+        | SaveState.Saving -> "Saving"
+        | SaveState.Offline -> "Offline"
+        | SaveState.Conflict _ -> "Conflict"
+        | SaveState.UnknownOutcome _ -> "UnknownOutcome"
+        | SaveState.SaveFailed _ -> "SaveFailed"
+
+    let step (c: RequestContext) (s: InvestigationSession) (input: SaveInput) =
+        match (m ()).Step c s input with
+        | Ok r -> r
+        | Error f -> failwithf "%s/%s refused: %s" f.State f.Input f.Reason
+
+    let sends (effects: SaveEffect list) = effects |> List.choose (function Send r -> Some r | _ -> None)
+    let mutations (effects: SaveEffect list) = sends effects |> List.filter SaveKit.isMutation
+    let schedules (effects: SaveEffect list) = effects |> List.choose (function ScheduleReconcileRead(_, ms) -> Some ms | _ -> None)
+    let work (s: InvestigationSession) = s.Unsaved @ s.AfterInFlight
