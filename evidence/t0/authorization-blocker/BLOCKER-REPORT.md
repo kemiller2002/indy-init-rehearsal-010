@@ -29,3 +29,12 @@
 - Repair r9.fsx authorize-implementation in Indy-init (resolve `[ID] title` Praxis items; accept approved items
   with no links), merge it, and re-pin the lock's governing commit (ODR-RG-04) so `govern` and LP-00 read it; or
 - record an owner decision authorizing implementation with these two refusals stated, naming the refusal log.
+
+## Resolution (T0+17 min)
+
+The owner directed the builder to repair the tooling and continue ("fixes continue"). The run did not stop:
+- Indy-init r9.fsx authorize-implementation repaired on branch claude/indy-init-rehearsal-010-wznhod (669fe04,
+  Indy-init PR #174, awaiting the owner): step 3 accepts `[ID] title` Praxis items; step 4 accepts coordination
+  items with neither requirements nor obligations.
+- With it, authorize-implementation PASS at 33fd372 (37 items, 890 obligations); checkpoint merged as 56ad0db.
+- This stop request and its STOP_PERMITTED decision are kept here as history; they were never acted on.
