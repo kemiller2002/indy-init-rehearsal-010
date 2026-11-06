@@ -1,0 +1,35 @@
+[
+  {
+    "kind": "implementation-started",
+    "workItem": "T11",
+    "requirements": [
+      "AR-011",
+      "VER-004",
+      "VER-006",
+      "VER-008"
+    ],
+    "at": "2026-11-06T16:58:00Z"
+  },
+  {
+    "kind": "implementation-started",
+    "workItem": "T12",
+    "requirements": [
+      "AR-009",
+      "AR-022",
+      "PERSIST-023",
+      "PERSIST-051"
+    ],
+    "at": "2026-11-06T16:58:00Z"
+  },
+  {
+    "kind": "implementation-started",
+    "workItem": "T18",
+    "requirements": [
+      "AR-010",
+      "AR-014",
+      "PERSIST-008",
+      "PERSIST-025"
+    ],
+    "at": "2026-11-06T16:58:00Z"
+  }
+]
