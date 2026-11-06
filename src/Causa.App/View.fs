@@ -62,6 +62,7 @@ module View =
           Causa.App.Views.Workspace.Links.view
           Causa.App.Views.Workspace.Conclusions.view
           Causa.App.Views.Workspace.Timeline.view
+          Causa.App.Views.Workspace.Inspector.view
           Causa.App.Views.Graph.view
           Causa.App.Views.Report.view
           Causa.App.Views.Administration.view

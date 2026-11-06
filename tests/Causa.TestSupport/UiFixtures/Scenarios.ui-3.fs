@@ -132,5 +132,12 @@ module AnalysisScenarios =
             (reassessed ())
             [ RecordCausalAssertion
                   { CauseId = CausalAssertionId(g 60); Outcome = t "Checkout payments fail"
-                    Members = [ { HypothesisId = h1; Role = CauseRole.RootCause } ]; Mechanism = None } ]
+                    Members = [ { HypothesisId = h1; Role = CauseRole.RootCause } ]; Mechanism = None }
+              IdentifyUnknown { UnknownId = UnknownId(g 80); Question = t "When was the certificate last renewed?"; Materiality = Materiality.Material }
+              RecordInvestigationAction
+                  { ActionId = InvestigationActionId(g 81); Kind = ActionKind.Inspection; Purpose = t "Inspect the certificate"
+                    TargetHypothesisIds = [ h1 ] }
+              RecordFinding
+                  { FindingId = FindingId(g 82); ActionId = InvestigationActionId(g 81); OriginalResult = t "The certificate expired at 08:59"
+                    Interpretation = Some(t "matches the onset") } ]
         |> withStoredConclusion

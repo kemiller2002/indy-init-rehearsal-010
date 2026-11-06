@@ -5,6 +5,24 @@
     <h2 class="ef-section-heading" id="causa-overview-heading">Overview</h2>
     <template data-if="investigation.overview.loaded">
       <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.overview.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-overview" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-overview" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
         <dl class="ef-key-value-list causa-overview__facts">
           <div><dt>Original problem statement</dt><dd data-requirement-id="INV-008" data-text="investigation.overview.problem"></dd></div>
           <div><dt>Creation timestamp</dt><dd data-requirement-id="INV-007"><time data-bind-datetime="investigation.overview.created" data-text="investigation.overview.created"></time></dd></div>
@@ -12,7 +30,37 @@
           <div><dt>Version</dt><dd data-text="investigation.overview.version"></dd></div>
           <div><dt>Hypotheses</dt><dd data-text="investigation.overview.hypothesisCount"></dd></div>
           <div><dt>Evidence items</dt><dd data-text="investigation.overview.evidenceCount"></dd></div>
+          <div><dt>Evidence supporting a hypothesis</dt><dd data-text="investigation.overview.supportingCount"></dd></div>
+          <div><dt>Evidence contradicting a hypothesis</dt><dd data-text="investigation.overview.contradictingCount"></dd></div>
+          <div><dt>Unresolved contradictions</dt><dd data-text="investigation.overview.contradictionCount"></dd></div>
+          <div><dt>Last activity</dt><dd><time data-bind-datetime="investigation.overview.updated" data-text="investigation.overview.updated"></time></dd></div>
         </dl>
+
+        <section class="ef-stack" aria-labelledby="causa-findings-heading" data-requirement-id="UI-025">
+          <h3 id="causa-findings-heading">Current findings</h3>
+          <template data-if="investigation.overview.findings.empty"><p class="causa-analysis__empty">No finding is supported or confirmed yet.</p></template>
+          <ul class="causa-analysis__list" aria-labelledby="causa-findings-heading">
+            <template data-each="investigation.overview.findings" data-key="id"><li data-text="text"></li></template>
+          </ul>
+          <h3 id="causa-questions-heading">Unresolved questions</h3>
+          <template data-if="investigation.overview.questions.empty"><p class="causa-analysis__empty">No open question or unresolved contradiction is recorded.</p></template>
+          <ul class="causa-analysis__list" aria-labelledby="causa-questions-heading">
+            <template data-each="investigation.overview.questions" data-key="id"><li data-text="text"></li></template>
+          </ul>
+          <h3 id="causa-steps-heading">Next steps</h3>
+          <template data-if="investigation.overview.steps.empty"><p class="causa-analysis__empty">The recorded content raises no next step.</p></template>
+          <ul class="causa-analysis__list" aria-labelledby="causa-steps-heading" data-requirement-id="UI-032">
+            <template data-each="investigation.overview.steps" data-key="id"><li><a data-bind-href="href" data-text="text"></a></li></template>
+          </ul>
+          <h3 id="causa-actions-heading">Actions available now</h3>
+          <template data-if="investigation.overview.actions.empty"><p class="causa-analysis__empty">No action is available on this investigation now.</p></template>
+          <ul class="causa-analysis__list" aria-labelledby="causa-actions-heading">
+            <template data-each="investigation.overview.actions" data-key="id"><li data-text="text"></li></template>
+          </ul>
+          <ul class="ef-cluster causa-analysis__list" aria-label="Go to a section">
+            <template data-each="investigation.overview.sections" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+          </ul>
+        </section>
 
         <section class="ef-stack" aria-labelledby="causa-observations-heading">
           <h3 id="causa-observations-heading">Observations</h3>
@@ -26,6 +74,7 @@
                   <p class="causa-record__text" data-text="text"></p>
                   <template data-if="hasSource"><p class="causa-record__meta">Source: <span data-text="source"></span></p></template>
                   <template data-if="hasObservedAt"><p class="causa-record__meta">Observed at <span data-text="observedAt"></span></p></template>
+                  <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a>
                 </article>
               </li>
             </template>
@@ -59,6 +108,7 @@
                 <article class="ef-card causa-record" aria-label="Conclusion">
                   <p class="causa-record__text" data-requirement-id="INV-033" data-text="statement"></p>
                   <template data-if="hasResidual"><p class="causa-record__meta">Residual uncertainty: <span data-text="residual"></span></p></template>
+                  <p class="causa-record__meta" data-requirement-id="UI-038" data-text="explanation"></p>
                 </article>
               </li>
             </template>
@@ -78,7 +128,11 @@
       </div>
     </template>
     <template data-if="investigation.overview.missing">
-      <p class="causa-analysis__empty" data-text="investigation.overview.notLoaded"></p>
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.overview.notLoaded"></p>
+        <p data-text="investigation.overview.preserved"></p>
+        <p data-text="investigation.overview.next"></p>
+      </div>
     </template>
   </section>
 </template>

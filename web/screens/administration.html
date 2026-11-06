@@ -11,5 +11,10 @@
         </div>
       </template>
     </dl>
+    <h2 id="administration-diagnostics">Diagnostics</h2>
+    <template data-if="administration.diagnostics.empty"><p class="causa-note">No problems have been recorded in this tab.</p></template>
+    <ul aria-labelledby="administration-diagnostics" data-requirement-id="UI-031">
+      <template data-each="administration.diagnostics" data-key="id"><li><code data-text="text"></code></li></template>
+    </ul>
   </section>
 </template>

@@ -1,7 +1,7 @@
-// Owner: ui (written by the integration lane acting as ui for T17, change request 5 of ui-2). The Investigations
-// destination (UI-001, UI-020): the investigations of the active catalog and of this application's working copy, as
-// the engine listed them, each opening its workspace; and the New investigation action while a writable working copy
-// is listed. Keys start with "investigations.".
+// Owner: ui (final state by the integration lane, merging T17's listing and Connect with ui-3's cards). The Investigations destination (UI-001, UI-020, UI-022, UI-023, UI-024): before Connect it says how to
+// start; after it, every listed investigation with its title, where it lives, its actual lifecycle and counts when it
+// has been opened and verified (never invented, never an unknown shown as zero), and an Open investigation link that
+// keeps its identity (workspace and id) in the route. Keys start with "investigations.".
 namespace Causa.App.Views
 
 open Causa.Domain
@@ -12,47 +12,81 @@ open Causa.App.Ui
 
 [<RequireQualifiedAccess>]
 module InvestigationList =
-    type Row = { Key: string; Title: string; Href: string; Kind: string; KindState: string; Note: string }
+    /// The sort control's event name (a draft): "title" (default) or "workspace".
+    let sort = "investigations.sort"
 
-    let private targetOf (r: InvestigationRef) : RouteTarget =
-        let (Workspace w) = r.Address.Workspace
-        { Workspace = w; Role = r.Address.Role; Id = r.Id }
+    /// UI-024-O3 wording ("Opening …", not "Fetching and validating …"). Language.fs compiles after this file, so the
+    /// list's own copy lives here.
+    let notConnected = "Connect a data repository to list its investigations."
+    let openingList = "Opening the list of investigations…"
+    let noInvestigations = "This repository has no investigations yet."
 
-    let private row (model: Model) (r: InvestigationRef) (listedTitle: string option) : Row =
-        let (InvestigationId g) = r.Id
-        let (Workspace w) = r.Address.Workspace
+    let sortOptions = [ "title", "Title"; "workspace", "Where it is stored" ]
+
+    /// What a count says before the investigation has been opened: unknown, never zero (UI-022-O6).
+    let unknownCount = "Not known until opened"
+
+    type Row =
+        { Key: string
+          Title: string
+          Where: string
+          Status: string
+          LastActivity: string
+          Hypotheses: string
+          Evidence: string
+          Contradictions: string
+          Href: string }
+
+    let private rowOf (model: Model) (r: InvestigationRef) (listedTitle: string option) : Row =
+        let (Workspace workspace) = r.Address.Workspace
+        let role = r.Address.Role
+        let target = { Workspace = workspace; Role = role; Id = r.Id }
+        let verified =
+            match model.Loads.TryFind r with
+            | Some(Loaded v) -> Some v.Investigation
+            | _ -> None
+        // The current state: verified, with this tab's unsaved commands (a new investigation has no verified version).
         let current = Working.current model r
-        let title =
-            current |> Option.map (fun i -> i.Title.Value)
-            |> Option.orElse listedTitle
-            |> Option.defaultValue (g.ToString("D"))
-        let note =
-            match Map.tryFind r model.Loads, Map.tryFind r model.Sessions with
-            | _, Some s when not (Working.pending (Some s)).IsEmpty -> "Unsaved changes in this tab"
-            | Some(Loading _), _ -> "Opening…"
+        let pending = not (Working.pending (Map.tryFind r model.Sessions)).IsEmpty
+        let count f = verified |> Option.map (f >> string) |> Option.defaultValue unknownCount
+        let status =
+            match model.Loads.TryFind r, verified with
+            | _, _ when pending && verified.IsNone -> "New, not saved yet"
+            | _, Some s when pending -> (Causa.App.Workspace.Words.lifecycle s.Lifecycle |> fun w -> string (System.Char.ToUpperInvariant w[0]) + w.Substring 1) + ", with unsaved changes in this tab"
+            | _, Some s -> Causa.App.Workspace.Words.lifecycle s.Lifecycle |> fun w -> string (System.Char.ToUpperInvariant w[0]) + w.Substring 1
+            | Some(Loading _), _ -> "Opening investigation"
             | Some(LoadFailed _), _ -> "Could not be opened"
-            | _ -> ""
-        let kind, kindState =
-            match r.Address.Role with
-            | WorkspaceRole.Catalog -> "Frozen demonstration (read-only)", "frozen"
-            | WorkspaceRole.WorkingCopy -> "Working copy", "ok"
-        { Key = w + "/" + g.ToString("D")
-          Title = title
-          Href = UiRoutes.href (WorkspaceRoute(targetOf r, Overview))
-          Kind = kind
-          KindState = kindState
-          Note = note }
+            | _ -> "Not opened yet"
+        { Key = workspace + "|" + Ids.text (Ids.investigation r.Id)
+          // A working copy lists ids only; its title is read when the investigation is opened (a few at a time).
+          Title =
+            current |> Option.map (fun s -> s.Title.Value)
+            |> Option.orElse listedTitle
+            |> Option.defaultValue ("Untitled investigation " + Ids.text (Ids.investigation r.Id))
+          Where = (if role = WorkspaceRole.WorkingCopy then "Your working copy" else "Catalog, read only")
+          Status = status
+          LastActivity = verified |> Option.map (fun s -> Causa.App.Workspace.Words.instant s.UpdatedAt) |> Option.defaultValue unknownCount
+          Hypotheses = count (fun s -> s.Hypotheses.Count)
+          Evidence = count (fun s -> s.Evidence.Count)
+          Contradictions =
+            count (fun s ->
+                s.Contradictions
+                |> Map.filter (fun _ c -> c.State <> ContradictionState.Resolved && c.State <> ContradictionState.Superseded)
+                |> Map.count)
+          Href = UiRoutes.href (WorkspaceRoute(target, Overview)) }
 
-    /// Every investigation the engine holds: the working copy first (this tab's sessions included), then the catalog.
-    let rows (model: Model) : Row list =
+    /// Every investigation the engine holds: each listed one, and this tab's new ones not listed yet.
+    let rows (model: Model) (sortBy: string) : Row list =
         let listed =
             model.Listings
             |> Map.toList
-            |> List.sortBy (fun (a, _) -> if a.Role = WorkspaceRole.WorkingCopy then 0 else 1)
-            |> List.collect (fun (_, l) -> l.Investigations |> List.map (fun i -> i.Ref, i.Title))
+            |> List.collect (fun (_, listing) -> listing.Investigations |> List.map (fun i -> i.Ref, i.Title))
         let known = listed |> List.map fst |> Set.ofList
         let created = model.Sessions |> Map.toList |> List.map fst |> List.filter (known.Contains >> not) |> List.map (fun r -> r, None)
-        created @ listed |> List.map (fun (r, t) -> row model r t)
+        created @ listed
+        |> List.map (fun (r, t) -> rowOf model r t)
+        |> List.distinctBy (fun r -> r.Key)
+        |> if sortBy = "workspace" then List.sortBy (fun r -> r.Where, r.Title) else List.sortBy (fun r -> r.Title, r.Where)
 
     /// The New investigation action is offered whenever connected: the Start screen states why a start is not possible
     /// (read-only access, the working copy not listed) rather than the action silently missing.
@@ -62,26 +96,34 @@ module InvestigationList =
         | _ -> false
 
     let view (state: AppState) : (string * ViewValue) list =
-        let model = state.Model
-        let connected = match model.Connection with Connected _ -> true | _ -> false
-        let rows = rows model
-        let status =
-            match model.Connection with
-            | Connected _ when rows.IsEmpty && not model.ListingsInFlight.IsEmpty -> "Listing investigations…"
-            | Connected _ when rows.IsEmpty -> "This repository holds no investigations yet."
-            | Connected _ -> ""
-            | _ -> "Connect a data repository to list its investigations."
+        let connected = match state.Model.Connection with Connected _ -> true | _ -> false
+        let sortBy = match Drafts.get state sort with "workspace" -> "workspace" | _ -> "title"
+        let items = rows state.Model sortBy
+        let listing = not state.Model.ListingsInFlight.IsEmpty
+        let listed = not state.Model.Listings.IsEmpty
         [ Bind.text "investigations.heading" "Investigations"
           Bind.flag "investigations.connected" connected
-          Bind.text "investigations.status" status
-          Bind.flag "investigations.can-start" (canStart model)
-          Bind.flag "investigations.any" (not rows.IsEmpty)
+          Bind.flag "investigations.can-start" (canStart state.Model)
+          Bind.text "investigations.status" (if connected then "" else notConnected)
+          Bind.flag "investigations.loading" listing
+          Bind.text "investigations.loadingText" openingList
+          Bind.flag "investigations.empty" (connected && listed && not listing && items.IsEmpty)
+          Bind.text "investigations.emptyText" noInvestigations
+          Bind.flag "investigations.hasItems" (not items.IsEmpty)
+          Bind.text "investigations.count" (if items.IsEmpty then "" else $"{items.Length} investigation(s)")
+          Bind.text sort sortBy
+          Bind.items
+              "investigations.sortOptions"
+              [ for id, label in sortOptions -> [ Cell.text "id" id; Cell.text "label" label; Cell.flag "selected" (id = sortBy) ] ]
           Bind.items
               "investigations.items"
-              [ for r in rows ->
-                    [ Cell.text "key" r.Key
+              [ for r in items ->
+                    [ Cell.text "id" r.Key
                       Cell.text "title" r.Title
-                      Cell.text "href" r.Href
-                      Cell.text "kind" r.Kind
-                      Cell.text "kindState" r.KindState
-                      Cell.text "note" r.Note ] ] ]
+                      Cell.text "where" r.Where
+                      Cell.text "status" r.Status
+                      Cell.text "lastActivity" r.LastActivity
+                      Cell.text "hypotheses" r.Hypotheses
+                      Cell.text "evidence" r.Evidence
+                      Cell.text "contradictions" r.Contradictions
+                      Cell.text "href" r.Href ] ] ]

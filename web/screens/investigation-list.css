@@ -1,6 +1,4 @@
 /* Owner: ui. investigation-list. */
 .causa-screen h1 { margin-block-start: 0; color: var(--causa-ink); }
 .causa-note { color: var(--causa-ink); }
-.causa-investigation-list { list-style: none; padding: 0; display: grid; gap: var(--ef-space-3); }
-.causa-investigation-list__item { display: flex; flex-wrap: wrap; gap: var(--ef-space-2); align-items: baseline; min-inline-size: 0; }
-.causa-investigation-list__title { overflow-wrap: anywhere; }
+.causa-investigation-card .ef-card__link { overflow-wrap: anywhere; }

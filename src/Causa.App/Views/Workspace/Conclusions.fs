@@ -26,7 +26,16 @@ module Conclusions =
                       Cell.text "statement" c.Statement
                       Cell.flag "hasResidual" c.ResidualUncertainty.IsSome
                       Cell.text "residual" (SectionBindings.optional c.ResidualUncertainty)
-                      Cell.text "version" (c.RecordedAtVersion |> Option.map string |> SectionBindings.optional) ] ]
+                      Cell.text "version" (c.RecordedAtVersion |> Option.map string |> SectionBindings.optional)
+                      // UI-038: why it stands, from its causes' hypotheses and their assessments.
+                      Cell.text
+                          "explanation"
+                          (investigation
+                           |> Option.bind (fun s ->
+                               s.Conclusions
+                               |> Map.tryPick (fun k v -> if Ids.text (Ids.conclusion k) = c.Id then Some v.Value else None)
+                               |> Option.map (Summary.conclusionExplanation s))
+                           |> SectionBindings.optional) ] ]
           SectionBindings.draft draft statement ]
         @ SectionBindings.action record (analysis |> Option.map (fun a -> Analysis.action a "INV-032") |> Option.defaultValue NotOffered)
 
