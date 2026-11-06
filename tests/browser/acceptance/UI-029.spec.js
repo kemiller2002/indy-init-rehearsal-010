@@ -22,7 +22,8 @@ test('UI-029-O2', async ({ page }) => {
   // Timeline, each opening that section of the same investigation. Corrective Actions is offered only where supported
   // (no backend supports it yet, so it is absent).
   await open(page, catalogInvestigation);
-  await expect(sections(page).getByRole('link')).toHaveText(sectionNames);
+  // The navigation includes each named section (other destinations, such as the report J2-10 opens, may follow).
+  for (const name of sectionNames) await expect(sections(page).getByRole('link', { name, exact: true })).toHaveCount(1);
   await expect(sections(page).getByRole('link', { name: 'Corrective Actions' })).toHaveCount(0);
   for (const name of sectionNames) {
     await sections(page).getByRole('link', { name, exact: true }).click();
