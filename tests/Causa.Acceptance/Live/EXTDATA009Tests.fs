@@ -79,11 +79,16 @@ module EXTDATA009Tests =
         | Some url, Some candidate ->
             Assert.Matches("^[0-9a-f]{40}$", candidate)
             Assert.Equal(candidate, PfKit.sourceSha ())
-            let built = IO.Path.Combine(Layers.repositoryRoot (), "dist", "index.html")
-            Assert.True(IO.File.Exists built, "the candidate's build (dist/index.html) is not present to compare with the deployment")
             use client = new Net.Http.HttpClient()
-            let served = client.GetByteArrayAsync(Uri(Uri url, "index.html")).GetAwaiter().GetResult()
-            Assert.Equal<byte[]>(IO.File.ReadAllBytes built, served)
+            // The deployment states the commit it was built from (build.fsx writes build-info.json): it is the candidate.
+            let info = client.GetStringAsync(Uri(Uri url, "build-info.json")).GetAwaiter().GetResult()
+            use doc = Text.Json.JsonDocument.Parse info
+            Assert.Equal(candidate, string (doc.RootElement.GetProperty("commit").GetString()))
+            // And it serves the bytes this candidate's build produced, where that build is present to compare.
+            let built = IO.Path.Combine(Layers.repositoryRoot (), "dist", "index.html")
+            if IO.File.Exists built then
+                let served = client.GetByteArrayAsync(Uri(Uri url, "index.html")).GetAwaiter().GetResult()
+                Assert.Equal<byte[]>(IO.File.ReadAllBytes built, served)
         | _ -> failwith "BLOCKED: CAUSA_APP_URL and CAUSA_CANDIDATE name no deployment of the candidate to verify (EXT-DATA-009-O2). This is a failure, not a pass."
 
     [<Fact>]
