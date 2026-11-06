@@ -3,14 +3,14 @@
 // outage concluded as a confirmed cause, with supporting and contradicting assessments) written to the provider and
 // opened through the application.
 import { test, expect } from '@playwright/test';
-import { connect, seedStoredHistory } from './workspace-data.mjs';
+import { connect, seedStoredHistory, openListed } from './workspace-data.mjs';
 
 const statement = /^The SSO outage was caused by a stale signing-key cache/;
 
 const openConcluded = async (page) => {
   const route = await seedStoredHistory('a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e');
   await connect(page);
-  await page.goto(page.url().replace(/#.*$/, '') + route);
+  await openListed(page, route);
   const conclusions = page.getByRole('list', { name: 'Conclusions' }).getByRole('article');
   // Nothing to explain is a failure here, never a pass.
   await expect(conclusions).toHaveCount(1, { timeout: 20000 });
