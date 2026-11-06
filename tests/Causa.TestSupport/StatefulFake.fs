@@ -223,10 +223,46 @@ module StatefulFake =
                         let state, oid = newCommit state head tree text "app"
                         { state with Branches = state.Branches.Add(branchName, oid) }, Reply(200, Recordings.commitCreated oid)
 
+    /// The GraphQL read of one investigation's three files at a commit or at the branch head (GitHubRequests.investigationFiles).
+    let private filesQuery (state: FakeState) (body: string) : FakeState * Reply =
+        use doc = JsonDocument.Parse body
+        let v = doc.RootElement.GetProperty("variables")
+        let get (n: string) = getString v n |> Option.defaultValue ""
+        let rev = get "rev"
+        let target =
+            if rev.StartsWith "refs/heads/" then state.Branches.TryFind(rev.Substring 11)
+            elif state.Commits.ContainsKey rev then Some rev
+            else None
+        match target, get "owner" = state.Owner && get "name" = state.Name with
+        | _, false -> state, Reply(200, """{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","path":["repository"],"message":"Could not resolve to a Repository."}]}""")
+        | None, true -> state, Reply(200, """{"data":{"repository":{"object":null}}}""")
+        | Some oid, true ->
+            let tree = state.Commits[oid].Tree
+            let entry (path: string) =
+                match tree.TryFind path with
+                | Some bytes ->
+                    sprintf
+                        """{"object":{"oid":"%s","text":%s,"isTruncated":false,"byteSize":%d}}"""
+                        (blobSha bytes)
+                        (JsonSerializer.Serialize(Encoding.UTF8.GetString bytes))
+                        bytes.Length
+                | None -> "null"
+            state,
+            Reply(
+                200,
+                sprintf
+                    """{"data":{"repository":{"object":{"oid":"%s","committedDate":"2026-11-06T17:00:00Z","m":%s,"e":%s,"s":%s}}}}"""
+                    oid
+                    (entry (get "m"))
+                    (entry (get "e"))
+                    (entry (get "s"))
+            )
+
     let private read (state: FakeState) (request: HttpRequest) (access: FakeAccess) : FakeState * Reply =
         let uri = Uri request.Url
         let segments = uri.AbsolutePath.Trim('/').Split('/') |> Array.map Uri.UnescapeDataString |> List.ofArray
         match request.Method, segments with
+        | Post, [ "graphql" ] when (request.Body |> Option.defaultValue "").Contains "\"rev\"" -> filesQuery state (request.Body |> Option.defaultValue "{}")
         | Post, [ "graphql" ] ->
             if access <> ReadWrite then state, Reply(200, Recordings.graphQlForbidden)
             else mutate state (request.Body |> Option.defaultValue "") false
@@ -313,6 +349,7 @@ module StatefulFake =
         match GitHubRequests.operationOf request with
         | Some(CommitOnBranch _)
         | Some CreateBranch -> true
+        | Some(ReadInvestigationAt _) -> false
         | _ -> request.Method = Post
 
     let private isStaleMutation (state: FakeState) (request: HttpRequest) =
@@ -772,3 +809,145 @@ module Probes =
           Classified = classified
           HeadAfter = after
           MarkerAtHead = carries }
+
+/// Fixtures and a driver for the save machines: a real investigation history encoded and verified through the
+/// causa-storage codec, a stateful fake holding it in a working copy, and a loop that executes the machines' requests
+/// against the fake exactly as the App engine does with Limen (send, interpret, step).
+[<RequireQualifiedAccess>]
+module SaveKit =
+    open Causa.Domain
+
+    let guid (n: int) = Guid(sprintf "00000000-0000-4000-8000-%012d" n)
+
+    let text (s: string) =
+        match NonEmptyText.create s with
+        | Ok t -> t
+        | Error e -> failwith e
+
+    let now = DateTimeOffset(2026, 11, 6, 12, 0, 0, TimeSpan.Zero)
+    let investigationId = InvestigationId(guid 1)
+    let actor: Actor = { ActorId = text "causa-web"; Kind = ActorKind.Human }
+
+    let envelope (version: int64) (correlation: Guid) (event: CoreEvent) : EventEnvelope =
+        { EventId = EventId(Canonical.eventId (guid 1) version correlation)
+          Investigation = investigationId
+          Version = AggregateVersion version
+          Provenance =
+            { OccurredAt = now.AddSeconds(float version)
+              Actor = actor
+              CorrelationId = correlation
+              FormatVersion = Events.formatVersion
+              SemanticVersion = Events.semanticVersion }
+          Payload = CoreEvent event }
+
+    let started: InvestigationStarted =
+        { Title = text "Payment failures"; ObservationId = ObservationId(guid 2); Original = text "Checkout fails" }
+
+    let history = [ envelope 1L (guid 500) (InvestigationStarted started) ]
+
+    let observation (n: int) (words: string) =
+        ObservationRecorded { ObservationId = ObservationId(guid (3000 + n)); Original = text words; ObservedAt = None }
+
+    /// An unsaved command: one more observation.
+    let edit (n: int) : CommandEnvelope =
+        { CommandId = guid (2000 + n)
+          Investigation = investigationId
+          ExpectedVersion = None
+          Command = Core(RecordObservation { ObservationId = ObservationId(guid (3000 + n)); Original = text $"edit {n}"; ObservedAt = None }) }
+
+    let startCommand (id: InvestigationId) : CommandEnvelope =
+        let (InvestigationId g) = id
+        { CommandId = Guid.NewGuid()
+          Investigation = id
+          ExpectedVersion = None
+          Command = Core(StartInvestigation { Title = text "New investigation"; ObservationId = ObservationId(Guid.NewGuid()); Original = text (sprintf "Problem %O" g) }) }
+
+    let run = "kit"
+
+    let writable =
+        WorkspaceAddress.workingCopy [] run |> Option.bind Writable.ofAddress |> Option.defaultWith (fun () -> failwith "working copy refused")
+
+    let address = Writable.address writable
+    let workspace = address.Workspace
+
+    let dir (InvestigationId g) =
+        let (Workspace w) = workspace
+        sprintf "%s/investigations/%s" w (g.ToString("D"))
+
+    let filesOf (h: EventEnvelope list) : FileSet =
+        match FileSets.ofHistory h with
+        | Ok fs -> fs
+        | Error e -> failwithf "%A" e
+
+    /// A version of the investigation at `commit`, verified exactly as a load verifies it.
+    let verified (commit: CommitOid) (h: EventEnvelope list) : VerifiedInvestigation =
+        match StorageReader.verify Kernel.domain (Some investigationId) address commit (filesOf h) with
+        | Ok v -> v
+        | Error e -> failwithf "fixture does not verify: %A" e
+
+    let repoFiles (id: InvestigationId) (fs: FileSet) =
+        let d = dir id
+        [ d + "/manifest.json", fs.Manifest; d + "/events.ndjson", fs.Events; d + "/snapshot.json", fs.Snapshot ]
+
+    /// A fake repository whose branch head holds the fixture investigation, and its verified version at that head.
+    let repository () =
+        let running =
+            StatefulFake.start (
+                StatefulFake.initial "owner" "repo" "main" (("README.md", "x"B) :: repoFiles investigationId (filesOf history)) [ "kit-token", ReadWrite ]
+            )
+        let head = CommitOid((running.Current()).Branches["main"])
+        running, verified head history
+
+    let connection: ConnectionContext =
+        { Repository = { Owner = "owner"; Name = "repo"; Branch = "main" }
+          Credential = Credential.create "kit-token" }
+
+    /// Request contexts with increasing identities (the engine's NextId).
+    type Clock =
+        { mutable Next: int64
+          mutable Now: DateTimeOffset
+          mutable ElsewhereInFlight: bool }
+
+    let clock () = { Next = 100L; Now = now; ElsewhereInFlight = false }
+
+    let context (c: Clock) : RequestContext =
+        { Connection = connection; NextId = RequestId c.Next; MutationInFlightElsewhere = c.ElsewhereInFlight; Now = c.Now }
+
+    let advance (c: Clock) (effects: SaveEffect list) =
+        if effects |> List.exists (function Send _ -> true | _ -> false) then c.Next <- c.Next + 1L
+
+    let requests (effects: SaveEffect list) = effects |> List.choose (function Send r -> Some r | _ -> None)
+
+    let isMutation (r: HttpRequest) = GitHubRequests.operationOf r |> Option.exists (function CommitOnBranch _ -> true | _ -> false)
+
+    let stepOk (m: SaveMachine) (c: Clock) (s: InvestigationSession) (input: SaveInput) =
+        match m.Step (context c) s input with
+        | Ok(next, effects) ->
+            advance c effects
+            next, effects
+        | Error f -> failwithf "%s refused: %s" f.Input f.Reason
+
+    /// Executes the session's outstanding request and every follow-up request through `execute` until the session
+    /// awaits nothing; returns the final session, every event stepped and every request sent.
+    let drive (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
+        let rec loop (s: InvestigationSession) (pending: HttpRequest list) (events: SaveInput list) (sent: HttpRequest list) (budget: int) =
+            match pending with
+            | [] -> s, List.rev events, List.rev sent
+            | _ when budget = 0 -> failwith "the save did not settle"
+            | r :: rest ->
+                let outcome = execute r
+                match m.Interpret (context c) s outcome with
+                | Interpretation.NextRequest(next, request) ->
+                    c.Next <- c.Next + 1L
+                    loop next (rest @ [ request ]) events (r :: sent) (budget - 1)
+                | MachineEvent input ->
+                    match m.Step (context c) s input with
+                    | Ok(next, effects) ->
+                        advance c effects
+                        let more =
+                            match next.State with
+                            | SaveState.Conflict _ -> []
+                            | _ -> requests effects
+                        loop next (rest @ more) (input :: events) (r :: sent) (budget - 1)
+                    | Error f -> failwithf "%s refused in %s: %s" f.Input f.State f.Reason
+        loop session first [] [] 40
