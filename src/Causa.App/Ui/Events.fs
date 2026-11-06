@@ -19,12 +19,22 @@ type AppMsg =
     | DraftChanged of key: string * value: string
     /// The credential field changed: wrapped as the opaque Credential.T at once, never kept as text.
     | CredentialEntered of Credential.T
+    /// These drafts are cleared (a submitted form, a cancelled start).
+    | DraftsCleared of keys: string list
+    /// A live-region message the engine's handling of an action produced without an engine message (a refused form).
+    | Announced of Politeness * string
+    /// The build record was read (its text) or could not be read (why).
+    | BuildRead of Result<string, string>
 
 /// What the integration engine asks the browser to do: the frozen IF41-APP host effects plus same-origin navigation.
 type AppEffect =
     | HostEffect of HostEffect
     /// Push this hash onto the history (Limen Navigation effect).
     | PushLocation of hash: string
+    /// Subscribe to the browser's connectivity (limen.lifecycle), once after Initialize.
+    | SubscribeConnectivity
+    /// Read the page's own build record (./build-info.json, same origin, no credential), once after Initialize.
+    | ReadBuildInfo
 
 [<RequireQualifiedAccess>]
 module Events =

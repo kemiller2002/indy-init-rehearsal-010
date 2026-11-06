@@ -1,0 +1,77 @@
+<!-- Owner: ui-2. investigation-start (S01; INV-001..006, INV-019..023; INV-003 not applicable: no domain profile). -->
+<template data-if="screen.new">
+  <section class="causa-start" aria-labelledby="causa-start-title">
+    <h1 id="causa-start-title" data-text="new.heading">New investigation</h1>
+    <template data-if="new.refused">
+      <div class="ef-validation-summary" role="alert" aria-labelledby="causa-start-refusal">
+        <div class="ef-validation-summary__icon" aria-hidden="true">!</div>
+        <div>
+          <h2 class="ef-validation-summary__title" id="causa-start-refusal" data-text="new.refusal"></h2>
+          <ul class="ef-validation-summary__list">
+            <template data-each="new.summary" data-key="id"><li data-text="message"></li></template>
+          </ul>
+        </div>
+      </div>
+    </template>
+    <form class="ef-form causa-start__form" aria-labelledby="causa-start-title" novalidate>
+      <div class="ef-field" data-requirement-id="INV-001">
+        <label class="ef-field__label" for="causa-start-problem">Problem statement</label>
+        <span class="ef-field__description" id="causa-start-problem-description">Required. What happened, as you first understood it. Up to 10,000 characters.</span>
+        <textarea id="causa-start-problem" rows="5" required aria-required="true"
+          aria-describedby="causa-start-problem-description causa-start-problem-errors"
+          data-event="new.problem" data-on="input" data-bind-value="new.problem" data-bind-aria-invalid="new.problem.invalid"></textarea>
+        <div id="causa-start-problem-errors" data-requirement-id="INV-019 INV-021">
+          <template data-each="new.problem.errors" data-key="id">
+            <p class="ef-validation-message"><span class="ef-validation-message__mark" aria-hidden="true">!</span><span data-text="message"></span></p>
+          </template>
+        </div>
+      </div>
+      <div class="ef-field" data-requirement-id="INV-002">
+        <label class="ef-field__label" for="causa-start-title-field">Title</label>
+        <span class="ef-field__description" id="causa-start-title-description">Optional. Up to 200 characters. Without a title the problem statement names the investigation.</span>
+        <input type="text" id="causa-start-title-field" autocomplete="off"
+          aria-describedby="causa-start-title-description causa-start-title-errors"
+          data-event="new.title" data-on="input" data-bind-value="new.title" data-bind-aria-invalid="new.title.invalid">
+        <div id="causa-start-title-errors" data-requirement-id="INV-020">
+          <template data-each="new.title.errors" data-key="id">
+            <p class="ef-validation-message"><span class="ef-validation-message__mark" aria-hidden="true">!</span><span data-text="message"></span></p>
+          </template>
+        </div>
+      </div>
+      <div class="ef-field" data-requirement-id="INV-023">
+        <label class="ef-field__label" for="causa-start-question">Primary investigative question</label>
+        <span class="ef-field__description" id="causa-start-question-description">Optional. The question this investigation sets out to answer. Up to 10,000 characters.</span>
+        <textarea id="causa-start-question" rows="3"
+          aria-describedby="causa-start-question-description causa-start-question-errors"
+          data-event="new.question" data-on="input" data-bind-value="new.question" data-bind-aria-invalid="new.question.invalid"></textarea>
+        <div id="causa-start-question-errors">
+          <template data-each="new.question.errors" data-key="id">
+            <p class="ef-validation-message"><span class="ef-validation-message__mark" aria-hidden="true">!</span><span data-text="message"></span></p>
+          </template>
+        </div>
+      </div>
+      <div class="ef-field" data-requirement-id="INV-006">
+        <label class="ef-field__label" for="causa-start-identifier">Investigation identifier</label>
+        <span class="ef-field__description" id="causa-start-identifier-description">A new identifier, generated for this investigation. It never changes after the start.</span>
+        <input type="text" id="causa-start-identifier" class="ef-identifier" autocomplete="off" spellcheck="false" required aria-required="true"
+          aria-describedby="causa-start-identifier-description causa-start-identifier-errors"
+          data-event="new.identifier" data-on="input" data-bind-value="new.identifier" data-bind-aria-invalid="new.identifier.invalid">
+        <div id="causa-start-identifier-errors">
+          <template data-each="new.identifier.errors" data-key="id">
+            <p class="ef-validation-message"><span class="ef-validation-message__mark" aria-hidden="true">!</span><span data-text="message"></span></p>
+          </template>
+        </div>
+      </div>
+      <dl class="ef-key-value-list causa-start__destination" data-requirement-id="INV-005">
+        <div><dt id="causa-start-destination-label">Persistence destination</dt><dd aria-labelledby="causa-start-destination-label" data-text="new.destination"></dd></div>
+      </dl>
+      <template data-if="new.start.hasReason">
+        <p class="ef-field__description causa-start__reason" id="causa-start-reason" data-text="new.start.reason"></p>
+      </template>
+      <div class="ef-actions causa-start__actions">
+        <button type="button" data-requirement-id="INV-004" aria-describedby="causa-start-reason" data-event="new.start" data-bind-disabled="new.start.disabled">Start investigation</button>
+        <button type="button" data-requirement-id="INV-022" aria-label="Cancel investigation start" data-event="new.cancel">Cancel</button>
+      </div>
+    </form>
+  </section>
+</template>

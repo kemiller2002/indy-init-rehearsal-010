@@ -25,7 +25,12 @@ module Links =
 
     let keys (draft: string -> string) (investigation: Investigation option) : (string * ViewValue) list =
         let analysis = investigation |> Option.map (Analysis.project Analysis.actor)
-        let chosenEvidence, chosenHypothesis, chosenKind = draft evidence, draft hypothesis, draft kind
+        // A choice with exactly one option is that option (integration: the engine's relate uses the same rule).
+        let onlyOne (ids: string list) = match ids with [ id ] -> id | _ -> ""
+        let orOnly (chosen: string) (ids: string list) = if chosen = "" then onlyOne ids else chosen
+        let chosenEvidence = orOnly (draft evidence) (analysis |> Option.map (fun a -> a.Evidence |> List.map (fun e -> e.Id)) |> Option.defaultValue [])
+        let chosenHypothesis = orOnly (draft hypothesis) (analysis |> Option.map (fun a -> a.Hypotheses |> List.map (fun h -> h.Id)) |> Option.defaultValue [])
+        let chosenKind = draft kind
         let relateAvailability = analysis |> Option.map (fun a -> Analysis.action a "INV-030") |> Option.defaultValue NotOffered
         let assessments = analysis |> Option.map (fun a -> a.Relationships) |> Option.defaultValue []
         [ Bind.flag (p + "loaded") investigation.IsSome

@@ -1,0 +1,59 @@
+
+
+
+  REFUSED 3 work items: T10 is in the work plan but not in Praxis
+  REFUSED 3 work items: T11 is in the work plan but not in Praxis
+  REFUSED 3 work items: T12 is in the work plan but not in Praxis
+  REFUSED 3 work items: T13 is in the work plan but not in Praxis
+  REFUSED 3 work items: T14 is in the work plan but not in Praxis
+  REFUSED 3 work items: T15 is in the work plan but not in Praxis
+  REFUSED 3 work items: T16 is in the work plan but not in Praxis
+  REFUSED 3 work items: T17 is in the work plan but not in Praxis
+  REFUSED 3 work items: T18 is in the work plan but not in Praxis
+  REFUSED 3 work items: T19 is in the work plan but not in Praxis
+  REFUSED 3 work items: T20 is in the work plan but not in Praxis
+  REFUSED 3 work items: T21 is in the work plan but not in Praxis
+  REFUSED 3 work items: T22 is in the work plan but not in Praxis
+  REFUSED 3 work items: T23 is in the work plan but not in Praxis
+  REFUSED 3 work items: T24 is in the work plan but not in Praxis
+  REFUSED 3 work items: T25 is in the work plan but not in Praxis
+  REFUSED 3 work items: T26 is in the work plan but not in Praxis
+  REFUSED 3 work items: T27 is in the work plan but not in Praxis
+  REFUSED 3 work items: T28 is in the work plan but not in Praxis
+  REFUSED 3 work items: T29 is in the work plan but not in Praxis
+  REFUSED 3 work items: T30 is in the work plan but not in Praxis
+  REFUSED 3 work items: T31 is in the work plan but not in Praxis
+  REFUSED 3 work items: T32 is in the work plan but not in Praxis
+  REFUSED 3 work items: T33 is in the work plan but not in Praxis
+  REFUSED 3 work items: T34 is in the work plan but not in Praxis
+  REFUSED 3 work items: T35 is in the work plan but not in Praxis
+  REFUSED 3 work items: T36 is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-AR is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-EXT-DATA is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-PF is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-RECORDS is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-UI is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-VER is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-GEN-WDL is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-INV-LIST is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-INV-START is in the work plan but not in Praxis
+  REFUSED 3 work items: WI-INV-WORKSPACE is in the work plan but not in Praxis
+  REFUSED 4 links: T14 names no requirement
+  REFUSED 4 links: T14 names no verification obligation
+  REFUSED 4 links: T17 names no requirement
+  REFUSED 4 links: T17 names no verification obligation
+  REFUSED 4 links: T20 names no requirement
+  REFUSED 4 links: T20 names no verification obligation
+  REFUSED 4 links: T23 names no requirement
+  REFUSED 4 links: T23 names no verification obligation
+  REFUSED 4 links: T26 names no requirement
+  REFUSED 4 links: T26 names no verification obligation
+  REFUSED 4 links: T27 names no requirement
+  REFUSED 4 links: T27 names no verification obligation
+  REFUSED 4 links: T28 names no requirement
+  REFUSED 4 links: T28 names no verification obligation
+  REFUSED 4 links: T32 names no requirement
+  REFUSED 4 links: T32 names no verification obligation
+  REFUSED 4 links: T35 names no requirement
+  REFUSED 4 links: T35 names no verification obligation
+authorize-implementation: REFUSED (55 cause(s))
