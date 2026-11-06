@@ -50,7 +50,7 @@
   "humanOnlyTransitions": [],
   "parentExecution": null,
   "startedAt": "2026-11-06T17:19:12.359Z",
-  "state": "active",
+  "state": "interrupted",
   "stateReason": null,
   "origin": {
     "kind": "work-transition",
