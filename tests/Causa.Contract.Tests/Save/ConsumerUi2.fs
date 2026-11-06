@@ -46,7 +46,13 @@ let IndicatorFollowsMachine () =
             Assert.Equal(Ui2Scenarios.investigationId, indicator.InvestigationId)
             Assert.False(System.String.IsNullOrWhiteSpace indicator.Text)
             // The rendered keys over the engine's model with this session.
-            let view = SaveIndicator.view (Ui2Scenarios.loaded state "Pump trip" "Pump P-101 tripped" "Why?")
+            // A refused credential is shown while SM-CONNECTION is CredentialRefused (T-N04 moves it there).
+            let shown = Ui2Scenarios.loaded state "Pump trip" "Pump P-101 tripped" "Why?"
+            let shown =
+                match state with
+                | SaveState.SaveFailed CredentialNotAccepted -> { shown with Model = { shown.Model with Connection = CredentialRefused } }
+                | _ -> shown
+            let view = SaveIndicator.view shown
             Assert.Equal(BindingValue.Flag true, value "investigation.save.shown" view)
             Assert.Equal(BindingValue.Text label, value "investigation.save.state" view)
             Assert.Equal(BindingValue.Text lozenge, value "investigation.save.lozenge" view)
@@ -137,9 +143,17 @@ let IndicatorFollowsMachine () =
     Assert.Equal(BindingValue.Flag true, value "investigation.save.canCheckAgain" spentView)
     Assert.True(Result.isOk (saveMachine.Step (Ui2Scenarios.context 10L) spent SaveInput.CheckAgain))
     // A refused credential: Save failed with Reconnect (PERSIST-031-O22), not Retry.
+    // The connection is CredentialRefused meanwhile (T-N04); once a new token is accepted (T-N06) the user may save
+    // again: the same Save failed then offers the save, not Reconnect.
     let credential = back |> on 11L SaveInput.SaveRequested |> on 12L SaveInput.CredentialRefused
-    let credentialView = check "Save failed" false credential
+    let refusedTab = show credential |> fun t -> { t with Model = { t.Model with Connection = CredentialRefused } }
+    let credentialView = SaveIndicator.view refusedTab
+    Assert.Equal("Save failed", text "investigation.save.state" credentialView)
+    Assert.Equal(BindingValue.Flag false, value "investigation.save.canSave" credentialView)
     Assert.Equal(BindingValue.Flag true, value "investigation.save.canReconnect" credentialView)
+    let reconnectedView = check "Save failed" true credential
+    Assert.Equal(BindingValue.Flag false, value "investigation.save.canReconnect" reconnectedView)
+    Assert.True(Result.isOk (saveMachine.Step (Ui2Scenarios.context 13L) credential SaveInput.SaveRequested))
 
     // ---- J3-05: Conflict keeps this tab's values; only SM-CONFLICT's legal choices are offered; nothing is overwritten
     let remote = Ui2Scenarios.verified [ Ui2Scenarios.startCommand "Pump trip" "Pump P-101 tripped" ]

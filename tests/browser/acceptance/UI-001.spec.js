@@ -1,7 +1,7 @@
 // Owner: ui. UI-001: the investigation list. O1 before Connect runs against the build alone; the rest need the
 // connected application (workspace-data.mjs: the harness double, or the real provider with CAUSA_PROVIDER=github).
 import { test, expect } from '@playwright/test';
-import { open } from '../support/app.mjs';
+import { open, navigate } from '../support/app.mjs';
 import { connect, investigationWithContent, sections } from './workspace-data.mjs';
 
 const cards = (page) => page.getByRole('list', { name: 'Investigations' }).getByRole('article');
@@ -21,7 +21,7 @@ test('UI-001-O1', async ({ page }) => {
 test('UI-001-O2', async ({ page }) => {
   // Each card: title, status (lifecycle), last activity and hypothesis/evidence/contradiction counts.
   const v = await investigationWithContent(page);
-  await open(page, '#/investigations');
+  await navigate(page, '#/investigations');
   const card = cards(page).filter({ hasText: v.title });
   await expect(card).toHaveCount(1);
   for (const term of ['Status', 'Last activity', 'Hypotheses', 'Evidence', 'Unresolved contradictions']) await expect(card.getByText(term, { exact: true })).toBeVisible();
@@ -42,7 +42,7 @@ test('UI-001-O3', async ({ page }) => {
 test('UI-001-O4', async ({ page }) => {
   // The list offers no next action the engine did not provide: each card's only action is opening it.
   const v = await investigationWithContent(page);
-  await open(page, '#/investigations');
+  await navigate(page, '#/investigations');
   const card = cards(page).filter({ hasText: v.title });
   await expect(card.getByRole('button')).toHaveCount(0);
   await expect(card.getByRole('link', { name: 'Open investigation' })).toHaveCount(1);
@@ -51,7 +51,7 @@ test('UI-001-O4', async ({ page }) => {
 test('UI-001-O5', async ({ page }) => {
   // Sort, and the loading / empty states have words: the sort control reorders the cards.
   await investigationWithContent(page);
-  await open(page, '#/investigations');
+  await navigate(page, '#/investigations');
   const sort = page.getByRole('combobox', { name: 'Sort by' });
   await expect(sort).toBeVisible();
   await sort.selectOption({ label: 'Where it is stored' });
@@ -66,7 +66,7 @@ test('UI-001-O6', async ({ page }) => {
   // Opening an investigation keeps its identity: the route names its workspace and id, and its content is shown.
   const v = await investigationWithContent(page);
   const id = new URL(v.url).hash.split('/')[3];
-  await open(page, '#/investigations');
+  await navigate(page, '#/investigations');
   await cards(page).filter({ hasText: v.title }).getByRole('link', { name: 'Open investigation' }).click();
   await expect(sections(page)).toBeVisible();
   expect(page.url()).toContain(id);

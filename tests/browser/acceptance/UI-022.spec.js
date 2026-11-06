@@ -1,6 +1,6 @@
 // Owner: ui. UI-022: header, footer and catalog cards carry investigation meaning, not build metadata.
 import { test, expect } from '@playwright/test';
-import { open, routes } from '../support/app.mjs';
+import { open, routes, navigate } from '../support/app.mjs';
 import { investigationWithContent, connect } from './workspace-data.mjs';
 
 const sha = /\b[0-9a-f]{7,40}\b/;
@@ -35,7 +35,7 @@ test('UI-022-O2', async ({ page }) => {
 test('UI-022-O3', async ({ page }) => {
   // Catalog cards lead with the title, then status, activity, counts and a clear Open investigation action.
   const v = await investigationWithContent(page);
-  await open(page, routes.Investigations);
+  await navigate(page, routes.Investigations);
   const card = page.getByRole('article', { name: v.title });
   await expect(card.getByRole('heading', { level: 2 })).toHaveText(v.title);
   await expect(card.getByRole('link', { name: 'Open investigation' })).toBeVisible();
@@ -45,7 +45,7 @@ test('UI-022-O3', async ({ page }) => {
 test('UI-022-O4', async ({ page }) => {
   // No raw case keys as headings, no "Expected lifecycle", no replay explanations.
   await investigationWithContent(page);
-  await open(page, routes.Investigations);
+  await navigate(page, routes.Investigations);
   const main = await page.locator('main').innerText();
   expect(main).not.toMatch(/Expected lifecycle|replay|Declared/i);
   const headings = await page.locator('main h2').allTextContents();
@@ -57,7 +57,7 @@ test('UI-022-O5', async ({ page }) => {
   // Identifiers stay discoverable for reference: the route names the investigation id, and Administration has facts.
   const v = await investigationWithContent(page);
   expect(v.url).toMatch(/\/[0-9a-f-]{36}\//);
-  await open(page, routes.Administration);
+  await navigate(page, routes.Administration);
   await expect(page.locator('.causa-fact').filter({ hasText: 'Repository' }).first()).toBeVisible();
 });
 

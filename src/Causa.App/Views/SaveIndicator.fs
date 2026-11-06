@@ -193,15 +193,22 @@ module SaveIndicator =
             | None -> shown |> Option.map (fun _ -> SavedKind)
         let has a = shown |> Option.exists (fun v -> List.contains a v.Actions)
         let unsavedHere = notSaved state
+        let credentialRefused =
+            match state.Model.Connection with
+            | CredentialRefused
+            | Reauthenticating -> true
+            | _ -> false
         [ Bind.flag "investigation.save.shown" shown.IsSome
           Bind.text "investigation.save.state" (shown |> Option.map (fun v -> v.Label) |> Option.defaultValue "")
           Bind.text "investigation.save.lozenge" (k |> Option.map (lozenge >> fst) |> Option.defaultValue "unknown")
           Bind.text "investigation.save.glyph" (shown |> Option.map (fun v -> v.Glyph) |> Option.defaultValue "")
           Bind.text "investigation.save.text" (shown |> Option.map (fun v -> v.Text) |> Option.defaultValue "")
           Bind.flag "investigation.save.assertive" (shown |> Option.exists (fun v -> v.Politeness = Assertive))
-          Bind.flag "investigation.save.canSave" (has Save || has Retry)
+          // A refused credential offers Reconnect while the connection is refused (T-N04); once a new token is accepted
+          // (T-N06: "the user may save again") the same Save failed offers the save again instead.
+          Bind.flag "investigation.save.canSave" (has Save || has Retry || (has Reconnect && not credentialRefused))
           Bind.flag "investigation.save.canCheckAgain" (has CheckAgainAction)
-          Bind.flag "investigation.save.canReconnect" (has Reconnect)
+          Bind.flag "investigation.save.canReconnect" (has Reconnect && credentialRefused)
           Bind.flag "investigation.save.conflict" (k = Some ConflictKind)
           // PERSIST-030: Forma operation status for Unknown commit outcome and Save failed only.
           Bind.flag "investigation.save.operation" (k = Some UnknownOutcomeKind || k = Some SaveFailedKind)

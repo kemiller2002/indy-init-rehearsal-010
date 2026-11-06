@@ -4,6 +4,7 @@
   <Project Path="src/Causa.App/Causa.App.fsproj" />
   <Project Path="src/Causa.Host/Causa.Host.csproj" />
   <Project Path="tests/Causa.TestSupport/Causa.TestSupport.fsproj" />
+  <Project Path="tests/Causa.FakeGitHub/Causa.FakeGitHub.fsproj" />
   <Project Path="tests/Causa.Acceptance/Causa.Acceptance.fsproj" />
   <Project Path="tests/Causa.Invariants/Causa.Invariants.fsproj" />
   <Project Path="tests/Causa.Contract.Tests/Causa.Contract.Tests.fsproj" />

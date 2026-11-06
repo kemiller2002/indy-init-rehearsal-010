@@ -1,0 +1,16 @@
+<!-- Owner: integration. The stateful GitHub fake (tests/Causa.TestSupport/StatefulFake.fs) served over HTTP for the offline
+     browser suites SU-BROWSER-CHROMIUM and SU-BROWSER-WEBKIT ("the test build served once per worker with the stateful
+     fake", verification-execution-plan.json). Started by playwright.config.ts; never live evidence (PERSIST-025-O4). -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.TestSupport/Causa.TestSupport.fsproj" />
+  </ItemGroup>
+</Project>
