@@ -19,6 +19,10 @@ type AppMsg =
     | DraftChanged of key: string * value: string
     /// The credential field changed: wrapped as the opaque Credential.T at once, never kept as text.
     | CredentialEntered of Credential.T
+    /// These drafts are cleared (a submitted form, a cancelled start).
+    | DraftsCleared of keys: string list
+    /// A live-region message the engine's handling of an action produced without an engine message (a refused form).
+    | Announced of Politeness * string
 
 /// What the integration engine asks the browser to do: the frozen IF41-APP host effects plus same-origin navigation.
 type AppEffect =

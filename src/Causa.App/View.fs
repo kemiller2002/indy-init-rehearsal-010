@@ -44,6 +44,18 @@ module View =
     let screens: (AppState -> (string * ViewValue) list) list =
         [ Causa.App.Views.Shell.view
           Causa.App.Views.InvestigationList.view
+          Causa.App.Views.Connection.view
+          Causa.App.Views.Start.view
+          Causa.App.Views.Frame.view
+          Causa.App.Views.Details.view
+          Causa.App.Views.SaveIndicator.view
+          Causa.App.Views.Workspace.Overview.view
+          Causa.App.Views.Workspace.Hypotheses.view
+          Causa.App.Views.Workspace.Evidence.view
+          Causa.App.Views.Workspace.Links.view
+          Causa.App.Views.Workspace.Conclusions.view
+          Causa.App.Views.Workspace.Timeline.view
+          Causa.App.Views.Graph.view
           Causa.App.Views.Administration.view
           Causa.App.Views.Settings.view
           Causa.App.Views.NotFound.view ]

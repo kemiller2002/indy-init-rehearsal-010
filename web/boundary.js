@@ -3,6 +3,14 @@
 import { BrowserKernel } from "./limen/index.js";
 import { DotnetWasmTransport } from "./limen/hosts/dotnet-wasm-transport.js";
 
+// Provider reads are never answered from the browser's HTTP cache (api.github.com sends Cache-Control: private,
+// max-age=60): a read-back or a head read must see the provider's current answer. Mechanism only.
+const nativeFetch = globalThis.fetch.bind(globalThis);
+globalThis.fetch = (input, init = {}) => {
+  const method = String(init.method || (input instanceof Request ? input.method : "GET")).toUpperCase();
+  return nativeFetch(input, method === "GET" ? { ...init, cache: "no-store" } : init);
+};
+
 const loading = document.querySelector(".causa-loading");
 const failed = document.getElementById("causa-load-failed");
 
