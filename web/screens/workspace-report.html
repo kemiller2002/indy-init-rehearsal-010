@@ -1,0 +1,37 @@
+<!-- Owner: ui-3 (new fragment; see the change request). The investigation report (Views/Report.fs): UI-009, J2-10. -->
+<template data-if="screen.investigation.report">
+  <article class="ef-section causa-report" aria-labelledby="causa-report-heading" data-requirement-id="UI-009">
+    <header class="causa-report__header">
+      <p class="ef-eyebrow">Investigation report</p>
+      <h2 class="ef-section-heading" id="causa-report-heading">Report: <span data-text="investigation.report.title"></span></h2>
+    </header>
+    <template data-if="investigation.report.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <dl class="ef-key-value-list causa-report__facts">
+          <div><dt>Investigation identifier</dt><dd data-text="investigation.report.id"></dd></div>
+          <div><dt>State</dt><dd data-text="investigation.report.state"></dd></div>
+          <div><dt>Event version</dt><dd data-text="investigation.report.version"></dd></div>
+          <div><dt>Last changed</dt><dd><time data-bind-datetime="investigation.report.asOf" data-text="investigation.report.asOf"></time></dd></div>
+        </dl>
+        <template data-each="investigation.report.sections" data-key="id">
+          <section class="ef-stack causa-report__section">
+            <h3 data-text="heading"></h3>
+            <template data-if="empty"><p class="causa-analysis__empty">Nothing recorded.</p></template>
+            <p class="causa-record__lines" data-text="body"></p>
+          </section>
+        </template>
+        <section class="ef-stack causa-report__section" aria-labelledby="causa-report-uncertain">
+          <h3 id="causa-report-uncertain">Unresolved uncertainties</h3>
+          <template data-if="investigation.report.uncertainties.empty"><p class="causa-analysis__empty">None recorded.</p></template>
+          <ul class="causa-analysis__list" aria-labelledby="causa-report-uncertain">
+            <template data-each="investigation.report.uncertainties" data-key="id"><li data-text="text"></li></template>
+          </ul>
+        </section>
+        <p class="causa-report__print-hint">Use your browser's print command to print this report or save it as PDF.</p>
+      </div>
+    </template>
+    <template data-if="investigation.report.missing">
+      <p class="causa-analysis__empty" data-text="investigation.report.notLoaded"></p>
+    </template>
+  </article>
+</template>

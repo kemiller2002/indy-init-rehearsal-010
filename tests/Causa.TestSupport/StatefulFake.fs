@@ -58,7 +58,12 @@ type FakeState =
       Counter: int64
       /// GraphQL Blob.text is truncated above this many bytes (GitHub truncates large blobs), so a reader must fall back
       /// to the Git blobs API.
-      TruncateTextAbove: int }
+      TruncateTextAbove: int
+      /// The contents API answers a file larger than this with no content and `encoding: none` (GitHub: 1 to 100 MB).
+      ContentsLargeAbove: int
+      /// When set, every GraphQL files read is answered with this (status, body) instead: a credential or endpoint
+      /// that cannot use the GraphQL read (T20), so the reader must fall back to REST at the same commit.
+      GraphQlReadRefusal: (int * string) option }
 
 /// A stateful fake of the GitHub API the application uses: REST repository, refs, contents, commits and compare, and
 /// GraphQL createCommitOnBranch. It keeps real commit ancestry, enforces expectedHeadOid, accepts commits from simulated
@@ -91,7 +96,9 @@ module StatefulFake =
           Faults = []
           Log = []
           Counter = 0L
-          TruncateTextAbove = 1048576 }
+          TruncateTextAbove = 1048576
+          ContentsLargeAbove = 1048576
+          GraphQlReadRefusal = None }
 
     let private newCommit (state: FakeState) (parent: string) (tree: Map<string, byte[]>) (message: string) (author: string) =
         let counter = state.Counter + 1L
@@ -272,7 +279,10 @@ module StatefulFake =
         let uri = Uri request.Url
         let segments = uri.AbsolutePath.Trim('/').Split('/') |> Array.map Uri.UnescapeDataString |> List.ofArray
         match request.Method, segments with
-        | Post, [ "graphql" ] when (request.Body |> Option.defaultValue "").Contains "\"rev\"" -> filesQuery state (request.Body |> Option.defaultValue "{}")
+        | Post, [ "graphql" ] when (request.Body |> Option.defaultValue "").Contains "\"rev\"" ->
+            match state.GraphQlReadRefusal with
+            | Some(status, body) -> state, Reply(status, body)
+            | None -> filesQuery state (request.Body |> Option.defaultValue "{}")
         | Post, [ "graphql" ] ->
             if access <> ReadWrite then state, Reply(200, Recordings.graphQlForbidden)
             else mutate state (request.Body |> Option.defaultValue "") false
@@ -301,6 +311,7 @@ module StatefulFake =
             | Some oid ->
                 let tree = state.Commits[oid].Tree
                 match tree.TryFind p with
+                | Some bytes when bytes.Length > state.ContentsLargeAbove -> state, Reply(200, Recordings.largeFileAnswer p (blobSha bytes) bytes.Length)
                 | Some bytes -> state, Reply(200, Recordings.fileAnswer p (blobSha bytes) bytes)
                 | None ->
                     let prefix = if p = "" then "" else p + "/"

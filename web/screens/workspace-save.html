@@ -1,0 +1,21 @@
+<!-- Owner: ui-2. The workspace's save summary (PERSIST-030 O6, PERSIST-031 O23, PERSIST-033): the assertive
+     announcement of Conflict, Unknown commit outcome and Save failed, the connection state, the offline notice while
+     Saved, and every investigation of this tab whose changes GitHub does not have. The indicator itself, its operation
+     status and the conflict review are in the workspace header (workspace-frame). -->
+<template data-if="screen.investigation">
+  <div class="causa-save-panel">
+    <span class="causa-visually-hidden" aria-live="assertive" data-text="investigation.save.assertiveText"></span>
+    <p class="causa-save-panel__connection" data-requirement-id="PERSIST-033" data-text="investigation.connection"></p>
+    <template data-if="investigation.save.offlineSaved">
+      <p class="ef-alert causa-save-panel__offline">You are offline. This investigation has no unsent changes.</p>
+    </template>
+    <template data-if="investigation.notSaved.any">
+      <nav class="causa-save-panel__unsaved" aria-label="Investigations with changes GitHub does not have" data-requirement-id="PERSIST-033">
+        <p data-text="investigation.notSaved.summary"></p>
+        <ul>
+          <template data-each="investigation.notSaved.items" data-key="key"><li><a data-bind-href="href" data-text="title"></a></li></template>
+        </ul>
+      </nav>
+    </template>
+  </div>
+</template>

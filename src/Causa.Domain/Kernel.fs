@@ -55,35 +55,12 @@ module Kernel =
           Timeline = List.rev s.History
           Capabilities = Capabilities.available s }
 
-    /// The envelopes an Allowed decision would append, with a placeholder provenance (no clock is read): used only to
-    /// prove that every event Decide allows also evolves.
-    let private rehearse (actor: Actor) (state: Investigation option) (command: CommandEnvelope) (events: EventPayload list) =
-        let start = state |> Option.map (fun s -> s.Version) |> Option.defaultValue AggregateVersion.zero
-        let at = state |> Option.map (fun s -> s.UpdatedAt) |> Option.defaultValue System.DateTimeOffset.UnixEpoch
-        events
-        |> List.mapi (fun i payload ->
-            { EventId = EventId command.CommandId
-              Investigation = command.Investigation
-              Version = AggregateVersion(AggregateVersion.value start + int64 (i + 1))
-              Provenance =
-                { OccurredAt = at
-                  Actor = actor
-                  CorrelationId = command.CommandId
-                  FormatVersion = Events.formatVersion
-                  SemanticVersion = Events.semanticVersion }
-              Payload = payload })
+    /// Decide with the core invariant firewall (Evolve.decide).
+    let decide = Evolve.decide
 
-    /// Decide, with the core invariant firewall: an Allowed decision whose events would not evolve is Blocked.
-    let decide (policies: PolicySet) (actor: ActorContext) (state: Investigation option) (command: CommandEnvelope) : Decision =
-        match Decide.decide policies actor state command, NonEmptyText.tryCreate actor.ActorId with
-        | Allowed events, Some id ->
-            let applied =
-                rehearse ({ ActorId = id; Kind = ActorKind.Human }: Actor) state command events
-                |> List.fold (fun acc e -> acc |> Result.bind (fun s -> Evolve.evolve s e |> Result.map Some)) (Ok state)
-            match applied with
-            | Ok _ -> Allowed events
-            | Error e -> Blocked [ { Code = "invariant.violation"; Message = e.Reason } ]
-        | decision, _ -> decision
+    /// Every capability with the engine's reasons (boundary B), under the composed policy and for this actor.
+    let capabilities (policies: PolicySet) (actor: ActorContext) (s: Investigation) : Capability list =
+        Capabilities.evaluate policies actor s
 
     /// The IF41-DOMAIN kernel.
     let domain : DomainKernel =
@@ -91,3 +68,46 @@ module Kernel =
           Evolve = Evolve.evolve
           Replay = replay
           Project = project }
+
+/// T14 interface freeze: the domain's versioned manifest of the boundaries it produces (REHEARSAL-AGENT-INTERFACE-FREEZE
+/// boundaries A-C; D and E belong to persistence and report). A breaking change to any type named here is a new
+/// contract version through the coordinator; Causa.Domain.Tests.Identity checks the frozen shapes against this manifest.
+[<RequireQualifiedAccess>]
+module InterfaceManifest =
+    type Operation = { Name: string; Signature: string; Errors: string list }
+
+    type Boundary =
+        { Id: string
+          Title: string
+          Types: string list
+          Operations: Operation list }
+
+    /// The frozen package and contract this domain implements.
+    let contract = "IF41-DOMAIN"
+    let version = "4.1.5"
+    /// The causa-storage release whose event payloads the domain types carry field for field.
+    let storageContract = "causa-storage-v1.0.0"
+
+    let boundaries: Boundary list =
+        [ { Id = "A"
+            Title = "Command submission"
+            Types = [ "CommandEnvelope"; "Command"; "CoreCommand"; "PolicySet"; "ActorContext"; "Decision"; "Blocker" ]
+            Operations =
+              [ { Name = "Decide"
+                  Signature = "PolicySet -> ActorContext -> Investigation option -> CommandEnvelope -> Decision"
+                  Errors = [ "Blocked"; "RequiresReview"; "UnsupportedSemantics"; "Conflict"; "Duplicate" ] } ] }
+          { Id = "B"
+            Title = "Versioned projection"
+            Types = [ "Investigation"; "InvestigationProjection"; "EventEnvelope"; "EventProvenance"; "EventPayload"; "CoreEvent" ]
+            Operations =
+              [ { Name = "Evolve"
+                  Signature = "Investigation option -> EventEnvelope -> Result<Investigation, ProjectionError>"
+                  Errors = [ "ProjectionError" ] }
+                { Name = "Project"; Signature = "Investigation -> InvestigationProjection"; Errors = [] } ] }
+          { Id = "C"
+            Title = "Replay"
+            Types = [ "ReplayError" ]
+            Operations =
+              [ { Name = "Replay"
+                  Signature = "EventEnvelope list -> Result<Investigation, ReplayError>"
+                  Errors = [ "EmptyHistory"; "NonContiguousVersion"; "IllegalEvent"; "UnknownEventKind" ] } ] } ]

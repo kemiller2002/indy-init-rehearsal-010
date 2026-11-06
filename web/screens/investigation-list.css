@@ -1,0 +1,4 @@
+/* Owner: ui. investigation-list. */
+.causa-screen h1 { margin-block-start: 0; color: var(--causa-ink); }
+.causa-note { color: var(--causa-ink); }
+.causa-investigation-card .ef-card__link { overflow-wrap: anywhere; }
