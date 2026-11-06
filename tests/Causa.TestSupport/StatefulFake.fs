@@ -1185,9 +1185,9 @@ module LiveRun =
                     | other -> failwithf "%A" other
             loop state (SaveKit.requests effects)
 
-    /// A fresh branch, a fresh working copy and a new investigation the application creates and saves (C1).
-    let createOn (provider: GitHubProvider) (label: string) : T =
-        let machine = SaveMachines.create SaveMachines.support
+    /// A fresh working copy and a new investigation the application creates and saves (C1), in the tab whose machine
+    /// (tab memory) is `machine`: two runs with the same machine are two investigations of one tab.
+    let rec createWith (machine: SaveMachine) (provider: GitHubProvider) (label: string) : T =
         let clock = SaveKit.clock ()
         clock.Connection <- provider.Connection
         let runId = "live-" + Guid.NewGuid().ToString("N").Substring(0, 12)
@@ -1219,6 +1219,9 @@ module LiveRun =
         match run.Session.State with
         | SaveState.Saved _ -> run
         | other -> failwithf "live: the new investigation did not save: %A (events %A)" other run.Events
+
+    /// A fresh working copy and a new investigation in a new tab.
+    and createOn (provider: GitHubProvider) (label: string) : T = createWith (SaveMachines.create SaveMachines.support) provider label
 
     let create (label: string) : T = createOn (LiveGitHub.freshBranch (LiveGitHub.require ()) label) label
 
@@ -1758,6 +1761,23 @@ module PfKit =
     let through (f: HttpRequest -> HttpOutcome -> HttpOutcome) (p: GitHubProvider) : GitHubProvider =
         { p with Execute = fun r -> f r (p.Execute r) }
 
+    let private envVar name = match Environment.GetEnvironmentVariable name with null | "" -> None | v -> Some v
+
+    /// The source commit under test (the candidate): CAUSA_CANDIDATE, GITHUB_SHA, or the checkout's HEAD.
+    let sourceSha () =
+        envVar "CAUSA_CANDIDATE"
+        |> Option.orElse (envVar "GITHUB_SHA")
+        |> Option.defaultWith (fun () ->
+            try
+                let info = Diagnostics.ProcessStartInfo("git", "rev-parse HEAD", RedirectStandardOutput = true, UseShellExecute = false, WorkingDirectory = Layers.repositoryRoot ())
+                match Diagnostics.Process.Start info with
+                | null -> "unknown"
+                | p -> use p = p in p.StandardOutput.ReadToEnd().Trim()
+            with _ -> "unknown")
+
+    /// The run's identity: CAUSA_RUN_ID, GITHUB_RUN_ID, or a local one.
+    let runId () = envVar "CAUSA_RUN_ID" |> Option.orElse (envVar "GITHUB_RUN_ID") |> Option.defaultValue ("local-" + Guid.NewGuid().ToString("N").Substring(0, 12))
+
     /// The source text of the repository's files under `dir` with the given extensions.
     let sources (dir: string) (extensions: string list) : (string * string) list =
         let root = IO.Path.Combine(Layers.repositoryRoot (), dir)
@@ -1768,3 +1788,90 @@ module PfKit =
             |> Seq.filter (fun f -> not (f.Contains(string IO.Path.DirectorySeparatorChar + "bin" + string IO.Path.DirectorySeparatorChar)) && not (f.Contains(string IO.Path.DirectorySeparatorChar + "obj" + string IO.Path.DirectorySeparatorChar)))
             |> Seq.map (fun f -> IO.Path.GetRelativePath(Layers.repositoryRoot (), f), IO.File.ReadAllText f)
             |> List.ofSeq
+
+
+/// One save request run for simulated time (PERSIST-016, PERSIST-047): every ScheduleReconcileRead fires at its time
+/// through ReconcileDue, and the given inputs (network changes) are applied at their instants.
+[<RequireQualifiedAccess>]
+module SaveSimulation =
+    let run (sc: SaveScenario.T) (seconds: float) (inputs: (float * SaveInput) list) : SaveScenario.T =
+        let start = sc.Clock.Now
+        let timers = ResizeArray<float>()
+        let record (effects: SaveEffect list) =
+            for e in effects do
+                match e with
+                | ScheduleReconcileRead(_, ms) -> timers.Add((sc.Clock.Now - start).TotalSeconds + float ms / 1000.0)
+                | _ -> ()
+        record (SaveScenario.input sc SaveInput.SaveRequested)
+        let pending = ResizeArray(inputs)
+        let mutable t = 0.0
+        while t <= seconds do
+            sc.Clock.Now <- start.AddSeconds t
+            for (at, input) in List.ofSeq pending do
+                if at <= t then
+                    pending.Remove((at, input)) |> ignore
+                    match sc.Machine.Step (SaveKit.context sc.Clock) sc.Session input with
+                    | Ok _ -> record (SaveScenario.input sc input)
+                    | Error _ -> ()
+            let due = timers |> Seq.filter (fun at -> at <= t) |> List.ofSeq
+            for at in due do
+                timers.Remove at |> ignore
+                match sc.Session.State with
+                | SaveState.UnknownOutcome _ -> record (SaveScenario.reconcileDue sc)
+                | _ -> ()
+            t <- t + 0.5
+        sc
+
+    /// The reconciliation reads sent (the first page of each compare).
+    let reconciliationReads (sc: SaveScenario.T) = sc.Sent |> List.filter (fun r -> r.Url.Contains "/compare/" && r.Url.EndsWith "page=1")
+
+/// The application engine (Causa.App IF41-APP Update.engine) driven over a provider: every Http effect it asks for is
+/// executed and its outcome stepped back as HttpCompleted, as the Limen host does (PF-014, EXT-DATA-009, EXT-DATA-010).
+[<RequireQualifiedAccess>]
+module EngineDriver =
+    open Causa.App
+
+    type T =
+        { Provider: GitHubProvider
+          mutable Model: Model
+          mutable Sent: HttpRequest list
+          mutable Outcomes: HttpOutcome list
+          mutable Announced: string list }
+
+    let rec private settle (d: T) (effects: HostEffect list) (budget: int) =
+        if budget = 0 then failwith "the engine did not settle"
+        for e in effects do
+            match e with
+            | Http request ->
+                d.Sent <- d.Sent @ [ request ]
+                let outcome = d.Provider.Execute request
+                d.Outcomes <- d.Outcomes @ [ outcome ]
+                let model, more = Update.engine.Update (Browser(HttpCompleted outcome)) d.Model
+                d.Model <- model
+                settle d more (budget - 1)
+            | LiveAnnounce(_, text) -> d.Announced <- d.Announced @ [ text ]
+            | _ -> ()
+
+    let send (d: T) (msg: Msg) =
+        let model, effects = Update.engine.Update msg d.Model
+        d.Model <- model
+        settle d effects 200
+
+    /// A fresh tab: the engine's initial model, nothing connected and nothing loaded.
+    let start (p: GitHubProvider) : T =
+        let model, effects = Update.engine.Init(Route "#/investigations")
+        let d = { Provider = p; Model = model; Sent = []; Outcomes = []; Announced = [] }
+        settle d effects 200
+        d
+
+    /// Connect (EXT-DATA-005): the repository and branch the user chose, and the credential.
+    let connect (d: T) (credential: Credential.T) =
+        send d (Connection(ConnectionInput.ConnectSubmitted(d.Provider.Connection.Repository, credential)))
+
+    let listCatalog (d: T) = send d (ListRequested ActiveCatalog)
+
+    /// Opens an investigation the way the user does: by navigating to its route (the engine opens what the route names).
+    let openInvestigation (d: T) (r: InvestigationRef) =
+        let (Workspace w) = r.Address.Workspace
+        let (Causa.Domain.InvestigationId g) = r.Id
+        send d (Navigate(Route(sprintf "#/investigation/%s/%s/overview" (Uri.EscapeDataString w) (g.ToString "D"))))

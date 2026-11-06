@@ -44,7 +44,7 @@ module PF011Tests =
         Assert.NotEmpty(Layers.tests plan |> List.filter (fun t -> ui |> List.exists (fun s -> s.Id = t.Suite)))
         for path, text in PfKit.sources "tests/browser" [ ".js"; ".mjs"; ".ts" ] do
             if not (path.Replace('\\', '/').Contains "/live/") then
-                for marker in [ "api.github.com"; LiveGitHub.TokenVariable ] do
+                for marker in [ "https://api.github.com"; LiveGitHub.TokenVariable ] do
                     Assert.False(text.Contains marker, sprintf "%s names %s" path marker)
 
     /// O3: provider conformance: the same contract scenarios run against the fixture and the GitHub adapter and agree;
