@@ -3,6 +3,9 @@
     <ManagePackageVersionsCentrally Condition="$(MSBuildProjectName.StartsWith('Causa.'))">true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <!-- FSharp.Core: the version SDK 10.0.402 ships. Central package management disables the SDK's implicit reference,
+         so Directory.Build.props references it explicitly for every Causa F# project (else FSharp.Core.dll is never deployed). -->
+    <PackageVersion Include="FSharp.Core" Version="10.1.402" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
