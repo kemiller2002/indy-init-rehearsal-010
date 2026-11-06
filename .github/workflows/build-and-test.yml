@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -87,6 +87,12 @@ jobs:
         if: steps.chromium-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: npx playwright install chromium
+
+      # playwright.config defines chromium and webkit (the plan's SU-BROWSER-WEBKIT); without this step every
+      # WebKit test fails at launch. Bounded, like the Verification gate's browser install.
+      - name: Download WebKit and its OS libraries for the browser suite
+        timeout-minutes: 15
+        run: npx playwright install --with-deps webkit
 
       # `ldd` proves offline that every shared library the Chromium binaries
       # link against is on the runner. Only when a future runner image drops
