@@ -1,0 +1,15 @@
+<!-- Owner: ui-2. The investigation details on Overview (INV-006, INV-007, INV-008, INV-018, INV-023). -->
+<template data-if="screen.investigation.overview">
+  <section class="causa-details" aria-labelledby="causa-details-title">
+    <template data-if="investigation.details.shown">
+      <div>
+        <h2 id="causa-details-title">Investigation details</h2>
+        <dl class="ef-key-value-list">
+          <template data-each="investigation.details.items" data-key="key">
+            <div><dt data-text="label"></dt><dd class="causa-details__value" data-text="value"></dd></div>
+          </template>
+        </dl>
+      </div>
+    </template>
+  </section>
+</template>

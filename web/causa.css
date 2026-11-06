@@ -1,0 +1,92 @@
+/* Owner: integration. The shell over Forma (site header, navigation shell, skip link, spinner, fault, status lozenge)
+   and the Causa theme tokens; declares no custom property and no literal colour. Screen fragments' CSS
+   (web/screens/*.css) is appended by build.fsx. */
+body.causa { margin: 0; background: var(--causa-ivory); color: var(--causa-ink); }
+.causa-app[data-text-size="large"] { font-size: 1.25em; }
+.causa-app[data-motion="reduce"] *, .causa-app[data-motion="reduce"] *::before, .causa-app[data-motion="reduce"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+
+/* Skip link: Forma's, in Causa colours, on top when focused. */
+.causa-skip { background: var(--causa-surface); color: var(--causa-ink); }
+
+/* Masthead (navy: structure). */
+.causa-masthead { background: var(--causa-navy); color: var(--causa-on-navy); border-block-end-color: var(--causa-navy); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.causa-masthead__inner { justify-content: space-between; }
+.causa-brand { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--causa-on-navy); }
+.causa-brand .ef-site-header__name { color: var(--causa-on-navy); font-weight: 700; font-size: 1.25rem; }
+.causa-connection { margin: 0; color: var(--causa-on-navy); overflow-wrap: anywhere; }
+
+/* The Causa mark (WASM-LOAD-002/007): navy ground, two teal causes leading to an ivory effect. */
+.causa-mark { inline-size: 2rem; block-size: 2rem; flex: 0 0 auto; }
+.causa-mark--large { inline-size: 4rem; block-size: 4rem; }
+.causa-mark__ground { fill: var(--causa-navy); stroke: var(--causa-on-navy); stroke-width: 1; }
+.causa-mark__link { fill: none; stroke: var(--causa-on-navy); stroke-width: 2; }
+.causa-mark__cause { fill: var(--causa-teal); }
+.causa-mark__unknown { fill: var(--causa-teal); }
+.causa-mark__effect { fill: var(--causa-ivory); }
+
+/* Navigation shell: Forma's two-column shell; the persistent navigation is the navy column (UI-020, UI-029). */
+.causa-shell { box-sizing: border-box; align-items: stretch; min-block-size: calc(100vh - 4rem); }
+.ef-navigation-shell__persistent.causa-primary { align-content: start; padding: 0.75rem 0.5rem; background: var(--causa-navy); }
+.causa-primary a { display: flex; align-items: center; min-block-size: 44px; padding: 0 0.75rem; color: var(--causa-on-navy); text-decoration: none; border-inline-start: 4px solid transparent; }
+.causa-primary a:hover { text-decoration: underline; }
+/* The current destination: a teal bar, bold weight and an underline, never colour alone (UI-016-O13). */
+.causa-primary a[aria-current="page"] { border-inline-start-color: var(--causa-teal); font-weight: 700; text-decoration: underline; text-underline-offset: 0.3em; }
+.causa-primary a:focus-visible, .causa-compact > summary:focus-visible { outline: 3px solid var(--causa-focus-on-dark); outline-offset: -3px; }
+.causa-compact { background: var(--causa-navy); color: var(--causa-on-navy); padding: 0 0.75rem; }
+.causa-compact > summary { min-block-size: 44px; font-weight: 700; }
+.causa-compact nav { padding-block-end: 0.5rem; }
+
+/* Main: the ivory workspace surface. */
+.causa-main { box-sizing: border-box; padding: 1rem; min-inline-size: 0; overflow-wrap: anywhere; }
+.causa-main:focus { outline: none; }
+.causa-main :focus-visible { outline: 3px solid var(--causa-focus-on-light); outline-offset: 2px; }
+.causa-main button, .causa-main .ef-button, .causa-main input, .causa-main select, .causa-main summary { min-block-size: 44px; }
+.causa-action { display: inline-flex; align-items: center; min-block-size: 44px; padding: 0 1rem; background: var(--causa-teal-strong); color: var(--causa-surface); border: 2px solid var(--causa-teal); text-decoration: none; }
+
+/* Loading and failure (WASM-LOAD-001..006). */
+.causa-loading { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 2rem 0; }
+.causa-loading .ef-spinner { color: var(--causa-ink); margin: 0; }
+.causa-load-failed { border-inline-start: 6px solid var(--causa-coral); padding-inline-start: 0.75rem; background: var(--causa-surface); color: var(--causa-ink); }
+.causa-load-failed .ef-fault__title { color: var(--causa-coral-strong); }
+.causa-offline { border-inline-start: 6px solid var(--causa-amber); padding-inline-start: 0.75rem; }
+
+/* Status lozenges in Causa's semantics: the word and Forma's glyph carry the meaning, the colour repeats it. */
+.ef-status-lozenge { color: var(--causa-ink); border: 1px solid var(--causa-border); background: var(--causa-surface); padding: 0.125rem 0.5rem; }
+.ef-status-lozenge[data-state="ok"] { color: var(--causa-ink); border-inline-start: 0.375rem solid var(--causa-teal); }
+.ef-status-lozenge[data-state="attention"] { color: var(--causa-ink); background: var(--causa-amber); border-color: var(--causa-ink); }
+.ef-status-lozenge[data-state="unknown"] { color: var(--causa-ink); border-inline-start: 0.375rem solid var(--causa-border); }
+.ef-status-lozenge[data-state="blocked"] { color: var(--causa-coral-strong); border-inline-start: 0.375rem solid var(--causa-coral); }
+.ef-status-lozenge[data-state="frozen"] { color: var(--causa-ink); border-inline-start: 0.375rem solid var(--causa-navy); }
+
+/* The current investigation and its sections (UI-014-O3, UI-029-O2): a second, separate navigation. */
+.causa-context { margin-block-end: 1rem; padding: 0.75rem; background: var(--causa-surface); border: 1px solid var(--causa-border); }
+.causa-context__line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; }
+.causa-context code { overflow-wrap: anywhere; }
+.causa-sections__list { display: flex; flex-wrap: wrap; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
+.causa-sections a { display: inline-flex; align-items: center; min-block-size: 44px; padding: 0 0.75rem; color: var(--causa-teal-strong); border-block-end: 3px solid transparent; }
+.causa-sections a[aria-current="page"] { font-weight: 700; color: var(--causa-ink); border-block-end-color: var(--causa-teal); }
+
+.causa-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+@media (max-width: 48rem) {
+  .causa-shell { min-block-size: 0; }
+}
+/* PERSIST-030-O7: at phone width the save state is on the first screen. The compact menu is not an open disclosure:
+   its destinations sit on one row under its Menu summary (still the visible Primary navigation, UI-020);
+   on an investigation the record header (with the save lozenge) comes before the current-investigation context and
+   its section navigation. */
+@media (max-width: 24.375rem) {
+  .causa-compact { padding: 0 0.25rem; }
+  .causa-compact nav.causa-primary { display: flex; flex-wrap: wrap; padding: 0; }
+  .causa-compact .causa-primary a { padding: 0 0.5rem; border-inline-start: 0; border-block-end: 3px solid transparent; }
+  .causa-compact .causa-primary a[aria-current="page"] { border-block-end-color: var(--causa-teal); }
+  .causa-main { display: flex; flex-direction: column; }
+  .causa-main > * { order: 2; }
+  .causa-main > .causa-loading, .causa-main > .causa-load-failed, .causa-main > .causa-offline, .causa-main > .causa-frame { order: 0; }
+  .causa-main > .causa-context { order: 1; }
+}
+@media print {
+  .causa-masthead, .ef-navigation-shell__persistent, .causa-compact, .causa-skip { display: none; }
+  body.causa { background: var(--causa-surface); }
+}

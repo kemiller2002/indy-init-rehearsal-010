@@ -1,0 +1,51 @@
+<!-- Owner: ui (written by the integration lane acting as ui for T17). The data repository connection region of the
+     Investigations destination (EXT-DATA-002, EXT-DATA-003, EXT-DATA-004, EXT-DATA-005; SM-CONNECTION). The token is a
+     password field whose value becomes the opaque credential: it is never bound back, rendered, logged or stored. -->
+<template data-if="screen.investigations">
+  <section class="causa-connection-region" aria-labelledby="causa-connection-title" data-requirement-id="EXT-DATA-002">
+    <h2 id="causa-connection-title">Data repository</h2>
+    <p class="causa-note" data-text="connection.summary"></p>
+    <template data-if="connection.form">
+      <form class="ef-form causa-connection-form" aria-labelledby="causa-connection-title" novalidate data-event="connection.connect">
+        <p class="causa-note">Causa reads and saves investigations in a GitHub repository you choose. The token stays in this tab's memory and is sent only to the GitHub API.</p>
+        <div class="ef-field">
+          <label class="ef-field__label" for="causa-connection-owner">Repository owner</label>
+          <input type="text" id="causa-connection-owner" autocomplete="off" spellcheck="false"
+            data-event="connection.owner" data-on="input" data-bind-value="connection.owner">
+        </div>
+        <div class="ef-field">
+          <label class="ef-field__label" for="causa-connection-repository">Repository</label>
+          <input type="text" id="causa-connection-repository" autocomplete="off" spellcheck="false"
+            data-event="connection.repository" data-on="input" data-bind-value="connection.repository">
+        </div>
+        <div class="ef-field">
+          <label class="ef-field__label" for="causa-connection-branch">Branch</label>
+          <span class="ef-field__description" id="causa-connection-branch-description">Leave empty for main.</span>
+          <input type="text" id="causa-connection-branch" autocomplete="off" spellcheck="false" aria-describedby="causa-connection-branch-description"
+            data-event="connection.branch" data-on="input" data-bind-value="connection.branch">
+        </div>
+        <div class="ef-field" data-requirement-id="EXT-DATA-004">
+          <label class="ef-field__label" for="causa-connection-token">Token</label>
+          <span class="ef-field__description" id="causa-connection-token-description">A GitHub token that can read the repository, and write to it to save.</span>
+          <input type="password" id="causa-connection-token" autocomplete="off" aria-describedby="causa-connection-token-description"
+            data-event="connection.token" data-on="input">
+        </div>
+        <div class="ef-actions">
+          <button type="submit" class="ef-button" data-bind-disabled="connection.busy">Connect data repository</button>
+        </div>
+      </form>
+    </template>
+    <template data-if="connection.can-disconnect">
+      <p class="ef-actions"><button type="button" class="ef-button" data-event="connection.disconnect">Disconnect</button></p>
+    </template>
+    <template data-if="connection.confirming">
+      <div class="ef-alert causa-connection-confirm" role="alertdialog" aria-labelledby="causa-connection-confirm-text">
+        <p id="causa-connection-confirm-text" data-text="connection.confirm-text"></p>
+        <p class="ef-actions">
+          <button type="button" class="ef-button" data-event="connection.disconnect">Disconnect and drop unsaved changes</button>
+          <button type="button" class="ef-button" data-event="connection.keep">Keep working</button>
+        </p>
+      </div>
+    </template>
+  </section>
+</template>

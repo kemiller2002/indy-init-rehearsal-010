@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "dotnet fsi build.fsx",
     "check": "tsc --noEmit",
     "test:browser": "playwright test"
   },

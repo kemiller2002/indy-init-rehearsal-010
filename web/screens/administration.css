@@ -1,0 +1,6 @@
+/* Owner: ui. Administration: system facts as a key-value list. */
+.causa-facts { display: grid; gap: 0.5rem; margin: 0; }
+.causa-fact { display: grid; grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr); gap: 0.5rem; padding: 0.5rem 0; border-block-end: 1px solid var(--causa-border); }
+.causa-fact dt { font-weight: 700; }
+.causa-fact dd { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+@media (max-width: 30rem) { .causa-fact { grid-template-columns: minmax(0, 1fr); } }
