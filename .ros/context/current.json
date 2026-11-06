@@ -4,7 +4,7 @@
   "repository": "indy-init-rehearsal-010",
   "actor": "persistence",
   "startedAt": "2026-11-06T16:40:13.993Z",
-  "updatedAt": "2026-11-06T17:16:08Z",
+  "updatedAt": "2026-11-06T17:28:20Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -30,6 +30,61 @@
       "updatedAt": "2026-11-06T16:47:23Z",
       "telemetryExecutionIds": [
         "EXE-20261106T164732877Z-65d0154e"
+      ]
+    },
+    {
+      "id": "WI-0002",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:19:11Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171912199Z-f6eebfae"
+      ]
+    },
+    {
+      "id": "WI-0003",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:17:13Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171713776Z-a5ba0d39"
+      ]
+    },
+    {
+      "id": "WI-0004",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:26:09Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172609515Z-3923f14a"
+      ]
+    },
+    {
+      "id": "WI-0005",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:22:16Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172216498Z-892104ac"
+      ]
+    },
+    {
+      "id": "WI-0006",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:28:20Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172820760Z-67e0e29a"
       ]
     },
     {

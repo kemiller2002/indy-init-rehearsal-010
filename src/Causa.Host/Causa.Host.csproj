@@ -1,6 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<!-- Owner: integration. The browser host: compiles Causa.App (F#) to .NET browser-wasm and exports one entry point. -->
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Trim only the framework (assemblies marked trimmable); FSharp.Core and the Causa assemblies stay whole, because F#
+         reflection-based formatting and structural members must not be trimmed away. FSharp.Core's own substitution
+         file names resources the netstandard build does not embed (IL2040), which is harmless. -->
+    <TrimMode>partial</TrimMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <NoWarn>$(NoWarn);IL2040;IL2104</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Causa.App/Causa.App.fsproj" />
