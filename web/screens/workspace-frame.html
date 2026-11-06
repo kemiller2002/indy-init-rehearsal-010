@@ -1,37 +1,95 @@
-<!-- Owner: ui-2. The investigation workspace frame: header (identity, INV-006/007/008/018/023; save state INV-015/016)
-     and the "Investigation sections" navigation (UI-029). -->
+<!-- Owner: ui-2. The investigation workspace frame: header (identity, INV-006/007/008/018/023; save state INV-015/016,
+     PERSIST-030/031: lozenge, words and freshness in the header, then the operation status or conflict review). The
+     "Investigation sections" navigation is the shell's (web/index.html); Frame.fs still projects its section links. -->
 <template data-if="screen.investigation">
   <div class="causa-frame">
     <template data-if="investigation.absent">
       <p class="ef-alert causa-frame__absent" role="status" data-text="investigation.absence"></p>
     </template>
     <template data-if="investigation.found">
-      <header class="ef-record-header causa-frame__header">
-        <div class="ef-record-header__main">
-          <div class="ef-record-header__title">
-            <div><span class="ef-record-header__type">Investigation</span><h1 data-text="investigation.title"></h1></div>
-          </div>
-          <dl class="ef-key-value-list causa-frame__identity">
-            <div data-requirement-id="INV-006"><dt>Identifier</dt><dd><span class="ef-identifier" data-text="investigation.identifier"></span></dd></div>
-            <div data-requirement-id="INV-008"><dt>Original problem statement</dt><dd class="causa-frame__text" data-text="investigation.problem"></dd></div>
-            <template data-if="investigation.hasQuestion">
-              <div data-requirement-id="INV-023"><dt>Primary investigative question</dt><dd class="causa-frame__text" data-text="investigation.question"></dd></div>
-            </template>
-            <div data-requirement-id="INV-018"><dt>Investigation state</dt><dd data-text="investigation.state"></dd></div>
-          </dl>
-        </div>
-        <div class="ef-record-header__actions causa-frame__save">
-          <template data-if="investigation.save.shown">
-            <div class="causa-save">
+      <div class="causa-frame__record">
+        <header class="ef-record-header causa-frame__header">
+          <div class="ef-record-header__main">
+            <div class="ef-record-header__title">
+              <div><span class="ef-record-header__type">Investigation</span><h1 data-text="investigation.title"></h1></div>
               <span class="ef-status-lozenge causa-save__state" role="status" aria-label="Save state" data-requirement-id="INV-016"
                 data-bind-data-state="investigation.save.lozenge" data-text="investigation.save.state"></span>
-              <template data-if="investigation.save.canSave">
-                <button type="button" data-requirement-id="INV-015" data-event="investigation.save">Save</button>
-              </template>
             </div>
+            <p class="causa-save__text" data-requirement-id="PERSIST-031" data-text="investigation.save.text"></p>
+            <p class="ef-freshness causa-save__freshness" data-requirement-id="PERSIST-030"><span class="ef-freshness__label">Last confirmed save</span> <time data-bind-datetime="investigation.save.lastSavedIso" data-text="investigation.save.freshness"></time></p>
+            <dl class="ef-key-value-list causa-frame__identity">
+              <div data-requirement-id="INV-006"><dt>Identifier</dt><dd><span class="ef-identifier" data-text="investigation.identifier"></span></dd></div>
+              <div data-requirement-id="INV-008"><dt>Original problem statement</dt><dd class="causa-frame__text" data-text="investigation.problem"></dd></div>
+              <template data-if="investigation.hasQuestion">
+                <div data-requirement-id="INV-023"><dt>Primary investigative question</dt><dd class="causa-frame__text" data-text="investigation.question"></dd></div>
+              </template>
+              <div data-requirement-id="INV-018"><dt>Investigation state</dt><dd data-text="investigation.state"></dd></div>
+            </dl>
+          </div>
+          <div class="ef-record-header__actions causa-frame__save">
+            <template data-if="investigation.save.canSave">
+              <button type="button" data-requirement-id="INV-015" data-event="investigation.save">Save</button>
+            </template>
+          </div>
+        </header>
+        <div class="causa-frame__save-region">
+          <template data-if="investigation.save.operation">
+            <section class="ef-operation-status causa-save-detail" aria-labelledby="causa-save-detail-title" data-requirement-id="PERSIST-030">
+              <div class="ef-operation-status__symbol" aria-hidden="true" data-text="investigation.save.glyph"></div>
+              <div>
+                <span class="ef-status-lozenge" data-bind-data-state="investigation.save.lozenge" data-text="investigation.save.state"></span>
+                <h2 id="causa-save-detail-title" data-text="investigation.save.operationTitle"></h2>
+                <p data-text="investigation.save.text"></p>
+              </div>
+              <div class="ef-operation-status__actions">
+                <template data-if="investigation.save.canSave"><button type="button" data-event="investigation.save">Save</button></template>
+                <template data-if="investigation.save.canCheckAgain"><button type="button" data-event="investigation.save.check-again">Check again</button></template>
+                <template data-if="investigation.save.canReconnect"><button type="button" data-event="investigation.save.reconnect">Reconnect</button></template>
+              </div>
+            </section>
+          </template>
+          <template data-if="investigation.conflict.shown">
+            <article class="ef-conflict-review causa-conflict" aria-labelledby="causa-conflict-title" data-requirement-id="PERSIST-012">
+              <header class="ef-conflict-review__header">
+                <span class="ef-status-lozenge" data-state="blocked">Conflict</span>
+                <h2 id="causa-conflict-title">Another writer changed this investigation</h2>
+                <p data-text="investigation.conflict.explanation"></p>
+              </header>
+              <div class="ef-diff-viewer">
+                <div class="ef-diff-viewer__grid">
+                  <section class="ef-diff-viewer__side">
+                    <h3>This tab</h3>
+                    <p data-text="investigation.conflict.mine"></p>
+                    <ul class="causa-conflict__changes">
+                      <template data-each="investigation.conflict.changes" data-key="key"><li data-text="text"></li></template>
+                    </ul>
+                  </section>
+                  <section class="ef-diff-viewer__side">
+                    <h3>GitHub</h3>
+                    <p data-text="investigation.conflict.theirs"></p>
+                  </section>
+                </div>
+              </div>
+              <template data-if="investigation.conflict.hasRefused">
+                <section class="causa-conflict__refused" aria-labelledby="causa-conflict-refused-title">
+                  <h3 id="causa-conflict-refused-title">Changes that no longer apply</h3>
+                  <ul>
+                    <template data-each="investigation.conflict.refused" data-key="key"><li><span data-text="text"></span> — <span data-text="reason"></span></li></template>
+                  </ul>
+                </section>
+              </template>
+              <footer class="ef-conflict-review__actions">
+                <template data-if="investigation.conflict.reapply.offered"><button type="button" data-event="investigation.conflict.reapply">Reapply mine</button></template>
+                <template data-if="investigation.conflict.discard.offered"><button type="button" data-event="investigation.conflict.discard">Discard mine</button></template>
+                <template data-if="investigation.conflict.discard-confirm.offered"><button type="button" data-event="investigation.conflict.discard-confirm">Discard my changes</button></template>
+                <template data-if="investigation.conflict.discard-cancel.offered"><button type="button" data-event="investigation.conflict.discard-cancel">Keep my changes</button></template>
+                <template data-if="investigation.conflict.export.offered"><button type="button" data-event="investigation.conflict.export">Export mine</button></template>
+                <template data-if="investigation.conflict.read-again.offered"><button type="button" data-event="investigation.conflict.read-again">Read again</button></template>
+              </footer>
+            </article>
           </template>
         </div>
-      </header>
+      </div>
     </template>
   </div>
 </template>
