@@ -1247,3 +1247,524 @@ module LiveRun =
 
     let record (run: T) (test: string) (commits: CommitOid list) =
         ProviderEvidence.record run.Provider test commits [ "investigation", (let (InvestigationId g) = run.Id in g.ToString()) ] |> ignore
+
+/// PF-001: the investigation-data port as the application consumes it: listing (L1), opening through SM-LOAD and the
+/// causa-storage reader, over one provider's Execute. A fixture provider (the stateful fake seeded with causa-data
+/// files) and the GitHub provider are interchangeable behind it; nothing here knows which one answers.
+[<RequireQualifiedAccess>]
+module ProviderPort =
+    open Causa.Domain
+
+    let context (p: GitHubProvider) : RequestContext =
+        { Connection = p.Connection; NextId = Scenarios.nextId (); MutationInFlightElsewhere = false; Now = DateTimeOffset.UtcNow }
+
+    /// Drives one listing to its end through Persistence.lister.
+    let list (p: GitHubProvider) (target: ListingTarget) : Result<Listing, LoadFailure> =
+        let step, request = Persistence.lister.List (context p) target
+        let rec loop step request =
+            match Persistence.lister.InterpretList (context p) target step (p.Execute request) with
+            | ListingComplete l -> Ok l
+            | ListingNextRequest(s, r) -> loop s r
+            | ListingFailed f -> Error f
+        loop step request
+
+    /// Drives one SM-LOAD open of `r` to its end on `machine`; the machine's state after every step is returned too.
+    let openWith (machine: SaveMachine) (p: GitHubProvider) (r: InvestigationRef) : Result<VerifiedInvestigation, LoadFailure> =
+        match machine.StepLoad (context p) NotLoaded (LoadInput.OpenRequested r) with
+        | Error f -> failwithf "SM-LOAD refused OpenRequested: %s" f.Reason
+        | Ok(state, effects) ->
+            let rec loop state (request: HttpRequest) =
+                let ctx = context p
+                match machine.InterpretLoad ctx state (p.Execute request) with
+                | LoadEvent(LoadInput.LoadVerified v) -> Ok v
+                | LoadEvent(LoadInput.LoadRejected f) -> Error f
+                | LoadNextRequest(next, req) -> loop next req
+                | other -> failwithf "unexpected load interpretation %A" other
+            match SaveKit.requests effects with
+            | [ request ] -> loop state request
+            | other -> failwithf "an open sends exactly one request, not %d" other.Length
+
+    /// Opens with a fresh machine (a new tab: nothing in memory).
+    let openRef (p: GitHubProvider) (r: InvestigationRef) = openWith (SaveMachines.create SaveMachines.support) p r
+
+    let wire (events: byte[]) : Canonical.JsonValue list =
+        Text.Encoding.UTF8.GetString(events).TrimEnd('\n').Split('\n')
+        |> Array.map (Canonical.parse >> Result.defaultWith failwith)
+        |> List.ofArray
+
+    /// The CONTRACT section 8 state of a history and its digest (the catalog's expectedStateSha256).
+    let state (events: byte[]) : Canonical.JsonValue = Projection.state (wire events) |> Result.defaultWith failwith
+
+    let stateDigest (v: VerifiedInvestigation) : string = Canonical.digest (state v.Bytes.Events)
+
+    /// What a reconstruction means, independent of which provider answered: id, version, lifecycle and state digest.
+    let summary (v: VerifiedInvestigation) =
+        let (InvestigationId g) = v.Investigation.Id
+        let (AggregateVersion n) = v.Investigation.Version
+        g, n, sprintf "%A" v.Investigation.Lifecycle, stateDigest v
+
+    type Reconstruction =
+        { Listed: ListedInvestigation
+          Result: Result<VerifiedInvestigation, LoadFailure> }
+
+    /// Catalog discovery (catalog/active.json, its manifest) and the reconstruction of every listed investigation.
+    let catalog (p: GitHubProvider) : Result<Listing * Reconstruction list, LoadFailure> =
+        list p ActiveCatalog
+        |> Result.map (fun listing -> listing, listing.Investigations |> List.map (fun i -> { Listed = i; Result = openRef p i.Ref }))
+
+    /// Whether a reconstruction matches the digest its catalog entry expects.
+    let digestMatches (r: Reconstruction) =
+        match r.Result, r.Listed.ExpectedStateSha256 with
+        | Ok v, Some expected -> stateDigest v = expected
+        | _ -> false
+
+    /// The primary reader-stage code of a verification refusal (CONTRACT 11.1), or the failure's case.
+    let failureCode (f: LoadFailure) : string =
+        match f with
+        | ProviderFailed e -> "provider:" + Scenarios.kind (Error e: Result<unit, ProviderError>)
+        | Unverifiable failures ->
+            failures
+            |> List.tryPick (function
+                | VerificationFailure.ReaderStage(c, _, _, _) -> Some c
+                | _ -> None)
+            |> Option.defaultValue (
+                match failures with
+                | f :: _ -> (sprintf "%A" f).Split([| ' '; '\n' |])[0]
+                | [] -> "unverifiable")
+
+/// PF-004, PF-006, PF-007: fixture data. Every fixture is causa-data bytes (the frozen v1.0.0 fixtures and the active
+/// demonstration-v1 catalog, embedded in Recordings.Datasets) or a named, explicit change to them; the fixtures supply
+/// files only and are read through the same lister, SM-LOAD and causa-storage reader as GitHub data (PF-002).
+[<RequireQualifiedAccess>]
+module FixtureData =
+    open Causa.Domain
+
+    /// The authoritative source of every embedded fixture (PF-018): repository and commit.
+    let sourceRepository = "kemiller2002/causa-data"
+    let sourceCommit = "e8259df74add723765c57a5b1a5888d9c3f707af"
+
+    /// PF-018: every fixture, the requirements it serves and its authoritative source.
+    let traces: (string * string list * string) list =
+        [ "fixtures/v1.0.0 (five frozen investigations and their manifest)", [ "PF-004"; "PF-006"; "PF-007"; "PF-016" ], sprintf "%s@%s:fixtures/v1.0.0" sourceRepository sourceCommit
+          "catalog/demonstration-v1 (the active catalog: four investigations)", [ "PF-011"; "PF-014" ], sprintf "%s@%s:catalog" sourceRepository sourceCommit
+          "edge cases (named changes to the frozen fixtures)", [ "PF-007"; "PF-008" ], sprintf "%s@%s:fixtures/v1.0.0" sourceRepository sourceCommit
+          "recorded GitHub answers (Recordings.all)", [ "PF-008"; "PF-013" ], "github-docs and live observations named in each recording's Provenance" ]
+
+    /// The frozen v1.0.0 fixture manifest (machine-readable: ids, format/semantic versions, expected versions, state
+    /// digests and lifecycles, and the expected error code of every negative fixture).
+    let frozenManifestPath = "fixtures/v1.0.0/manifest.json"
+
+    let frozenManifest () : Canonical.JsonValue =
+        Canonical.parse (Text.Encoding.UTF8.GetString(Datasets.fixtures.Value[frozenManifestPath]).TrimEnd('\n')) |> Result.defaultWith failwith
+
+    let private array (name: string) (v: Canonical.JsonValue) =
+        match Canonical.field name v with
+        | Some(Canonical.JArray xs) -> xs
+        | _ -> []
+
+    /// The frozen manifest's investigation entries.
+    let frozenEntries () = array "investigations" (frozenManifest ())
+
+    /// The negative fixtures the frozen manifest names, with their expected error codes.
+    let negativeEntries () =
+        array "negativeFixtures" (frozenManifest ())
+        |> List.choose (fun e ->
+            match Canonical.str "path" e, Canonical.str "expectedErrorCode" e with
+            | Some p, Some c -> Some(p, c)
+            | _ -> None)
+
+    let private frozenDir (id: string) = sprintf "fixtures/v1.0.0/investigations/%s" id
+
+    /// One frozen investigation's file set, by id.
+    let frozenFiles (id: string) : FileSet =
+        let f = Datasets.fixtures.Value
+        let d = frozenDir id
+        { Manifest = f[d + "/manifest.json"]; Events = f[d + "/events.ndjson"]; Snapshot = f[d + "/snapshot.json"] }
+
+    /// The active demonstration catalog exactly as causa-data holds it.
+    let demonstrationCatalog () : (string * byte[]) list = Datasets.catalog.Value |> Map.toList
+
+    /// The frozen fixtures arranged as a catalog workspace `workspaces/demo/fixtures-v1`: the investigation files are
+    /// byte-for-byte the frozen ones; the catalog files name them with the frozen manifest's expected values.
+    let frozenCatalogWorkspace = "workspaces/demo/fixtures-v1"
+
+    let frozenCatalog () : (string * byte[]) list =
+        let w = frozenCatalogWorkspace
+        let entries = frozenEntries ()
+        let cases =
+            entries
+            |> List.map (fun e ->
+                let id = Canonical.str "investigationId" e |> Option.get
+                Canonical.JObject
+                    [ "expectedLifecycle", Canonical.field "expectedLifecycle" e |> Option.get
+                      "expectedStateSha256", Canonical.field "expectedStateSha256" e |> Option.get
+                      "expectedVersion", Canonical.field "expectedVersion" e |> Option.get
+                      "investigationId", Canonical.JString id
+                      "path", Canonical.JString(sprintf "%s/investigations/%s" w id)
+                      "scenarioKey", Canonical.field "scenarioKey" e |> Option.get
+                      "title", Canonical.field "title" e |> Option.get ])
+        let manifest =
+            Canonical.JObject
+                [ "cases", Canonical.JArray cases
+                  "catalogId", Canonical.JString "causa-fixtures-v1"
+                  "source", Canonical.JString(sprintf "%s@%s:%s" sourceRepository sourceCommit frozenManifestPath)
+                  "workspace", Canonical.JString w ]
+        let active =
+            Canonical.JObject
+                [ "activeCatalog", Canonical.JString "fixtures-v1"
+                  "manifest", Canonical.JString "catalog/fixtures-v1/manifest.json"
+                  "workspace", Canonical.JString w ]
+        [ "catalog/active.json", Canonical.fileOf active
+          "catalog/fixtures-v1/manifest.json", Canonical.fileOf manifest ]
+        @ (entries
+           |> List.collect (fun e ->
+               let id = Canonical.str "investigationId" e |> Option.get
+               let fs = frozenFiles id
+               let d = sprintf "%s/investigations/%s" w id
+               [ d + "/manifest.json", fs.Manifest; d + "/events.ndjson", fs.Events; d + "/snapshot.json", fs.Snapshot ]))
+
+    /// Recomputes a manifest's eventsSha256 and snapshotSha256 so that only the deliberate change can fail a check.
+    let rehash (fs: FileSet) : FileSet =
+        let text (b: byte[]) = Text.Encoding.UTF8.GetString(b).TrimEnd('\n')
+        let m = Canonical.parse (text fs.Manifest) |> Result.defaultWith failwith
+        let snapshotDigest =
+            match Canonical.parse (text fs.Snapshot) with
+            | Ok s -> Canonical.digest s
+            | Error _ -> Canonical.sha256Hex fs.Snapshot
+        let set k v (o: Canonical.JsonValue) =
+            match o with
+            | Canonical.JObject ms -> Canonical.JObject(ms |> List.map (fun (k', v') -> if k' = k then k', v else k', v'))
+            | other -> other
+        { fs with
+            Manifest =
+                m
+                |> set "eventsSha256" (Canonical.JString(Canonical.sha256Hex fs.Events))
+                |> set "snapshotSha256" (Canonical.JString snapshotDigest)
+                |> Canonical.fileOf }
+
+    let private lines (fs: FileSet) = Text.Encoding.UTF8.GetString(fs.Events).TrimEnd('\n').Split('\n')
+
+    let private ofLines (fs: FileSet) (ls: string array) = { fs with Events = Text.Encoding.UTF8.GetBytes(String.Join("\n", ls) + "\n") }
+
+    let private setField (k: string) (v: Canonical.JsonValue) (o: Canonical.JsonValue) =
+        match o with
+        | Canonical.JObject ms when ms |> List.exists (fun (k', _) -> k' = k) -> Canonical.JObject(ms |> List.map (fun (k', v') -> if k' = k then k', v else k', v'))
+        | Canonical.JObject ms -> Canonical.JObject(ms @ [ k, v ])
+        | other -> other
+
+    /// The history with its first EvidenceRelated moved to just after InvestigationStarted, every version renumbered
+    /// and every event id recomputed: contiguous, canonical and hashed, but a relationship precedes the evidence and
+    /// hypothesis it relates (an inadmissible history).
+    let private relationFirst (fs: FileSet) : FileSet =
+        let events = lines fs |> Array.map (Canonical.parse >> Result.defaultWith failwith) |> List.ofArray
+        let i = events |> List.findIndex (fun e -> Canonical.str "eventType" e = Some "EvidenceRelated")
+        let moved = events.Head :: events[i] :: (events.Tail |> List.removeAt (i - 1))
+        let renumbered =
+            moved
+            |> List.mapi (fun n e ->
+                let version = int64 (n + 1)
+                let inv = Guid(Canonical.str "investigationId" e |> Option.get)
+                let correlation = Guid(Canonical.str "correlationId" e |> Option.get)
+                e
+                |> setField "aggregateVersion" (Canonical.JInt version)
+                |> setField "eventId" (Canonical.JString((Canonical.eventId inv version correlation).ToString "D"))
+                |> Canonical.canonical)
+        ofLines fs (Array.ofList renumbered)
+
+    /// The history with one payload carrying a field the contract does not define (still canonical and hashed).
+    let private extraPayloadField (fs: FileSet) : FileSet =
+        let ls = lines fs
+        ls[2] <-
+            Canonical.parse ls[2]
+            |> Result.defaultWith failwith
+            |> fun e -> setField "payload" (setField "zzUnexpected" (Canonical.JInt 1L) (Canonical.field "payload" e |> Option.get)) e
+            |> Canonical.canonical
+        ofLines fs ls
+
+    /// The expected outcome of opening a fixture: verified (with what must hold of it), or refused fail-closed with
+    /// the reader stage or provider error that refuses it.
+    type Expected =
+        | Opens of check: (VerifiedInvestigation -> bool) * meaning: string
+        | RefusedWith of code: string
+
+    type EdgeCase =
+        { Name: string
+          /// The investigation directory's files (None: the directory is absent).
+          Files: FileSet option
+          Id: Guid
+          Expected: Expected }
+
+    let private id (s: string) = Guid s
+
+    let private stateArray (name: string) (v: VerifiedInvestigation) = array name (ProviderPort.state v.Bytes.Events)
+
+    let private statesOf (name: string) (v: VerifiedInvestigation) =
+        stateArray name v |> List.choose (fun e -> Canonical.str "state" e |> Option.orElse (Canonical.str "kind" e))
+
+    /// PF-007: the edge-case fixtures with their explicit expected outcomes. They are written to a working copy and
+    /// opened through SM-LOAD; every refusal is fail-closed (nothing is loaded).
+    let edgeCases () : EdgeCase list =
+        let payment = "6fd2ddc9-bedd-5fff-9093-5506c4d68cb3"
+        let auth = "a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e"
+        let conflicting = "abd5f9b5-e335-5245-b951-802f01d5a2e5"
+        let empty =
+            match FileSets.ofHistory SaveKit.history with
+            | Ok fs -> fs
+            | Error e -> failwithf "%A" e
+        let (InvestigationId emptyId) = SaveKit.investigationId
+        let p = frozenFiles payment
+        let pl = lines p
+        [ { Name = "empty investigation"
+            Files = Some empty
+            Id = emptyId
+            Expected = Opens((fun v -> v.History.Length = 1 && stateArray "hypotheses" v = [] && stateArray "evidence" v = []), "version 1, no hypotheses, no evidence") }
+          { Name = "completed and verified investigation"
+            Files = Some(frozenFiles auth)
+            Id = id auth
+            Expected =
+              Opens(
+                  (fun v -> v.Investigation.Lifecycle = Lifecycle.Resolved && (stateArray "verifications" v).Length = 2 && List.contains "verifiedEffective" (statesOf "correctiveActions" v)),
+                  "resolved, two verification records, a corrective action verified effective"
+              ) }
+          { Name = "unresolved and contradictory evidence"
+            Files = Some(frozenFiles conflicting)
+            Id = id conflicting
+            Expected =
+              Opens(
+                  (fun v ->
+                      List.contains "identified" (statesOf "unknowns" v)
+                      && List.contains "triaged" (statesOf "contradictions" v)
+                      && (statesOf "relationships" v |> List.filter ((=) "contradicts")).Length = 2),
+                  "an unresolved unknown, an open contradiction and two contradicting evidence relationships"
+              ) }
+          { Name = "missing provenance (an event without its actor)"
+            Files =
+              Some(
+                  rehash (
+                      ofLines p (pl |> Array.mapi (fun i l -> if i = 3 then Text.RegularExpressions.Regex.Replace(l, "\"actor\":\\{[^}]*\\},", "") else l))
+                  )
+              )
+            Id = id payment
+            Expected = RefusedWith "CAUSA.SCHEMA_VIOLATION" }
+          { Name = "incomplete provenance (an event without its occurredAt)"
+            Files = Some(rehash (ofLines p (pl |> Array.mapi (fun i l -> if i = 5 then Text.RegularExpressions.Regex.Replace(l, "\"occurredAt\":\"[^\"]*\",", "") else l))))
+            Id = id payment
+            Expected = RefusedWith "CAUSA.SCHEMA_VIOLATION" }
+          { Name = "invalid event history (a relationship before what it relates)"
+            Files = Some(rehash (relationFirst p))
+            Id = id payment
+            Expected = RefusedWith "CAUSA.HISTORY_INADMISSIBLE" }
+          { Name = "invalid schema (a payload field the contract does not have)"
+            Files = Some(rehash (extraPayloadField p))
+            Id = id payment
+            Expected = RefusedWith "CAUSA.SCHEMA_VIOLATION" }
+          { Name = "missing investigation"
+            Files = None
+            Id = Guid "0e7e0000-0000-4000-8000-0000000000f7"
+            Expected = RefusedWith "provider:NotFound" } ]
+
+    /// PF-007: the catalog edge cases: a malformed catalog and a missing catalog, with the listing outcome each must have.
+    let catalogEdgeCases () : (string * (string * byte[]) list * string) list =
+        [ "malformed catalog (catalog/active.json is not JSON)", [ "catalog/active.json", "{\"workspace\":"B ], "provider:Malformed"
+          "malformed catalog (the manifest names another workspace)",
+          [ "catalog/active.json", """{"manifest":"catalog/x/manifest.json","workspace":"workspaces/demo/x"}"""B
+            "catalog/x/manifest.json", """{"cases":[],"workspace":"workspaces/demo/y"}"""B ],
+          "provider:Malformed"
+          "missing catalog (no catalog/active.json)", [ "README.md", "no catalog here"B ], "provider:NotFound" ]
+
+    /// One commit writing `files` at the provider's branch head, made with the application's own save mutation.
+    let seed (p: GitHubProvider) (files: (string * byte[]) list) (headline: string) : CommitOid =
+        let head = Scenarios.readHead p |> Probes.ok "seed: head"
+        let request: CommitRequest =
+            { ExpectedHead = head
+              Headline = headline
+              Body = sprintf "Source: %s@%s" sourceRepository sourceCommit
+              Marker = Some(Probes.marker "seed")
+              Additions = files |> List.map (fun (path, bytes) -> { Path = RepoPath path; Contents = bytes })
+              Deletions = [] }
+        Scenarios.commit p request |> snd |> Probes.ok "seed: commit"
+
+    /// The fixture provider: the stateful fake over a fresh repository holding `files`. No network, no credential
+    /// from the environment, no external service (PF-003-O2).
+    let fixtureProvider (files: (string * byte[]) list) : GitHubProvider * StatefulFake.Running =
+        Scenarios.fakeProvider "causa-acceptance" (("README.md", "synthetic"B) :: files)
+
+    /// A working copy for edge-case fixtures.
+    let edgeWorkspace (run: string) = WorkspaceAddress.workingCopy [] run |> Option.get
+
+    let filesOfEdgeCases (address: WorkspaceAddress.T) (cases: EdgeCase list) =
+        cases
+        |> List.choose (fun c ->
+            c.Files
+            |> Option.map (fun fs ->
+                let (Workspace w) = address.Workspace
+                let d = sprintf "%s/investigations/%s" w (c.Id.ToString "D")
+                [ d + "/manifest.json", fs.Manifest; d + "/events.ndjson", fs.Events; d + "/snapshot.json", fs.Snapshot ]))
+        |> List.concat
+
+    /// PF-007 needs each case in its own working copy (several share an investigation id).
+    let runEdgeCase (p: GitHubProvider) (label: string) (c: EdgeCase) : Result<VerifiedInvestigation, LoadFailure> =
+        let run = sprintf "%s-%s" label (Guid.NewGuid().ToString("N").Substring(0, 8))
+        let address = edgeWorkspace run
+        let files = filesOfEdgeCases address [ c ]
+        if not files.IsEmpty then seed p files ("Causa fixture: " + c.Name) |> ignore
+        ProviderPort.openRef p { Address = address; Id = InvestigationId c.Id }
+
+    /// Whether an outcome is the case's expected one.
+    let meets (c: EdgeCase) (outcome: Result<VerifiedInvestigation, LoadFailure>) =
+        match c.Expected, outcome with
+        | Opens(check, _), Ok v -> check v
+        | RefusedWith code, Error f -> ProviderPort.failureCode f = code
+        | _ -> false
+
+/// PF-011, PF-017: the four verification layers and the plan's suites that run them.
+[<RequireQualifiedAccess>]
+module Layers =
+    type Layer =
+        | Domain
+        | Ui
+        | ProviderContract
+        | LiveIntegration
+        | Process
+
+    /// The layer a plan suite verifies (its own environment and fixture say which).
+    let ofSuite (suite: string) : Layer option =
+        match suite with
+        | "SU-OWN-DOTNET"
+        | "SU-DOTNET-INVARIANTS" -> Some Domain
+        | "SU-DOTNET-DETERMINISTIC" -> Some ProviderContract
+        | "SU-OWN-BROWSER"
+        | "SU-BROWSER-CHROMIUM"
+        | "SU-BROWSER-WEBKIT" -> Some Ui
+        | "SU-DOTNET-LIVE"
+        | "SU-BROWSER-LIVE" -> Some LiveIntegration
+        | "SU-VERIFIER"
+        | "SU-REVIEW-RECORDS"
+        | "SU-PROCESS-RECORDS" -> Some Process
+        | _ -> None
+
+    /// The repository root (the directory holding Causa.slnx), found from the test's working directory.
+    let repositoryRoot () : string =
+        let rec up (d: IO.DirectoryInfo | null) =
+            match d with
+            | null -> failwith "the repository root (Causa.slnx) was not found above the test directory"
+            | d when IO.File.Exists(IO.Path.Combine(d.FullName, "Causa.slnx")) -> d.FullName
+            | d -> up d.Parent
+        try
+            up (IO.DirectoryInfo AppContext.BaseDirectory)
+        with _ ->
+            up (IO.DirectoryInfo Environment.CurrentDirectory)
+
+    /// The governed plan the gate runs (.echelon/obligations.json).
+    let plan () : JsonDocument = JsonDocument.Parse(IO.File.ReadAllText(IO.Path.Combine(repositoryRoot (), ".echelon", "obligations.json")))
+
+    type Suite = { Id: string; Command: string; Environment: string; DependsOn: string list }
+
+    let private text (e: JsonElement) (name: string) =
+        match e.GetProperty(name).GetString() with
+        | null -> ""
+        | s -> s
+
+    let suites (doc: JsonDocument) : Suite list =
+        [ for s in doc.RootElement.GetProperty("suites").EnumerateArray() ->
+              { Id = text s "id"
+                Command = text s "command"
+                Environment = text s "environment"
+                DependsOn = [ for d in s.GetProperty("dependsOn").EnumerateArray() -> (match d.GetString() with null -> "" | x -> x) ] } ]
+
+    type PlanTest = { Id: string; Suite: string; Kind: string; Obligations: string list }
+
+    let tests (doc: JsonDocument) : PlanTest list =
+        [ for t in doc.RootElement.GetProperty("tests").EnumerateArray() ->
+              { Id = text t "id"
+                Suite = text t "suite"
+                Kind = text t "kind"
+                Obligations = [ for o in t.GetProperty("obligations").EnumerateArray() -> (match o.GetString() with null -> "" | x -> x) ] } ]
+
+    /// The suites `id` depends on, transitively.
+    let rec ancestors (all: Suite list) (id: string) : Set<string> =
+        match all |> List.tryFind (fun s -> s.Id = id) with
+        | None -> Set.empty
+        | Some s -> s.DependsOn |> List.fold (fun acc d -> Set.union acc (Set.add d (ancestors all d))) Set.empty
+
+/// PF-015: the live credentials. Reads use CAUSA_GITHUB_TOKEN and writes CAUSA_WRITE_TOKEN; neither ever stands in for
+/// the other (DEC-R7-007), and a missing one is BLOCKED.
+[<RequireQualifiedAccess>]
+module LiveCredentials =
+    [<Literal>]
+    let WriteTokenVariable = "CAUSA_WRITE_TOKEN"
+
+    let private env (name: string) =
+        match Environment.GetEnvironmentVariable name with
+        | null -> None
+        | v when String.IsNullOrWhiteSpace v -> None
+        | v -> Some(v.Trim())
+
+    let writeBlockedMessage =
+        sprintf "BLOCKED: %s is not set, so live write tests cannot run. This is a failure, not a pass; the read credential %s is never used in its place (PF-015-O3, DEC-R7-007)." WriteTokenVariable LiveGitHub.TokenVariable
+
+    /// The write configuration from an environment lookup: only CAUSA_WRITE_TOKEN is read.
+    let writeConfigurationFrom (lookup: string -> string option) : Result<string * Repository, string> =
+        match lookup WriteTokenVariable with
+        | None -> Error writeBlockedMessage
+        | Some token ->
+            // The repository variables are shared with the read configuration; the credential is not.
+            LiveGitHub.configurationFrom (fun name -> if name = LiveGitHub.TokenVariable then Some token else lookup name)
+
+    let writeProvider () : Result<GitHubProvider, string> =
+        writeConfigurationFrom env
+        |> Result.map (fun (token, repository) ->
+            { Mode = LiveProvider
+              Execute = LiveGitHub.execute
+              Connection = { Repository = repository; Credential = Credential.create token }
+              Secrets = [ token ] })
+
+    let requireWrite () : GitHubProvider =
+        match writeProvider () with
+        | Ok p -> p
+        | Error reason -> failwith reason
+
+/// The provider factories of the PF tests: a live test runs its body on a fresh branch of the real test repository
+/// (BLOCKED, a failure, without CAUSA_GITHUB_TOKEN); the same body runs on the fixture provider to prove its logic.
+[<RequireQualifiedAccess>]
+module PfKit =
+    let live (label: string) : GitHubProvider = LiveGitHub.freshBranch (LiveGitHub.require ()) label
+
+    let fixture (_: string) : GitHubProvider = fst (FixtureData.fixtureProvider [])
+
+    /// A branch head commit whose changes are `additions`, removing `deletions` that exist at the head.
+    let replace (p: GitHubProvider) (additions: (string * byte[]) list) (deletions: string list) (headline: string) : CommitOid =
+        let head = Scenarios.readHead p |> Probes.ok "replace: head"
+        let present =
+            deletions
+            |> List.filter (fun d -> not (additions |> List.exists (fun (a, _) -> a = d)))
+            |> List.filter (fun d -> Scenarios.readFile p head d |> Probes.ok "replace: read" |> Option.isSome)
+        let request: CommitRequest =
+            { ExpectedHead = head
+              Headline = headline
+              Body = sprintf "Source: %s@%s" FixtureData.sourceRepository FixtureData.sourceCommit
+              Marker = Some(Probes.marker "replace")
+              Additions = additions |> List.map (fun (path, bytes) -> { Path = RepoPath path; Contents = bytes })
+              Deletions = present |> List.map RepoPath }
+        Scenarios.commit p request |> snd |> Probes.ok "replace: commit"
+
+    /// Whether an answer came from GitHub itself (its request id header): a fixture answer never carries one.
+    let fromGitHub (outcome: HttpOutcome) =
+        match outcome with
+        | Answered(_, _, headers, _) -> headers |> List.exists (fun (k, _) -> String.Equals(k, "x-github-request-id", StringComparison.OrdinalIgnoreCase))
+        | NotAnswered _ -> false
+
+    /// A provider whose transport replaces each answer through `f` (corruption, loss) after the real provider answered.
+    let through (f: HttpRequest -> HttpOutcome -> HttpOutcome) (p: GitHubProvider) : GitHubProvider =
+        { p with Execute = fun r -> f r (p.Execute r) }
+
+    /// The source text of the repository's files under `dir` with the given extensions.
+    let sources (dir: string) (extensions: string list) : (string * string) list =
+        let root = IO.Path.Combine(Layers.repositoryRoot (), dir)
+        if not (IO.Directory.Exists root) then []
+        else
+            IO.Directory.EnumerateFiles(root, "*", IO.SearchOption.AllDirectories)
+            |> Seq.filter (fun f -> extensions |> List.exists (fun e -> f.EndsWith(e, StringComparison.Ordinal)))
+            |> Seq.filter (fun f -> not (f.Contains(string IO.Path.DirectorySeparatorChar + "bin" + string IO.Path.DirectorySeparatorChar)) && not (f.Contains(string IO.Path.DirectorySeparatorChar + "obj" + string IO.Path.DirectorySeparatorChar)))
+            |> Seq.map (fun f -> IO.Path.GetRelativePath(Layers.repositoryRoot (), f), IO.File.ReadAllText f)
+            |> List.ofSeq

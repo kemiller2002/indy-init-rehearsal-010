@@ -33,14 +33,25 @@
       ]
     },
     {
-      "id": "WI-0002",
+      "id": "WI-0009",
       "type": "task",
       "state": "active",
       "semanticState": "active",
       "evidence": [],
-      "updatedAt": "2026-11-06T17:19:11Z",
+      "updatedAt": "2026-11-06T17:16:08Z",
       "telemetryExecutionIds": [
-        "EXE-20261106T171912199Z-f6eebfae"
+        "EXE-20261106T171608548Z-87460711"
+      ]
+    },
+    {
+      "id": "WI-0010",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:32:18Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T173218407Z-a25885c8"
       ]
     },
     {
@@ -52,6 +63,28 @@
       "updatedAt": "2026-11-06T17:17:13Z",
       "telemetryExecutionIds": [
         "EXE-20261106T171713776Z-a5ba0d39"
+      ]
+    },
+    {
+      "id": "WI-0030",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T18:05:36Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T180537209Z-24f3e7fd"
+      ]
+    },
+    {
+      "id": "WI-0002",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:19:11Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171912199Z-f6eebfae"
       ]
     },
     {
@@ -107,28 +140,6 @@
       "updatedAt": "2026-11-06T17:56:27Z",
       "telemetryExecutionIds": [
         "EXE-20261106T175627848Z-20d677cd"
-      ]
-    },
-    {
-      "id": "WI-0009",
-      "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-06T17:16:08Z",
-      "telemetryExecutionIds": [
-        "EXE-20261106T171608548Z-87460711"
-      ]
-    },
-    {
-      "id": "WI-0010",
-      "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-06T17:32:18Z",
-      "telemetryExecutionIds": [
-        "EXE-20261106T173218407Z-a25885c8"
       ]
     },
     {
