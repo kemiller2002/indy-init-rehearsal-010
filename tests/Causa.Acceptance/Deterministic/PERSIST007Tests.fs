@@ -45,6 +45,13 @@ module PERSIST007Tests =
         match sc2.Session.State with
         | SaveState.SaveFailed(BytesDiffer c) -> Assert.Equal(SaveScenario.head sc2, c)
         | other -> failwithf "%A" other
+        // Files too large for one GraphQL answer are re-read through the Git blobs API, and still confirm.
+        let sc3 = SaveScenario.create ()
+        sc3.Fake.Update(fun s -> { s with TruncateTextAbove = 64 })
+        SaveScenario.edit sc3 1
+        SaveScenario.input sc3 SaveInput.SaveRequested |> ignore
+        Assert.Equal("Saved", SaveScenario.stateName sc3)
+        Assert.Equal(3, sc3.Sent |> List.filter (fun r -> r.Url.Contains "/git/blobs/") |> List.length)
 
     [<Fact>]
     let ``PERSIST-007-O2`` () =

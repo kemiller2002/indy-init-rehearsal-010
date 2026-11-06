@@ -55,7 +55,10 @@ type FakeState =
       Tokens: Map<string, FakeAccess>
       Faults: (FaultTarget * FakeFault) list
       Log: FakeLogEntry list
-      Counter: int64 }
+      Counter: int64
+      /// GraphQL Blob.text is truncated above this many bytes (GitHub truncates large blobs), so a reader must fall back
+      /// to the Git blobs API.
+      TruncateTextAbove: int }
 
 /// A stateful fake of the GitHub API the application uses: REST repository, refs, contents, commits and compare, and
 /// GraphQL createCommitOnBranch. It keeps real commit ancestry, enforces expectedHeadOid, accepts commits from simulated
@@ -87,7 +90,8 @@ module StatefulFake =
           Tokens = Map.ofList tokens
           Faults = []
           Log = []
-          Counter = 0L }
+          Counter = 0L
+          TruncateTextAbove = 1048576 }
 
     let private newCommit (state: FakeState) (parent: string) (tree: Map<string, byte[]>) (message: string) (author: string) =
         let counter = state.Counter + 1L
@@ -240,6 +244,12 @@ module StatefulFake =
             let tree = state.Commits[oid].Tree
             let entry (path: string) =
                 match tree.TryFind path with
+                | Some bytes when bytes.Length > state.TruncateTextAbove ->
+                    sprintf
+                        """{"object":{"oid":"%s","text":%s,"isTruncated":true,"byteSize":%d}}"""
+                        (blobSha bytes)
+                        (JsonSerializer.Serialize(Encoding.UTF8.GetString(bytes, 0, state.TruncateTextAbove)))
+                        bytes.Length
                 | Some bytes ->
                     sprintf
                         """{"object":{"oid":"%s","text":%s,"isTruncated":false,"byteSize":%d}}"""
@@ -311,11 +321,25 @@ module StatefulFake =
                             entries
                             |> List.map (fun (n, t) -> sprintf """{"name":%s,"path":%s,"type":"%s"}""" (JsonSerializer.Serialize n) (JsonSerializer.Serialize(prefix + n)) t)
                         state, Reply(200, "[" + String.Join(",", items) + "]")
+        | Get, [ "repos"; _; _; "git"; "blobs"; sha ] ->
+            let found =
+                state.Commits |> Map.toSeq |> Seq.collect (fun (_, c) -> c.Tree |> Map.toSeq |> Seq.map snd) |> Seq.tryFind (fun b -> blobSha b = sha)
+            match found with
+            | Some bytes ->
+                state, Reply(200, sprintf """{"sha":"%s","node_id":"B","size":%d,"url":"u","content":"%s","encoding":"base64"}""" sha bytes.Length (Convert.ToBase64String bytes))
+            | None -> state, Reply(404, Recordings.notFound)
         | Get, [ "repos"; _; _; "commits"; oid ] ->
             match resolve state oid with
             | Some o ->
                 let c = state.Commits[o]
-                state, Reply(200, Recordings.commitAnswer c.Oid c.Message c.Parent)
+                let before = c.Parent |> Option.map (fun p -> state.Commits[p].Tree) |> Option.defaultValue Map.empty
+                let changed =
+                    Set.union (c.Tree |> Map.keys |> set) (before |> Map.keys |> set)
+                    |> Set.filter (fun p -> c.Tree.TryFind p <> before.TryFind p)
+                    |> Set.toList
+                let files = changed |> List.map (fun p -> sprintf """{"filename":%s}""" (JsonSerializer.Serialize p)) |> String.concat ","
+                let body = Recordings.commitAnswer c.Oid c.Message c.Parent
+                state, Reply(200, body.Substring(0, body.Length - 1) + sprintf ""","files":[%s]}""" files)
             | None -> state, Reply(422, sprintf """{"message":"No commit found for SHA: %s","status":"422"}""" oid)
         | Get, "repos" :: _ :: _ :: "compare" :: range ->
             let r = String.Join("/", range)
@@ -906,12 +930,13 @@ module SaveKit =
     type Clock =
         { mutable Next: int64
           mutable Now: DateTimeOffset
-          mutable ElsewhereInFlight: bool }
+          mutable ElsewhereInFlight: bool
+          mutable Connection: ConnectionContext }
 
-    let clock () = { Next = 100L; Now = now; ElsewhereInFlight = false }
+    let clock () = { Next = 100L; Now = now; ElsewhereInFlight = false; Connection = connection }
 
     let context (c: Clock) : RequestContext =
-        { Connection = connection; NextId = RequestId c.Next; MutationInFlightElsewhere = c.ElsewhereInFlight; Now = c.Now }
+        { Connection = c.Connection; NextId = RequestId c.Next; MutationInFlightElsewhere = c.ElsewhereInFlight; Now = c.Now }
 
     let advance (c: Clock) (effects: SaveEffect list) =
         if effects |> List.exists (function Send _ -> true | _ -> false) then c.Next <- c.Next + 1L
@@ -1075,3 +1100,139 @@ module SaveScenario =
         sc.Fake.Update(fun s -> StatefulFake.otherWriterCommits "main" "other writer" files [] s |> fst)
 
     let stateName (sc: T) = MachineKit.stateName sc.Session.State
+
+/// The same save scenarios against the real test repository (PERSIST-025-O3): a fresh branch, a new investigation in
+/// a fresh working copy created and saved by the application itself, then edits, saves and reads through the real API.
+[<RequireQualifiedAccess>]
+module LiveRun =
+    open Causa.Domain
+
+    type T =
+        { Machine: SaveMachine
+          Provider: GitHubProvider
+          Clock: SaveKit.Clock
+          Id: InvestigationId
+          Writable: Writable.T
+          mutable Session: InvestigationSession
+          mutable Sent: HttpRequest list
+          mutable Events: SaveInput list
+          mutable Before: HttpRequest -> unit }
+
+    let private truncate (t: DateTimeOffset) = DateTimeOffset(t.UtcTicks - t.UtcTicks % TimeSpan.TicksPerMillisecond, TimeSpan.Zero)
+
+    let execute (run: T) : Execute =
+        fun r ->
+            run.Before r
+            run.Sent <- run.Sent @ [ r ]
+            run.Provider.Execute r
+
+    let input (run: T) (i: SaveInput) =
+        run.Clock.Now <- truncate DateTimeOffset.UtcNow
+        let next, effects = SaveKit.stepOk run.Machine run.Clock run.Session i
+        run.Session <- next
+        run.Events <- run.Events @ [ i ]
+        let final, events, _, others = SaveKit.driveAll run.Machine run.Clock (execute run) next (SaveKit.requests effects)
+        run.Session <- final
+        run.Events <- run.Events @ events
+        effects @ others
+
+    let edit (run: T) (words: string) =
+        let command: CommandEnvelope =
+            { CommandId = Guid.NewGuid()
+              Investigation = run.Id
+              ExpectedVersion = None
+              Command = Core(RecordObservation { ObservationId = ObservationId(Guid.NewGuid()); Original = SaveKit.text words; ObservedAt = None }) }
+        input run (SaveInput.Edit command) |> ignore
+        command
+
+    let head (run: T) = Scenarios.readHead run.Provider |> Probes.ok "head"
+
+    let prefix (run: T) =
+        let (Workspace w) = (Writable.address run.Writable).Workspace
+        let (InvestigationId g) = run.Id
+        sprintf "%s/investigations/%s" w (g.ToString("D"))
+
+    /// A new tab (its own machine and tab memory) on the same branch and investigation, opened from GitHub.
+    let openInNewTab (run: T) : Result<VerifiedInvestigation, LoadFailure> =
+        let machine = SaveMachines.create SaveMachines.support
+        let clock = SaveKit.clock ()
+        clock.Connection <- run.Provider.Connection
+        clock.Next <- 900_000L + int64 (Random.Shared.Next 1000)
+        let r: InvestigationRef = { Address = Writable.address run.Writable; Id = run.Id }
+        match machine.StepLoad (SaveKit.context clock) NotLoaded (LoadInput.OpenRequested r) with
+        | Error f -> failwithf "%A" f
+        | Ok(state, effects) ->
+            let rec loop state (requests: HttpRequest list) =
+                match requests with
+                | [] -> failwith "the load sent nothing"
+                | req :: _ ->
+                    clock.Next <- clock.Next + 1L
+                    match machine.InterpretLoad (SaveKit.context clock) state (run.Provider.Execute req) with
+                    | LoadEvent(LoadInput.LoadVerified v) -> Ok v
+                    | LoadEvent(LoadInput.LoadRejected f) -> Error f
+                    | LoadNextRequest(next, req') -> loop next [ req' ]
+                    | other -> failwithf "%A" other
+            loop state (SaveKit.requests effects)
+
+    /// A fresh branch, a fresh working copy and a new investigation the application creates and saves (C1).
+    let createOn (provider: GitHubProvider) (label: string) : T =
+        let machine = SaveMachines.create SaveMachines.support
+        let clock = SaveKit.clock ()
+        clock.Connection <- provider.Connection
+        let runId = "live-" + Guid.NewGuid().ToString("N").Substring(0, 12)
+        let writable = WorkspaceAddress.workingCopy [] runId |> Option.bind Writable.ofAddress |> Option.get
+        let id = InvestigationId(Guid.NewGuid())
+        let head = Scenarios.readHead provider |> Probes.ok "head"
+        let start: CommandEnvelope =
+            { CommandId = Guid.NewGuid()
+              Investigation = id
+              ExpectedVersion = None
+              Command =
+                Core(
+                    StartInvestigation
+                        { Title = SaveKit.text ("Live provider conformance " + label)
+                          ObservationId = ObservationId(Guid.NewGuid())
+                          Original = SaveKit.text "Synthetic investigation written by the live suite." }
+                ) }
+        let run =
+            { Machine = machine
+              Provider = provider
+              Clock = clock
+              Id = id
+              Writable = writable
+              Session = Persistence.createInvestigation writable head start true
+              Sent = []
+              Events = []
+              Before = ignore }
+        input run SaveInput.SaveRequested |> ignore
+        match run.Session.State with
+        | SaveState.Saved _ -> run
+        | other -> failwithf "live: the new investigation did not save: %A (events %A)" other run.Events
+
+    let create (label: string) : T = createOn (LiveGitHub.freshBranch (LiveGitHub.require ()) label) label
+
+    let mutations (run: T) = run.Sent |> List.filter SaveKit.isMutation
+
+    /// The commits after `from` on the branch (oldest first), with their messages.
+    let commitsSince (run: T) (CommitOid from) : (string * string) list =
+        let request = GitHubRequests.compare (Scenarios.nextId ()) run.Provider.Connection (CommitOid from) 1
+        match Scenarios.send run.Provider (CompareFrom(CommitOid from)) request with
+        | _, Ok answer ->
+            use doc = JsonDocument.Parse answer.Body
+            [ for c in doc.RootElement.GetProperty("commits").EnumerateArray() ->
+                  string (c.GetProperty("sha").GetString()), string (c.GetProperty("commit").GetProperty("message").GetString()) ]
+        | _, Error e -> failwithf "compare: %A" e
+
+    /// The paths a commit changed (REST commit `files`).
+    let changedPaths (run: T) (CommitOid oid) : string list =
+        let request = GitHubRequests.commit (Scenarios.nextId ()) run.Provider.Connection (CommitOid oid)
+        match Scenarios.send run.Provider (ReadCommit(CommitOid oid)) request with
+        | _, Ok answer ->
+            use doc = JsonDocument.Parse answer.Body
+            match doc.RootElement.TryGetProperty "files" with
+            | true, files -> [ for f in files.EnumerateArray() -> string (f.GetProperty("filename").GetString()) ]
+            | _ -> []
+        | _, Error e -> failwithf "commit: %A" e
+
+    let record (run: T) (test: string) (commits: CommitOid list) =
+        ProviderEvidence.record run.Provider test commits [ "investigation", (let (InvestigationId g) = run.Id in g.ToString()) ] |> ignore

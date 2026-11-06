@@ -286,20 +286,26 @@ module InvestigationFiles =
             | _ -> None
         else None
 
-    let private blob (commit: JsonElement) (alias: string) : Result<byte[] option, string> =
+    type private Blob =
+        | Present of byte[]
+        | Absent
+        | Truncated of blobOid: string
+
+    let private blob (commit: JsonElement) (alias: string) : Result<Blob, string> =
         match prop alias commit |> Option.bind (prop "object") with
-        | None -> Ok None
+        | None -> Ok Absent
         | Some b ->
-            match prop "isTruncated" b, prop "text" b with
-            | Some t, _ when t.ValueKind = JsonValueKind.True -> Error(sprintf "%s is too large to read in one answer" alias)
-            | _, Some text ->
+            match prop "isTruncated" b, prop "text" b, prop "oid" b |> Option.bind (fun o -> Option.ofObj (o.GetString())) with
+            | Some t, _, Some oid when t.ValueKind = JsonValueKind.True -> Ok(Truncated oid)
+            | _, Some text, _ ->
                 match text.GetString() with
                 | null -> Error "binary file"
-                | s -> Ok(Some(System.Text.Encoding.UTF8.GetBytes s))
-            | _, None -> Error "binary file"
+                | s -> Ok(Present(System.Text.Encoding.UTF8.GetBytes s))
+            | _ -> Error "binary file"
 
-    /// Decodes a classified answer to GitHubRequests.investigationFiles.
-    let decode (answer: ProviderAnswer) : Result<InvestigationFilesAnswer, ProviderError> =
+    /// Decodes a classified answer to GitHubRequests.investigationFiles: the files GraphQL returned whole, and the
+    /// (alias, blob oid) of each file too large for one GraphQL answer, which is then read through the Git blobs API.
+    let decodeParts (answer: ProviderAnswer) : Result<InvestigationFilesAnswer * (string * string) list, ProviderError> =
         try
             use doc = JsonDocument.Parse answer.Body
             match prop "data" doc.RootElement |> Option.bind (prop "repository") |> Option.bind (prop "object") with
@@ -313,14 +319,30 @@ module InvestigationFiles =
                         match System.DateTimeOffset.TryParse(d, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal) with
                         | true, v -> Some v
                         | _ -> None)
-                match oid, blob commit "m", blob commit "e", blob commit "s" with
-                | Some o, Ok m, Ok e, Ok s ->
-                    Ok { Commit = CommitOid o; CommittedAt = at |> Option.defaultValue System.DateTimeOffset.MinValue; Manifest = m; Events = e; Snapshot = s }
+                let part alias =
+                    blob commit alias
+                    |> Result.map (function
+                        | Present b -> Some b, []
+                        | Absent -> None, []
+                        | Truncated o -> None, [ alias, o ])
+                match oid, part "m", part "e", part "s" with
+                | Some o, Ok(m, tm), Ok(e, te), Ok(sn, ts) ->
+                    Ok(
+                        { Commit = CommitOid o; CommittedAt = at |> Option.defaultValue System.DateTimeOffset.MinValue; Manifest = m; Events = e; Snapshot = sn },
+                        tm @ te @ ts
+                    )
                 | None, _, _, _ -> Error(Malformed "the files answer has no commit oid")
                 | _, Error d, _, _
                 | _, _, Error d, _
                 | _, _, _, Error d -> Error(Malformed d)
         with _ -> Error(Malformed "the files answer does not decode")
+
+    /// The answer with one file's bytes filled in.
+    let withFile (alias: string) (bytes: byte[]) (a: InvestigationFilesAnswer) =
+        match alias with
+        | "m" -> { a with Manifest = Some bytes }
+        | "e" -> { a with Events = Some bytes }
+        | _ -> { a with Snapshot = Some bytes }
 
     /// The complete file set, when all three files are present.
     let fileSet (a: InvestigationFilesAnswer) : FileSet option =
@@ -612,6 +634,37 @@ module SaveMachines =
             lastConflict <- Some(refOf s)
             GitHubRequests.investigationFiles ctx.NextId ctx.Connection revision (dirOf s)
 
+        /// Files reads whose large files are still being read through the Git blobs API, by the request now awaited.
+        let partial = Dictionary<RequestId, InvestigationFilesAnswer * (string * string) list>()
+
+        /// Reads one investigation's files: the GraphQL answer, then one blob read per file too large for it. Either
+        /// the complete answer, or the next request (sent with ctx.NextId, which the caller records as outstanding).
+        let readFiles (ctx: RequestContext) (outcome: HttpOutcome) : Result<Choice<InvestigationFilesAnswer, HttpRequest>, ProviderError> =
+            let id =
+                match outcome with
+                | Answered(id, _, _, _) -> id
+                | NotAnswered(id, _) -> id
+            let pending = lock gate (fun () -> match partial.TryGetValue id with | true, p -> partial.Remove id |> ignore; Some p | _ -> None)
+            let next (answer, rest) =
+                match rest with
+                | [] -> Ok(Choice1Of2 answer)
+                | (_, oid) :: _ ->
+                    lock gate (fun () -> partial[ctx.NextId] <- (answer, rest))
+                    readsFor.TryGetValue id |> function | true, r -> readFor ctx.NextId r | _ -> ()
+                    Ok(Choice2Of2(GitHubRequests.blob ctx.NextId ctx.Connection oid))
+            match pending with
+            | Some(answer, (alias, oid) :: rest) ->
+                Classify.answer (ReadBlob oid) outcome
+                |> Result.bind (fun a ->
+                    match Classify.fileBytes a with
+                    | Some bytes -> Ok(InvestigationFiles.withFile alias bytes answer, rest)
+                    | None -> Error(Malformed "the blob answer has no content"))
+                |> Result.bind next
+            | _ ->
+                Classify.answer (ReadInvestigationAt "files") outcome
+                |> Result.bind InvestigationFiles.decodeParts
+                |> Result.bind next
+
         let verify (r: InvestigationRef) (files: InvestigationFilesAnswer) =
             match InvestigationFiles.fileSet files with
             | None -> Error None
@@ -887,8 +940,9 @@ module SaveMachines =
                     | Error AuthenticationFailed -> MachineEvent SaveInput.CredentialRefused
                     | Error e -> MachineEvent(SaveInput.ProviderRefused e)
                 | ReadBackAt commit ->
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = commit in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         let written = lastPrepared s.Id |> Option.map _.Written
                         match written, InvestigationFiles.fileSet files with
                         | Some w, Some readBack ->
@@ -912,8 +966,9 @@ module SaveMachines =
                         match s.State with
                         | SaveState.UnknownOutcome _ -> MachineEvent SaveInput.ReconcileReadFailed
                         | _ -> MachineEvent SaveInput.RebaseReadFailed
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = fresh in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         match s.State, unchangedSinceBase s files with
                         | SaveState.UnknownOutcome _, true -> MachineEvent(SaveInput.ReconcileNothingWrittenHeadMoved fresh)
                         | _, true -> MachineEvent(SaveInput.StaleHeadUnrelated fresh)
@@ -956,8 +1011,9 @@ module SaveMachines =
                                     | None -> MachineEvent SaveInput.ReconcileNothingWrittenHeadUnchanged
                         with _ -> MachineEvent SaveInput.ReconcileReadFailed
                 | ReconcileFilesAt commit ->
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = commit in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         match lastPrepared s.Id, InvestigationFiles.fileSet files with
                         | Some p, Some readBack ->
                             match Confirmation.ofReadBack s.Id commit files.CommittedAt p.Written readBack with
@@ -1009,9 +1065,10 @@ module SaveMachines =
                 | NotAnswered(id, _) -> id
             match view with
             | ReadingRemote current when current = id ->
-                match Classify.answer (ReadInvestigationAt "conflict") outcome |> Result.bind InvestigationFiles.decode with
-                | Ok files when InvestigationFiles.absent files -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
-                | Ok files ->
+                match readFiles ctx outcome with
+                | Ok(Choice2Of2 request) -> ConflictNextRequest(ReadingRemote ctx.NextId, request)
+                | Ok(Choice1Of2 files) when InvestigationFiles.absent files -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
+                | Ok(Choice1Of2 files) ->
                     match refOfRead id with
                     | None -> ConflictEvent(ConflictInput.SupersededReply id)
                     | Some r ->
@@ -1055,9 +1112,10 @@ module SaveMachines =
                 | NotAnswered(id, _) -> id
             match state with
             | Loading(current, _) when current = id ->
-                match Classify.answer (ReadInvestigationAt "load") outcome |> Result.bind InvestigationFiles.decode with
-                | Ok files when InvestigationFiles.absent files -> LoadEvent(LoadInput.LoadRejected(ProviderFailed(NotFound "investigation")))
-                | Ok files ->
+                match readFiles ctx outcome with
+                | Ok(Choice2Of2 request) -> LoadNextRequest(Loading(ctx.NextId, LoadHead), request)
+                | Ok(Choice1Of2 files) when InvestigationFiles.absent files -> LoadEvent(LoadInput.LoadRejected(ProviderFailed(NotFound "investigation")))
+                | Ok(Choice1Of2 files) ->
                     match refOfRead id with
                     | None -> LoadEvent(LoadInput.SupersededReply id)
                     | Some r ->
