@@ -18,9 +18,9 @@ module PF014Tests =
     /// engine exactly as the user does: Connect, list the active catalog, open each investigation.
     let private checkpoint (p: GitHubProvider) =
         let commit = FixtureData.seed p (FixtureData.demonstrationCatalog ()) "Causa: pinned demonstration-v1 catalog"
-        let app = AppDriver.start p
-        AppDriver.connect app p.Connection.Credential
-        AppDriver.listCatalog app
+        let app = EngineDriver.start p
+        EngineDriver.connect app p.Connection.Credential
+        EngineDriver.listCatalog app
         let listing =
             app.Model.Listings
             |> Map.toList
@@ -28,7 +28,7 @@ module PF014Tests =
             |> List.tryFind (fun l -> l.Address.Role = WorkspaceRole.Catalog)
             |> Option.defaultWith (fun () -> failwithf "the engine listed no catalog: %A" app.Announced)
         for i in listing.Investigations do
-            AppDriver.openInvestigation app i.Ref
+            EngineDriver.openInvestigation app i.Ref
         commit, app, listing
 
     /// O1: the real GitHub provider test runs against the approved repository (the configured test repository) and the

@@ -35,23 +35,23 @@ module EXTDATA009Tests =
             Assert.Empty(a.GetManifestResourceNames() |> Array.filter (fun n -> n.EndsWith ".ndjson" || n.EndsWith ".json"))
         // No preloaded records: a fresh application holds no investigation, listing or connection.
         let p = mk "extdata009-o1"
-        let app = AppDriver.start p
+        let app = EngineDriver.start p
         Assert.True(app.Model.Loads.IsEmpty && app.Model.Sessions.IsEmpty && app.Model.Listings.IsEmpty && app.Model.Context.IsNone)
         Assert.Empty(app.Sent)
         // Authorized retrieval from the separately populated repository (populated by its own commit, not the app).
         FixtureData.seed p (FixtureData.frozenCatalog ()) "Causa: populate the test repository" |> ignore
-        AppDriver.connect app p.Connection.Credential
-        AppDriver.listCatalog app
+        EngineDriver.connect app p.Connection.Credential
+        EngineDriver.listCatalog app
         let listing = app.Model.Listings |> Map.toList |> List.map snd |> List.find (fun l -> l.Address.Role = WorkspaceRole.Catalog)
         Assert.Equal(5, listing.Investigations.Length)
-        AppDriver.openInvestigation app listing.Investigations.Head.Ref
+        EngineDriver.openInvestigation app listing.Investigations.Head.Ref
         match app.Model.Loads.TryFind listing.Investigations.Head.Ref with
         | Some(Loaded v) -> Assert.Equal(listing.Investigations.Head.ExpectedStateSha256, Some(ProviderPort.stateDigest v))
         | other -> failwithf "the authorized read did not load: %A" other
         // Denial without authorization: a refused credential reads nothing.
-        let denied = AppDriver.start p
-        AppDriver.connect denied (Credential.create "invalid-credential-for-conformance")
-        AppDriver.listCatalog denied
+        let denied = EngineDriver.start p
+        EngineDriver.connect denied (Credential.create "invalid-credential-for-conformance")
+        EngineDriver.listCatalog denied
         Assert.True(denied.Model.Listings.IsEmpty && denied.Model.Loads.IsEmpty)
         Assert.NotEqual(app.Model.Connection, denied.Model.Connection)
         // Malformed data is refused fail-closed.
