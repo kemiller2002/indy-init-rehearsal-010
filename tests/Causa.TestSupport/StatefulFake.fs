@@ -928,18 +928,18 @@ module SaveKit =
         | Error f -> failwithf "%s refused: %s" f.Input f.Reason
 
     /// Executes the session's outstanding request and every follow-up request through `execute` until the session
-    /// awaits nothing; returns the final session, every event stepped and every request sent.
-    let drive (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
-        let rec loop (s: InvestigationSession) (pending: HttpRequest list) (events: SaveInput list) (sent: HttpRequest list) (budget: int) =
+    /// awaits nothing; returns the final session, every event stepped, every request sent and every other effect.
+    let driveAll (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
+        let rec loop (s: InvestigationSession) (pending: HttpRequest list) events sent (others: SaveEffect list) (budget: int) =
             match pending with
-            | [] -> s, List.rev events, List.rev sent
+            | [] -> s, List.rev events, List.rev sent, others
             | _ when budget = 0 -> failwith "the save did not settle"
             | r :: rest ->
                 let outcome = execute r
                 match m.Interpret (context c) s outcome with
                 | Interpretation.NextRequest(next, request) ->
                     c.Next <- c.Next + 1L
-                    loop next (rest @ [ request ]) events (r :: sent) (budget - 1)
+                    loop next (rest @ [ request ]) events (r :: sent) others (budget - 1)
                 | MachineEvent input ->
                     match m.Step (context c) s input with
                     | Ok(next, effects) ->
@@ -948,9 +948,14 @@ module SaveKit =
                             match next.State with
                             | SaveState.Conflict _ -> []
                             | _ -> requests effects
-                        loop next (rest @ more) (input :: events) (r :: sent) (budget - 1)
+                        let rest' = effects |> List.filter (function Send _ -> false | _ -> true)
+                        loop next (rest @ more) (input :: events) (r :: sent) (others @ rest') (budget - 1)
                     | Error f -> failwithf "%s refused in %s: %s" f.Input f.State f.Reason
-        loop session first [] [] 40
+        loop session first [] [] [] 40
+
+    let drive (m: SaveMachine) (c: Clock) (execute: Execute) (session: InvestigationSession) (first: HttpRequest list) =
+        let s, events, sent, _ = driveAll m c execute session first
+        s, events, sent
 
 /// The SM-SAVE / SM-CONFLICT / SM-LOAD transition-test fixture (state-machine-contracts.json).
 module MachineKit =
@@ -1006,3 +1011,67 @@ module MachineKit =
     let mutations (effects: SaveEffect list) = sends effects |> List.filter SaveKit.isMutation
     let schedules (effects: SaveEffect list) = effects |> List.choose (function ScheduleReconcileRead(_, ms) -> Some ms | _ -> None)
     let work (s: InvestigationSession) = s.Unsaved @ s.AfterInFlight
+
+/// End-to-end save scenarios: a fresh machine (its own tab memory), a fake repository holding the fixture
+/// investigation, and an executor that records every request it sends.
+[<RequireQualifiedAccess>]
+module SaveScenario =
+    type T =
+        { Machine: SaveMachine
+          Fake: StatefulFake.Running
+          Clock: SaveKit.Clock
+          mutable Session: InvestigationSession
+          mutable Sent: HttpRequest list
+          mutable Events: SaveInput list
+          /// Runs before each request reaches the fake (simulated other writers, injected faults).
+          mutable Before: HttpRequest -> unit }
+
+    let create () : T =
+        let machine = SaveMachines.create SaveMachines.support
+        let running, verified = SaveKit.repository ()
+        { Machine = machine
+          Fake = running
+          Clock = SaveKit.clock ()
+          Session = machine.Initial SaveKit.writable verified
+          Sent = []
+          Events = []
+          Before = ignore }
+
+    let execute (sc: T) : Execute =
+        fun r ->
+            sc.Before r
+            sc.Sent <- sc.Sent @ [ r ]
+            sc.Fake.Execute r
+
+    let input (sc: T) (i: SaveInput) =
+        let next, effects = SaveKit.stepOk sc.Machine sc.Clock sc.Session i
+        sc.Session <- next
+        sc.Events <- sc.Events @ [ i ]
+        let final, events, _, others = SaveKit.driveAll sc.Machine sc.Clock (execute sc) next (SaveKit.requests effects)
+        sc.Session <- final
+        sc.Events <- sc.Events @ events
+        effects @ others
+
+    let edit (sc: T) (n: int) = input sc (SaveInput.Edit(SaveKit.edit n)) |> ignore
+
+    /// The timer of a ScheduleReconcileRead fired (the engine calls ReconcileDue); the read is executed and driven.
+    let reconcileDue (sc: T) =
+        match sc.Machine.ReconcileDue (SaveKit.context sc.Clock) sc.Session with
+        | Ok(next, effects) ->
+            SaveKit.advance sc.Clock effects
+            let final, events, _, others = SaveKit.driveAll sc.Machine sc.Clock (execute sc) next (SaveKit.requests effects)
+            sc.Session <- final
+            sc.Events <- sc.Events @ events
+            effects @ others
+        | Error f -> failwithf "ReconcileDue refused: %s" f.Reason
+
+    let head (sc: T) = CommitOid((sc.Fake.Current()).Branches["main"])
+
+    let mutations (sc: T) = sc.Sent |> List.filter SaveKit.isMutation
+
+    let reads (sc: T) = sc.Sent |> List.filter (SaveKit.isMutation >> not)
+
+    let otherWriter (sc: T) (files: (string * byte[]) list) =
+        sc.Fake.Update(fun s -> StatefulFake.otherWriterCommits "main" "other writer" files [] s |> fst)
+
+    let stateName (sc: T) = MachineKit.stateName sc.Session.State
