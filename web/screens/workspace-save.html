@@ -1,0 +1,25 @@
+<!-- Owner: ui-2. What the save state means and its recovery actions (PERSIST-030/031: Forma operation status and
+     freshness). The state itself (role=status "Save state") and Save are in the workspace header (workspace-frame). -->
+<template data-if="investigation.save.shown">
+  <section class="ef-operation-status causa-save-detail" aria-labelledby="causa-save-detail-title" data-requirement-id="UI-006">
+    <div class="ef-operation-status__symbol" aria-hidden="true" data-text="investigation.save.glyph"></div>
+    <div>
+      <h2 id="causa-save-detail-title" class="causa-visually-hidden">Save details</h2>
+      <p data-text="investigation.save.text"></p>
+      <template data-if="investigation.save.hasLastSaved">
+        <p class="ef-freshness"><span class="ef-freshness__label">Last saved</span> <time data-bind-datetime="investigation.save.lastSavedIso" data-text="investigation.save.lastSaved"></time></p>
+      </template>
+    </div>
+    <div class="ef-operation-status__actions">
+      <template data-if="investigation.save.canCheckAgain">
+        <button type="button" data-event="investigation.save.check-again">Check again</button>
+      </template>
+      <template data-if="investigation.save.canReconnect">
+        <button type="button" data-event="investigation.save.reconnect">Reconnect</button>
+      </template>
+      <template data-if="investigation.save.canReview">
+        <button type="button" data-event="investigation.save.review">Review the conflict</button>
+      </template>
+    </div>
+  </section>
+</template>

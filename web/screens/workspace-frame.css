@@ -1,0 +1,10 @@
+/* Owner: ui-2. Workspace frame: header, save state and the investigation-section navigation (Forma tokens only). */
+.causa-frame { display: flex; flex-direction: column; gap: var(--ef-primitive-spacing-3, 0.75rem); min-inline-size: 0; }
+.causa-frame__header { min-inline-size: 0; }
+.causa-frame__text { overflow-wrap: anywhere; white-space: pre-wrap; }
+.causa-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ef-primitive-spacing-2, 0.5rem); }
+.causa-sections__list { display: flex; flex-wrap: wrap; gap: var(--ef-primitive-spacing-2, 0.5rem); list-style: none; margin: 0; padding: 0; }
+.causa-sections__list a { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 var(--ef-primitive-spacing-3, 0.75rem); }
+.causa-sections__list a[aria-current="page"] { font-weight: var(--ef-primitive-font-weight-bold, 700); text-decoration: underline; text-underline-offset: 0.3em; }
+.causa-sections__list a:focus-visible { outline: 3px solid var(--ef-color-focus-ring, currentColor); outline-offset: 2px; }
+.causa-sections.ef-navigation-shell { display: block; }
