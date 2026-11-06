@@ -1,0 +1,11 @@
+/* Owner: integration. UI-016 identity colours as Causa tokens (the design contract's theme boundary: a literal colour
+   appears only here, as the value of a custom-property definition). */
+:root {
+  --causa-navy: #14283F;
+  --causa-teal: #087F8C;
+  --causa-amber: #E9A23B;
+  --causa-coral: #D66B58;
+  --causa-ivory: #F5F3ED;
+  /* Derived (UI-016 allows derived tokens): ivory on teal #087F8C is 4.27:1, below 4.5:1 for normal text. */
+  --causa-teal-strong: #066A75;
+}
