@@ -1,0 +1,23 @@
+/* Owner: integration. UI-016 identity colours as named Causa theme tokens (the design contract's theme boundary: a
+   literal colour appears only here, as the value of a custom-property definition). Roles follow UI-016:
+   navy = navigation, masthead, structure; teal = primary actions, active selection; amber = unknowns, pending review,
+   attention; coral = contradictions, conflicts, critical alerts; ivory = the workspace surface. */
+:root {
+  --causa-navy: #14283F;
+  --causa-teal: #087F8C;
+  --causa-amber: #E9A23B;
+  --causa-coral: #D66B58;
+  --causa-ivory: #F5F3ED;
+  /* Derived after measuring contrast (UI-016-O10):
+     ivory on teal #087F8C is 4.27:1, under 4.5:1 for normal text, so text on teal uses teal-strong (5.4:1);
+     coral on ivory is 3.3:1, enough for indicators and borders, not text, so coral text uses coral-strong (5.6:1);
+     navy on amber is 6.8:1, so attention lozenges carry navy text. */
+  --causa-teal-strong: #066A75;
+  --causa-coral-strong: #9E3E2E;
+  --causa-ink: #14283F;
+  --causa-on-navy: #F5F3ED;
+  --causa-surface: #FFFFFF;
+  --causa-border: #5E6B78;
+  --causa-focus-on-light: #066A75;
+  --causa-focus-on-dark: #F5F3ED;
+}
