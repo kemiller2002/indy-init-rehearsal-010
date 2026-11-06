@@ -1,0 +1,17 @@
+/* Owner: integration. Shell layout over published Forma tokens (--ef-*) and the Causa theme tokens; declares no custom
+   property. Screen fragments' CSS (web/screens/*.css) is appended by build.fsx. */
+body.causa { margin: 0; background: var(--causa-ivory); color: var(--ef-color-text-primary, var(--causa-navy)); }
+.causa-masthead { background: var(--causa-navy); color: var(--causa-ivory); }
+.causa-masthead .ef-site-header__name { color: var(--causa-ivory); }
+.causa-primary { background: var(--causa-navy); }
+/* The primary destinations are one horizontal bar, not the navigation shell's sidebar column. */
+.causa-primary.ef-navigation-shell { display: block; }
+.causa-primary__list { display: flex; flex-wrap: wrap; gap: var(--ef-primitive-spacing-2, 0.5rem); list-style: none; margin: 0; padding: 0 var(--ef-primitive-spacing-4, 1rem); }
+.causa-primary__list a { color: var(--causa-ivory); display: inline-block; min-height: 44px; line-height: 44px; padding: 0 var(--ef-primitive-spacing-3, 0.75rem); }
+.causa-primary__list a[aria-current="page"] { font-weight: var(--ef-primitive-font-weight-bold, 700); text-decoration: underline; text-underline-offset: 0.3em; }
+.causa-primary__list a:focus-visible { outline: 3px solid var(--causa-amber); outline-offset: 2px; }
+.causa-main { box-sizing: border-box; padding: var(--ef-primitive-spacing-4, 1rem); }
+.causa-main button, .causa-main .ef-button, .causa-main input, .causa-main select { min-height: 44px; }
+.causa-load-failed { border-left: 4px solid var(--causa-coral); padding-left: var(--ef-primitive-spacing-3, 0.75rem); }
+.causa-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+[hidden] { display: none !important; }
