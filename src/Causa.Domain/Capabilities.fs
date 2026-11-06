@@ -116,7 +116,7 @@ module Capabilities =
         |> List.map (fun (name, target, command) ->
             let envelope = { CommandId = probeId; Investigation = s.Id; ExpectedVersion = Some s.Version; Command = Core command }
             let state =
-                match Decide.decide policies actor (Some s) envelope with
+                match Evolve.decide policies actor (Some s) envelope with
                 | Allowed _ -> CapabilityState.Available
                 | Blocked blockers -> CapabilityState.Unavailable blockers
                 | RequiresReview reviews -> CapabilityState.ReviewRequired reviews

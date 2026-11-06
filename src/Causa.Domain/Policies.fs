@@ -36,17 +36,17 @@ module Transitions =
     let resolveFrom = [ Lifecycle.Active; Lifecycle.AwaitingVerification ]
     let reopenFrom = [ Lifecycle.Resolved; Lifecycle.Closed ]
 
-    /// Lifecycles in which the investigation's record may still grow. A closed or archived investigation is read-only
-    /// until it is reopened or reactivated.
+    /// Lifecycles in which the investigation's record may still grow (D-005 INVESTIGATION.NOT_OPEN). A resolved, closed
+    /// or archived investigation is read-only until it is reopened or reactivated.
     let recordingAllowedIn (l: Lifecycle) =
         match l with
+        | Lifecycle.Resolved
         | Lifecycle.Closed
         | Lifecycle.Archived -> false
         | Lifecycle.Draft
         | Lifecycle.Active
         | Lifecycle.AwaitingEvidence
-        | Lifecycle.AwaitingVerification
-        | Lifecycle.Resolved -> true
+        | Lifecycle.AwaitingVerification -> true
 
     /// STATE-TRANSITION-TABLES section 2.
     let markPlausibleFrom = [ HypothesisState.Proposed; HypothesisState.Weakened ]
@@ -56,6 +56,34 @@ module Transitions =
         [ HypothesisState.Proposed; HypothesisState.Plausible; HypothesisState.Supported; HypothesisState.Weakened ]
 
     let reopenHypothesisFrom = [ HypothesisState.Falsified ]
+    let weakenFrom = [ HypothesisState.Plausible; HypothesisState.Supported ]
+    let supersedeFrom = falsifyFrom
+
+    /// The states each hypothesis event may start from (section 2), for replay admissibility.
+    let hypothesisEventFrom (target: HypothesisState) (isReopen: bool) : HypothesisState list =
+        if isReopen then reopenHypothesisFrom
+        else
+            match target with
+            | HypothesisState.Plausible -> markPlausibleFrom
+            | HypothesisState.Supported -> markSupportedFrom
+            | HypothesisState.Weakened -> weakenFrom
+            | HypothesisState.Falsified -> falsifyFrom
+            | HypothesisState.Superseded -> supersedeFrom
+            | HypothesisState.Proposed -> []
+
+    /// The lifecycles each lifecycle event may start from (section 1).
+    let lifecycleEventFrom (target: Lifecycle) (isReopen: bool) (isVerificationFailure: bool) : Lifecycle list =
+        if isReopen then reopenFrom
+        elif isVerificationFailure then [ Lifecycle.AwaitingVerification ]
+        else
+            match target with
+            | Lifecycle.Active -> activateFrom
+            | Lifecycle.AwaitingEvidence
+            | Lifecycle.AwaitingVerification -> [ Lifecycle.Active ]
+            | Lifecycle.Resolved -> resolveFrom
+            | Lifecycle.Closed -> [ Lifecycle.Resolved ]
+            | Lifecycle.Draft
+            | Lifecycle.Archived -> []
 
     /// Section 10.
     let confirmCauseFrom = [ CauseState.Proposed; CauseState.Reopened ]
@@ -98,7 +126,7 @@ module Assessments =
             && (s.Evidence.TryFind r.Value.EvidenceId |> Option.exists (fun e -> e.SupersededBy.IsNone)))
 
 /// Composable policy (POLICY-ENGINE.md; FSHARP-TYPE-SHAPES section 40). A PolicySet id names its components joined by
-/// '+', for example "causa.core/1+causa.mechanism-required/1". The core policy is always in force; a component can only
+/// '+', for example "causa.core/1+causa.verified-support/1". The core policy is always in force; a component can only
 /// add blockers (a policy cannot make a structurally impossible transition legal, STATE-TRANSITION-TABLES section 16).
 /// An unknown component is unsupported semantics, never ignored.
 [<RequireQualifiedAccess>]
@@ -136,14 +164,14 @@ module Policy =
         | UnknownState.Superseded -> false
 
     /// Blockers shared by the cause-confirmation and resolution gates: unresolved material contradictions, open
-    /// blocking unknowns and unverified material assumptions (INVESTIGATION-SEMANTICS sections 15 and 22).
+    /// material unknowns and unverified material assumptions (INVESTIGATION-SEMANTICS sections 15 and 22).
     let private openUncertainty (gate: string) (s: Investigation) : Blocker list =
         [ for KeyValue(ContradictionId id, c) in s.Contradictions do
               if material c.Contradiction.Materiality && openContradiction c then
                   yield b $"{gate}.contradiction-unresolved" $"Contradiction {txt id} ({c.Contradiction.Statement.Value}) is unresolved."
           for KeyValue(UnknownId id, u) in s.Unknowns do
-              if u.Unknown.Materiality = Materiality.Blocking && openUnknown u then
-                  yield b $"{gate}.unknown-open" $"Blocking unknown {txt id} ({u.Unknown.Question.Value}) is open."
+              if material u.Unknown.Materiality && openUnknown u then
+                  yield b $"{gate}.unknown-open" $"Material unknown {txt id} ({u.Unknown.Question.Value}) is open."
           for KeyValue(AssumptionId id, a) in s.Assumptions do
               if material a.Assumption.Materiality && a.State = AssumptionState.ExplicitUnverified then
                   yield b $"{gate}.assumption-unverified" $"Assumption {txt id} ({a.Assumption.Proposition.Value}) is neither verified nor accepted." ]
@@ -165,6 +193,10 @@ module Policy =
                               | Some e when e.State <> HypothesisState.Supported ->
                                   yield b "cause.member-unsupported" $"Hypothesis {txt id} ({e.Hypothesis.Statement.Value}) is {WireEnum.toWire Enums.hypothesisState e.State}, not supported."
                               | _ -> ()
+                          if not (cause.Cause.Members |> List.exists (fun m -> m.Role = CauseRole.RootCause)) then
+                              yield b "cause.no-root" "No member of the causal assertion is a root cause (R6.3)."
+                          if cause.Cause.Mechanism.IsNone then
+                              yield b "cause.no-mechanism" "The causal assertion states no mechanism (INVESTIGATION-SEMANTICS 15.8)."
                           let supporting =
                               members
                               |> List.collect (Assessments.ofHypothesis s)
@@ -184,50 +216,63 @@ module Policy =
                           yield! openUncertainty "cause" s ]
                 | _ -> [] }
 
-    /// The resolution gate (INVESTIGATION-SEMANTICS section 22; DOMAIN-TEST-MATRIX ResolveInvestigation): a recorded
-    /// conclusion, every verification criterion satisfied, no corrective action left between implementation and a
-    /// verified effect, and no open uncertainty.
+    /// The resolution gate (INVESTIGATION-SEMANTICS section 22; REQUIREMENTS R6.4, R7.2-R7.4; DOMAIN-TEST-MATRIX
+    /// ResolveInvestigation): a recorded conclusion; when a cause is confirmed, a root-cause correction (a corrective
+    /// action of kind correction, not cancelled) targeting it; every root-cause correction with explicit criteria, each
+    /// satisfied by a recorded verification; uncertainty accepted as residual stated by a conclusion; and no open
+    /// uncertainty (a confirmed cause must still meet its gate).
     let resolutionGate: Rule =
         { Id = "causa.core/1:resolution"
           Check =
             fun s command ->
                 match command with
                 | ResolveInvestigation ->
+                    let corrections =
+                        s.CorrectiveActions
+                        |> Map.toList
+                        |> List.filter (fun (_, a) ->
+                            a.CorrectiveAction.Kind = CorrectiveActionKind.Correction && a.State <> CorrectiveActionState.Cancelled)
+                    let confirmed = s.Causes |> Map.filter (fun _ c -> c.State = CauseState.Confirmed)
                     [ if s.Conclusions.IsEmpty then
                           yield b "resolution.no-conclusion" "No conclusion is recorded."
-                      for KeyValue(VerificationCriterionId id, c) in s.Criteria do
-                          let satisfied =
-                              s.Verifications
-                              |> Map.exists (fun _ v -> v.Value.CriterionId = c.Value.CriterionId && v.Value.Outcome = VerificationOutcome.Satisfied)
-                          if not satisfied then
-                              yield b "resolution.criterion-unverified" $"Verification criterion {txt id} ({c.Value.ExpectedOutcome.Value}) is not satisfied."
-                      for KeyValue(CorrectiveActionId id, a) in s.CorrectiveActions do
-                          match a.State with
-                          | CorrectiveActionState.Implemented
-                          | CorrectiveActionState.AwaitingVerificationOfEffect
-                          | CorrectiveActionState.VerificationFailed
-                          | CorrectiveActionState.ReworkRequired ->
-                              yield b "resolution.corrective-action-unverified" $"Corrective action {txt id} ({a.CorrectiveAction.Description.Value}) has no verified effect."
-                          | CorrectiveActionState.Proposed
-                          | CorrectiveActionState.Approved
-                          | CorrectiveActionState.InProgress
-                          | CorrectiveActionState.VerifiedEffective
-                          | CorrectiveActionState.Cancelled -> ()
+                      if not confirmed.IsEmpty
+                         && not (corrections |> List.exists (fun (_, a) -> a.CorrectiveAction.TargetCauseIds |> List.exists confirmed.ContainsKey)) then
+                          yield b "resolution.no-correction" "No root-cause correction targets the confirmed cause."
+                      for CorrectiveActionId id as caId, a in corrections do
+                          let criteria = s.Criteria |> Map.toList |> List.map snd |> List.filter (fun c -> c.Value.CorrectiveActionId = caId)
+                          if criteria.IsEmpty then
+                              yield b "resolution.correction-not-verified" $"Correction {txt id} ({a.CorrectiveAction.Description.Value}) has no verification criteria."
+                          for c in criteria do
+                              let satisfied =
+                                  s.Verifications
+                                  |> Map.exists (fun _ v -> v.Value.CriterionId = c.Value.CriterionId && v.Value.Outcome = VerificationOutcome.Satisfied)
+                              if not satisfied then
+                                  yield b "resolution.criterion-unverified" $"Verification criterion {txt (Ids.criterion c.Value.CriterionId)} ({c.Value.ExpectedOutcome.Value}) is not satisfied."
+                      let acceptedResidual =
+                          (s.Unknowns |> Map.exists (fun _ u -> u.State = UnknownState.AcceptedResidual))
+                          || (s.Contradictions |> Map.exists (fun _ c -> c.State = ContradictionState.AcceptedResidual))
+                      if acceptedResidual && not (s.Conclusions |> Map.exists (fun _ c -> c.Value.ResidualUncertainty.IsSome)) then
+                          yield b "resolution.residual-not-stated" "Uncertainty is accepted as residual but no conclusion states it."
                       yield! openUncertainty "resolution" s ]
                 | _ -> [] }
 
-    /// An optional strengthening: a cause is confirmed only with a stated mechanism (DOMAIN-TEST-MATRIX: "missing
-    /// required mechanism").
-    let mechanismRequired: Rule =
-        { Id = "causa.mechanism-required/1"
+    /// An optional strengthening: a cause is confirmed only when some supporting evidence is verified.
+    let verifiedSupportRequired: Rule =
+        { Id = "causa.verified-support/1"
           Check =
             fun s command ->
                 match command with
                 | ConfirmCause p ->
                     match s.Causes.TryFind p.CauseId with
-                    | Some c when c.Cause.Mechanism.IsNone ->
-                        [ b "cause.mechanism-missing" $"Causal assertion {txt (Ids.cause p.CauseId)} states no mechanism." ]
-                    | _ -> []
+                    | Some c ->
+                        let verified =
+                            c.Cause.Members
+                            |> List.collect (fun m -> Assessments.ofHypothesis s m.HypothesisId)
+                            |> List.exists (fun r ->
+                                r.Value.Kind = RelationshipKind.Supports
+                                && (s.Evidence.TryFind r.Value.EvidenceId |> Option.exists (fun e -> e.Verification = VerificationStatus.Verified)))
+                        if verified then [] else [ b "cause.support-unverified" "No supporting evidence of the cause is verified." ]
+                    | None -> []
                 | _ -> [] }
 
     let core = Transitions.corePolicy
@@ -235,7 +280,7 @@ module Policy =
     /// Every known policy component and its rules.
     let components: (string * Rule list) list =
         [ core.Id, [ causeConfirmationGate; resolutionGate ]
-          mechanismRequired.Id, [ mechanismRequired ] ]
+          verifiedSupportRequired.Id, [ verifiedSupportRequired ] ]
 
     /// The rules a PolicySet composes: the core rules plus each named component. Error lists unknown components.
     let rules (policies: PolicySet) : Result<Rule list, string list> =
