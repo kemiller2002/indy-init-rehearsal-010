@@ -4,7 +4,7 @@
 // harness GitHub double (CAUSA_DOUBLE_URL, default http://127.0.0.1:4610) unless CAUSA_PROVIDER=github, exactly as
 // verification/journeys/support.mjs routes it; nothing here is live-write evidence (UI-015-O3).
 import { expect } from '@playwright/test';
-import { open } from '../support/app.mjs';
+import { open, requireProvider } from '../support/app.mjs';
 
 export const env = {
   provider: process.env.CAUSA_PROVIDER || 'harness-double',
@@ -23,6 +23,7 @@ export const section = async (page, name) => { await sections(page).getByRole('l
 
 /// Routes the browser's GitHub requests to the double (harness mode) and connects through the application's own form.
 export const connect = async (page) => {
+  await requireProvider(env, 'connecting needs the provider');
   if (env.provider !== 'github') {
     await page.context().route('https://api.github.com/**', async (route) => {
       const u = new URL(route.request().url());
@@ -101,6 +102,7 @@ export const providerBase = env.provider === 'github' ? 'https://api.github.com'
 /// repository through the provider's contents API (never through the app), and returns the route that opens it. Used
 /// where only a stored history can hold the content (a conclusion: the frozen contract has no command for it).
 export const seedStoredHistory = async (fixtureId, run = 'ui-acceptance') => {
+  await requireProvider(env, 'seeding a stored history needs the provider');
   const { readFileSync } = await import('node:fs');
   const workspace = `workspaces/demo/causa-app-${run}`;
   const source = new URL(`../../fixtures/causa-data/e8259df74add723765c57a5b1a5888d9c3f707af/fixtures/v1.0.0/investigations/${fixtureId}/`, import.meta.url);

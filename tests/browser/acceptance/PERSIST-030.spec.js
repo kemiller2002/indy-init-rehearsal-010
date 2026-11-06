@@ -1,7 +1,7 @@
 // Owner: ui (written by ui-2, approved by integration authority). PERSIST-030: the Forma save-state indicator in the
 // investigation header, driven through the real engine and provider; layout and contrast judged by the pinned Forma kit.
 import { test, expect } from '@playwright/test';
-import { open } from '../support/app.mjs';
+import { open, requireGitHub } from '../support/app.mjs';
 import { indicatorComposed, statusVisible, textContrast, nonTextContrast, noHorizontalScroll } from '../support/layout-assertions.mjs';
 
 // ---- Driving one investigation through the real engine and provider (shared by the ui-2 save-state specs) ----------
@@ -22,6 +22,7 @@ const isMutation = (request) => request.method() === 'POST' && /\/graphql$/.test
 /// Opens the application and, when it is not connected yet, connects to the designated test repository with the
 /// connection form's labels (integration contract: "Repository owner", "Repository", "Branch", "Token").
 const connected = async (page) => {
+  requireGitHub('the save states need the real provider');
   await open(page, '#/investigations');
   const owner = field(page, 'Repository owner');
   const connect = page.getByRole('button', { name: /connect/i }).first();

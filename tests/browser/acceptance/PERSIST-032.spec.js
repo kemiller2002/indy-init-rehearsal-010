@@ -1,7 +1,7 @@
 // Owner: ui (written by ui-2, approved by integration authority). PERSIST-032: save-state language, checked on the text the
 // application shows in every reachable state.
 import { test, expect } from '@playwright/test';
-import { open } from '../support/app.mjs';
+import { open, requireGitHub } from '../support/app.mjs';
 
 // ---- Driving one investigation through the real engine and provider (shared by the ui-2 save-state specs) ----------
 // The designated test repository, as the governed journeys name it. Without it the provider cannot be reached: the
@@ -21,6 +21,7 @@ const isMutation = (request) => request.method() === 'POST' && /\/graphql$/.test
 /// Opens the application and, when it is not connected yet, connects to the designated test repository with the
 /// connection form's labels (integration contract: "Repository owner", "Repository", "Branch", "Token").
 const connected = async (page) => {
+  requireGitHub('the save states need the real provider');
   await open(page, '#/investigations');
   const owner = field(page, 'Repository owner');
   const connect = page.getByRole('button', { name: /connect/i }).first();

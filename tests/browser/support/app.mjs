@@ -58,3 +58,31 @@ export const paintedColours = (page) => page.evaluate(() => {
 });
 export const rgb = (hex) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(',')})`;
 export const palette = { navy: '#14283F', teal: '#087F8C', amber: '#E9A23B', coral: '#D66B58', ivory: '#F5F3ED' };
+
+// ---- Provider guard: a spec that needs a provider fails at once, as BLOCKED, when none is configured --------------
+// A BLOCKED test is a failed test (never skipped, never answered by a substitute); the guard only makes it fail before
+// the browser waits on a connection that cannot come, so a run without a provider ends in seconds, not at the job limit.
+
+/// The real GitHub provider: a token and the designated test repository (the governed journeys' variables).
+export const requireGitHub = (purpose = 'this test needs the real GitHub provider') => {
+  const missing = ['CAUSA_GITHUB_TOKEN', 'CAUSA_TEST_OWNER', 'CAUSA_TEST_REPO'].filter((name) => !process.env[name]);
+  if (missing.length) throw new Error(`BLOCKED: ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not set; ${purpose} (a GitHub token and the designated test repository).`);
+};
+
+const doubleAnswers = new Map();
+/// The harness GitHub double answers at this URL (any HTTP answer counts; a refused or silent connection does not).
+const answers = (url) => {
+  if (!doubleAnswers.has(url)) {
+    doubleAnswers.set(url, fetch(url, { signal: AbortSignal.timeout(3000) }).then(() => true, () => false));
+  }
+  return doubleAnswers.get(url);
+};
+
+/// The provider a spec's documented modes name: CAUSA_PROVIDER=github needs the real provider; otherwise the harness
+/// double (CAUSA_DOUBLE_URL, default http://127.0.0.1:4610) must be answering.
+export const requireProvider = async ({ provider, double }, purpose = 'this test needs a connected provider') => {
+  if (provider === 'github') return requireGitHub(purpose);
+  if (!(await answers(double))) {
+    throw new Error(`BLOCKED: the harness GitHub double does not answer at ${double}; ${purpose}. Start the double and set CAUSA_DOUBLE_URL, or set CAUSA_PROVIDER=github with CAUSA_GITHUB_TOKEN, CAUSA_TEST_OWNER and CAUSA_TEST_REPO.`);
+  }
+};
