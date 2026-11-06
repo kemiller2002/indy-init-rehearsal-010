@@ -1,0 +1,27 @@
+<!-- Owner: ui-3. Timeline section (Views/Workspace/Timeline.fs): every stored event of this investigation. -->
+<template data-if="screen.investigation.timeline">
+  <section class="ef-section causa-analysis" aria-labelledby="causa-timeline-heading" data-requirement-id="INV-042">
+    <h2 class="ef-section-heading" id="causa-timeline-heading">Timeline</h2>
+    <template data-if="investigation.timeline.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <template data-if="investigation.timeline.empty">
+          <p class="causa-analysis__empty">No events recorded yet.</p>
+        </template>
+        <ol class="ef-timeline" aria-label="Investigation events">
+          <template data-each="investigation.timeline.items" data-key="id">
+            <li class="ef-timeline__item">
+              <div class="ef-timeline__marker" aria-hidden="true"></div>
+              <div class="ef-timeline__content">
+                <div class="ef-timeline__meta"><time data-bind-datetime="at" data-text="at"></time> <span data-text="actor"></span> <span>version <span data-text="version"></span></span></div>
+                <p data-text="summary"></p>
+              </div>
+            </li>
+          </template>
+        </ol>
+      </div>
+    </template>
+    <template data-if="investigation.timeline.missing">
+      <p class="causa-analysis__empty" data-text="investigation.timeline.notLoaded"></p>
+    </template>
+  </section>
+</template>
