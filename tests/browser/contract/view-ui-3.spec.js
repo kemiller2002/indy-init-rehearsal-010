@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
-const fragments = ["workspace-overview", "workspace-causal-analysis", "workspace-evidence", "workspace-hypotheses", "workspace-timeline"]
+const fragments = ["workspace-overview", "workspace-causal-analysis", "workspace-evidence", "workspace-hypotheses", "workspace-timeline", "workspace-report"]
   .map((f) => readFileSync(new URL(`../../../web/screens/${f}.html`, import.meta.url), "utf8"))
   .join("\n");
 
@@ -67,11 +67,22 @@ const projection = {
     { id: "r1", evidence: e1, kind: "supports", hypothesis: h1, rationale: r1, current: true, status: "current" },
     { id: "r2", evidence: e2, kind: "contradicts", hypothesis: h1, rationale: r2, current: true, status: "current" }],
   "investigation.causal.causes.empty": true, "investigation.causal.causes": [],
+  // Report.fs
+  "screen.investigation.report": true,
+  "investigation.report.loaded": true, "investigation.report.missing": false, "investigation.report.notLoaded": "",
+  "investigation.report.title": "Checkout failures", "investigation.report.id": "00000000-0000-4000-8000-000000000001",
+  "investigation.report.state": "active", "investigation.report.version": "9", "investigation.report.asOf": "2026-11-06T12:09:00Z",
+  "investigation.report.sections": [
+    { id: "Problem", heading: "Problem", empty: false, body: "Checkout failures\nCheckout payments fail since 09:00\nState: active", sources: 1 },
+    { id: "Conclusions", heading: "Conclusions", empty: true, body: "", sources: 0 }],
+  "investigation.report.uncertainties.empty": false,
+  "investigation.report.uncertainties": [{ id: "0", text: "Cause not confirmed: Checkout payments fail" }],
 };
 
 const page = (state) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ui-3 sections</title>
-<link rel="stylesheet" href="/node_modules/@echelon-foundry/design-system/dist/all.css"></head>
-<body><main>${fragments}</main>
+<link rel="stylesheet" href="/node_modules/@echelon-foundry/design-system/dist/all.css">
+<link rel="stylesheet" href="/web/screens/workspace-overview.css"><link rel="stylesheet" href="/web/screens/workspace-report.css"></head>
+<body class="causa"><main class="causa-main">${fragments}</main>
 <script type="module">
 import { BrowserKernel } from "/node_modules/@echelon-foundry/limen/dist/index.js";
 let view = ${JSON.stringify(state)};
@@ -103,7 +114,7 @@ test("renders the projection", async ({ page: p }) => {
   expect(await p.evaluate(() => window.__errors)).toEqual([]);
 
   // Overview: problem statement, state, observation, conclusion from history; the observation form by catalog names.
-  await expect(p.getByText("Checkout payments fail since 09:00")).toBeVisible();
+  await expect(p.getByText("Checkout payments fail since 09:00", { exact: true })).toBeVisible();
   await expect(p.getByText("Error rate rose to 12% at 09:02").first()).toBeVisible();
   await expect(p.getByText("The expired certificate is the leading explanation")).toBeVisible();
   await expect(p.getByLabel("Observation text", { exact: true })).toBeVisible();
@@ -156,6 +167,16 @@ test("renders the projection", async ({ page: p }) => {
   // Causal Analysis and Timeline: J2-08 content.
   await expect(p.getByRole("list", { name: "Evidence and hypothesis relationships" }).getByText(r2)).toBeVisible();
   await expect(p.getByRole("list", { name: "Investigation events" }).getByText(/Observation recorded: Error rate/)).toBeVisible();
+  // Report (UI-009, J2-10): an article named as a report holding the title, with a print presentation.
+  const report = p.getByRole("article", { name: /report/i });
+  await expect(report).toContainText("Checkout failures");
+  await expect(report).toContainText("Cause not confirmed: Checkout payments fail");
+  await expect(report.getByText("Use your browser's print command", { exact: false })).toBeVisible();
+  await p.emulateMedia({ media: "print" });
+  await expect(report.getByRole("heading", { name: /Report: Checkout failures/ })).toBeVisible();
+  await expect(report.getByText("Use your browser's print command", { exact: false })).toBeHidden();
+  await p.emulateMedia({ media: "screen" });
+
   expect(errors).toEqual([]);
   expect(await p.evaluate(() => window.__errors)).toEqual([]);
 });

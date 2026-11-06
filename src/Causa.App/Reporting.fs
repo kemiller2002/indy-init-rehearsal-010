@@ -351,6 +351,26 @@ module Report =
             |> Map.toList
             |> List.map snd
             |> List.map (fun c -> $"{text c.Value.Statement} ({Words.conclusionStrength c.Value.Strength})")
+        let findings =
+            s.Findings
+            |> Map.toList
+            |> List.map snd
+            |> List.sortBy (fun f -> AggregateVersion.value f.Provenance.AtVersion)
+            |> List.map (fun f ->
+                let reading = f.Value.Interpretation |> Option.map (fun t -> $" Interpretation: {text t}") |> Option.defaultValue ""
+                $"{text f.Value.OriginalResult}.{reading}")
+        let correctiveActions =
+            s.CorrectiveActions
+            |> Map.toList
+            |> List.map snd
+            |> List.map (fun c ->
+                $"{text c.CorrectiveAction.Description} ({WireEnum.toWire Enums.correctiveActionState c.State |> Words.ofWire})")
+        let verifications =
+            s.Verifications
+            |> Map.toList
+            |> List.map snd
+            |> List.map (fun v -> $"Verification {WireEnum.toWire Enums.verificationOutcome v.Value.Outcome}")
+        let chronology = Analysis.timeline p |> List.map (fun t -> $"{Words.instant t.OccurredAt} (version {t.Version}): {t.Summary}")
         let section heading paragraphs provenance = { Heading = heading; Paragraphs = paragraphs; Provenance = provenance }
         let uncertainties =
             [ for KeyValue(_, u) in s.Unknowns do
@@ -374,7 +394,14 @@ module Report =
               section "Evidence" evidence (eventsWhere p (function EvidenceAdmitted _ | EvidenceSuperseded _ | EvidenceVerificationAssessed _ -> true | _ -> false))
               section "Evidence assessments" assessments (eventsWhere p (function EvidenceRelationshipRecorded _ -> true | _ -> false))
               section "Causes" causes (eventsWhere p (function CausalAssertionRecorded _ | CauseConfirmed _ | ConfirmedCauseReopened _ -> true | _ -> false))
-              section "Conclusions" conclusions (eventsWhere p (function ConclusionRecorded _ -> true | _ -> false)) ]
+              section "Findings" findings (eventsWhere p (function FindingRecorded _ -> true | _ -> false))
+              section "Conclusions" conclusions (eventsWhere p (function ConclusionRecorded _ -> true | _ -> false))
+              section "Corrective actions" (correctiveActions @ verifications)
+                  (eventsWhere p (fun c ->
+                      match c with
+                      | CorrectiveActionRecorded _ | VerificationCriterionRecorded _ | VerificationRecorded _ -> true
+                      | c -> (Events.correctiveActionChange c).IsSome))
+              section "Chronology" chronology (p.Timeline |> List.map (fun e -> e.EventId)) ]
           UnresolvedUncertainties = uncertainties }
 
     /// The IF41-REPORT value.
