@@ -19,7 +19,7 @@ module Hypotheses =
     /// One current assessment as the hypothesis shows it: kind, evidence and rationale.
     let linkLine (l: LinkCard) = $"{Words.kind l.Kind}: {l.EvidenceLabel} — {l.Rationale}"
 
-    let rows (analysis: AnalysisProjection) : (string * ViewPrimitive) list list =
+    let rows (ctx: SectionContext) (analysis: AnalysisProjection) : (string * ViewPrimitive) list list =
         [ for h in analysis.Hypotheses ->
               [ Cell.text "id" h.Id
                 Cell.text "statement" h.Statement
@@ -28,18 +28,19 @@ module Hypotheses =
                 Cell.text "explanation" (SectionBindings.optional h.Explanation)
                 Cell.flag "hasLinks" (not h.Links.IsEmpty)
                 Cell.int "linkCount" h.Links.Length
-                Cell.text "links" (h.Links |> List.map linkLine |> String.concat "\n") ] ]
+                Cell.text "links" (h.Links |> List.map linkLine |> String.concat "\n") ]
+              @ SectionBindings.recordCells ctx { Kind = HypothesisEntity; Id = h.Id } ]
 
-    let keys (draft: string -> string) (investigation: Investigation option) : (string * ViewValue) list =
-        let analysis = investigation |> Option.map (Analysis.project Analysis.actor)
-        let items = analysis |> Option.map rows |> Option.defaultValue []
-        [ Bind.flag (p + "loaded") investigation.IsSome
-          Bind.flag (p + "missing") investigation.IsNone
-          Bind.text (p + "notLoaded") SectionBindings.notLoaded
-          Bind.flag (p + "empty") items.IsEmpty
-          Bind.items (p + "items") items
-          SectionBindings.draft draft statement
-          SectionBindings.draft draft explanation ]
+    let render (draft: string -> string) (ctx: SectionContext) : (string * ViewValue) list =
+        let analysis = ctx.Investigation |> Option.map (Analysis.project Analysis.actor)
+        let items = analysis |> Option.map (rows ctx) |> Option.defaultValue []
+        SectionBindings.status p ctx
+        @ [ Bind.flag (p + "empty") items.IsEmpty
+            Bind.items (p + "items") items
+            SectionBindings.draft draft statement
+            SectionBindings.draft draft explanation ]
         @ SectionBindings.action record (analysis |> Option.map (fun a -> Analysis.action a "INV-009") |> Option.defaultValue NotOffered)
 
-    let view (state: AppState) : (string * ViewValue) list = keys (Drafts.get state) (Analysis.loaded state)
+    let keys (draft: string -> string) (investigation: Investigation option) = render draft (SectionContext.ofInvestigation investigation)
+
+    let view (state: AppState) : (string * ViewValue) list = render (Drafts.get state) (SectionContext.ofState state)

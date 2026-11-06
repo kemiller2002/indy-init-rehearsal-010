@@ -26,8 +26,14 @@ module Evidence =
     /// One current assessment as the evidence shows it: kind, hypothesis and rationale.
     let linkLine (l: LinkCard) = $"{Words.kind l.Kind}: {l.HypothesisStatement} — {l.Rationale}"
 
-    let rows (analysis: AnalysisProjection) : (string * ViewPrimitive) list list =
+    /// UI-005: provenance as the domain recorded it (who, when, at which version) and the evidence's verification.
+    let private provenance (s: Investigation) (id: string) =
+        s.Evidence
+        |> Map.tryPick (fun k e -> if Ids.text (Ids.evidence k) = id then Some e else None)
+
+    let rows (ctx: SectionContext) (analysis: AnalysisProjection) : (string * ViewPrimitive) list list =
         [ for e in analysis.Evidence ->
+              let entry = ctx.Investigation |> Option.bind (fun s -> provenance s e.Id)
               [ Cell.text "id" e.Id
                 Cell.flag "hasLabel" e.Label.IsSome
                 Cell.text "label" (e.Label |> Option.defaultValue noLabel)
@@ -41,20 +47,27 @@ module Evidence =
                 Cell.text "capturedAt" (e.CapturedAt |> Option.map Words.instant |> SectionBindings.optional)
                 Cell.flag "hasLinks" (not e.Links.IsEmpty)
                 Cell.int "linkCount" e.Links.Length
-                Cell.text "links" (e.Links |> List.map linkLine |> String.concat "\n") ] ]
+                Cell.text "links" (e.Links |> List.map linkLine |> String.concat "\n")
+                Cell.text "capturedAtText" (e.CapturedAt |> Option.map Words.instant |> Option.defaultValue "Capture time not recorded")
+                Cell.text "recordedBy" (entry |> Option.map (fun x -> x.Provenance.Actor.ActorId.Value) |> Option.defaultValue "Not recorded")
+                Cell.text "recordedAt" (entry |> Option.map (fun x -> Words.instant x.Provenance.RecordedAt) |> Option.defaultValue "Not recorded")
+                Cell.text "recordedVersion" (entry |> Option.map (fun x -> string (AggregateVersion.value x.Provenance.AtVersion)) |> Option.defaultValue "")
+                Cell.text "verification" (entry |> Option.map (fun x -> Words.verification x.Verification) |> Option.defaultValue "Not recorded")
+                Cell.flag "superseded" (entry |> Option.exists (fun x -> x.SupersededBy.IsSome)) ]
+              @ SectionBindings.recordCells ctx { Kind = EvidenceEntity; Id = e.Id } ]
 
-    let keys (draft: string -> string) (investigation: Investigation option) : (string * ViewValue) list =
-        let analysis = investigation |> Option.map (Analysis.project Analysis.actor)
-        let items = analysis |> Option.map rows |> Option.defaultValue []
-        [ Bind.flag (p + "loaded") investigation.IsSome
-          Bind.flag (p + "missing") investigation.IsNone
-          Bind.text (p + "notLoaded") SectionBindings.notLoaded
-          Bind.flag (p + "empty") items.IsEmpty
-          Bind.items (p + "items") items
-          SectionBindings.draft draft label
-          SectionBindings.draft draft source
-          SectionBindings.draft draft url
-          SectionBindings.draft draft content ]
+    let render (draft: string -> string) (ctx: SectionContext) : (string * ViewValue) list =
+        let analysis = ctx.Investigation |> Option.map (Analysis.project Analysis.actor)
+        let items = analysis |> Option.map (rows ctx) |> Option.defaultValue []
+        SectionBindings.status p ctx
+        @ [ Bind.flag (p + "empty") items.IsEmpty
+            Bind.items (p + "items") items
+            SectionBindings.draft draft label
+            SectionBindings.draft draft source
+            SectionBindings.draft draft url
+            SectionBindings.draft draft content ]
         @ SectionBindings.action record (analysis |> Option.map (fun a -> Analysis.action a "UIA-RECORD-EVIDENCE") |> Option.defaultValue NotOffered)
 
-    let view (state: AppState) : (string * ViewValue) list = keys (Drafts.get state) (Analysis.loaded state)
+    let keys (draft: string -> string) (investigation: Investigation option) = render draft (SectionContext.ofInvestigation investigation)
+
+    let view (state: AppState) : (string * ViewValue) list = render (Drafts.get state) (SectionContext.ofState state)

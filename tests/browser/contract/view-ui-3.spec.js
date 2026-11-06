@@ -11,6 +11,10 @@ const fragments = ["workspace-overview", "workspace-causal-analysis", "workspace
   .map((f) => readFileSync(new URL(`../../../web/screens/${f}.html`, import.meta.url), "utf8"))
   .join("\n");
 
+// The fragments' own CSS, read from this checkout (the served root may belong to another build).
+const styles = ["workspace-overview", "workspace-report"].map((f) => readFileSync(new URL(`../../../web/screens/${f}.css`, import.meta.url), "utf8")).join("\n");
+const root = new URL("../../../", import.meta.url);
+
 const e1 = "handshake_failure entries in the gateway log", e2 = "database CPU at 40%";
 const h1 = "The TLS certificate expired", h2 = "The database is saturated";
 const r1 = "handshake failures match the error window", r2 = "the database was idle";
@@ -19,28 +23,45 @@ const action = (key, offered, disabled = false, reason = "") => ({ [`${key}.offe
 const projection = {
   "screen.investigation.overview": true, "screen.investigation.causal-analysis": true, "screen.investigation.evidence": true,
   "screen.investigation.hypotheses": true, "screen.investigation.timeline": true,
+  // Shared section status (SectionBindings.status) and the inspector (Inspector.fs).
+  "investigation.overview.opening": false, "investigation.overview.preserved": "", "investigation.overview.next": "", "investigation.overview.version": "Version 9", "investigation.hypotheses.opening": false, "investigation.hypotheses.preserved": "", "investigation.hypotheses.next": "", "investigation.hypotheses.version": "Version 9", "investigation.evidence.opening": false, "investigation.evidence.preserved": "", "investigation.evidence.next": "", "investigation.evidence.version": "Version 9", "investigation.timeline.opening": false, "investigation.timeline.preserved": "", "investigation.timeline.next": "", "investigation.timeline.version": "Version 9", "investigation.causal.opening": false, "investigation.causal.preserved": "", "investigation.causal.next": "", "investigation.causal.version": "Version 9",
+  "investigation.inspector.open": false, "investigation.inspector.absent": false, "investigation.inspector.absentText": "",
+  "investigation.inspector.kind": "", "investigation.inspector.title": "", "investigation.inspector.body": "", "investigation.inspector.provenance": "",
+  "investigation.inspector.close": "#/", "investigation.inspector.related.empty": true, "investigation.inspector.related": [],
+  // Overview summary (UI-025, UI-032).
+  "investigation.overview.updated": "2026-11-06T12:09:00Z", "investigation.overview.supportingCount": "1", "investigation.overview.contradictingCount": "1",
+  "investigation.overview.contradictionCount": "0", "investigation.overview.steps.empty": false,
+  "investigation.overview.steps": [{ id: "0", text: `No evidence has been assessed against the hypothesis: ${h2}`, href: "#/x/hypotheses?record=h2", selected: false }],
+  "investigation.overview.sections": [{ id: "timeline", label: "Timeline", href: "#/x/timeline" }],
+  "investigation.overview.findings.empty": true, "investigation.overview.findings": [],
+  "investigation.overview.questions.empty": true, "investigation.overview.questions": [],
+  "investigation.overview.actions.empty": false, "investigation.overview.actions": [{ id: "0", text: "Record a hypothesis" }],
+  // Timeline filter (UI-003).
+  "investigation.timeline.count": "2 of 2 events", "investigation.timeline.category": "", "investigation.timeline.allChosen": true,
+  "investigation.timeline.categories": [{ id: "assessment", label: "Assessments", selected: false }],
+
   // Overview.fs
   "investigation.overview.loaded": true, "investigation.overview.missing": false, "investigation.overview.notLoaded": "This investigation's content is not loaded yet.",
   "investigation.overview.title": "Checkout failures", "investigation.overview.problem": "Checkout payments fail since 09:00",
   "investigation.overview.created": "2026-11-06T12:01:00Z", "investigation.overview.state": "active", "investigation.overview.version": "9",
   "investigation.overview.hypothesisCount": "2", "investigation.overview.evidenceCount": "2", "investigation.overview.observations.empty": false,
-  "investigation.overview.observations": [{ id: "o3", text: "Error rate rose to 12% at 09:02", hasSource: false, source: "", hasObservedAt: false, observedAt: "" }],
+  "investigation.overview.observations": [{ id: "o3", text: "Error rate rose to 12% at 09:02", hasSource: false, source: "", hasObservedAt: false, observedAt: "", href: "#/x/overview?record=o3", selected: false }],
   "investigation.observation.text": "", "investigation.observation.source": "", ...action("investigation.observation.record", true),
   // Conclusions.fs
   "investigation.conclusions.empty": false,
-  "investigation.conclusions.items": [{ id: "c1", statement: "The expired certificate is the leading explanation", hasResidual: true, residual: "The renewal log is incomplete", version: "11" }],
+  "investigation.conclusions.items": [{ id: "c1", statement: "The expired certificate is the leading explanation", hasResidual: true, residual: "The renewal log is incomplete", version: "11", explanation: "No causal assertion is linked to this conclusion, so no supporting or conflicting evidence can be shown." }],
   "investigation.conclusion.statement": "", ...action("investigation.conclusion.record", false, true),
   // Hypotheses.fs
   "investigation.hypotheses.loaded": true, "investigation.hypotheses.missing": false, "investigation.hypotheses.notLoaded": "", "investigation.hypotheses.empty": false,
   "investigation.hypotheses.items": [
-    { id: "h1", statement: h1, state: "proposed", hasExplanation: true, explanation: "Handshakes fail", hasLinks: true, linkCount: 2, links: `supports: ${e1} — ${r1}\ncontradicts: ${e2} — ${r2}` },
-    { id: "h2", statement: h2, state: "proposed", hasExplanation: false, explanation: "", hasLinks: false, linkCount: 0, links: "" }],
+    { id: "h1", statement: h1, state: "proposed", hasExplanation: true, explanation: "Handshakes fail", hasLinks: true, linkCount: 2, links: `supports: ${e1} — ${r1}\ncontradicts: ${e2} — ${r2}`, href: "#/x/hypotheses?record=h1", selected: false },
+    { id: "h2", statement: h2, state: "proposed", hasExplanation: false, explanation: "", hasLinks: false, linkCount: 0, links: "", href: "#/x/hypotheses?record=h2", selected: false }],
   "investigation.hypothesis.statement": "", "investigation.hypothesis.explanation": "", ...action("investigation.hypothesis.record", true),
   // Evidence.fs
   "investigation.evidence.loaded": true, "investigation.evidence.missing": false, "investigation.evidence.notLoaded": "", "investigation.evidence.empty": false,
   "investigation.evidence.items": [
-    { id: "e1", hasLabel: false, label: "No label recorded", content: e1, hasSource: true, source: "https://logs.example.org/gateway/0900", hasUrl: true, url: "https://logs.example.org/gateway/0900", category: "log", hasCapturedAt: false, capturedAt: "", hasLinks: true, linkCount: 1, links: `supports: ${h1} — ${r1}` },
-    { id: "e2", hasLabel: false, label: "No label recorded", content: e2, hasSource: true, source: "metrics dashboard", hasUrl: false, url: "", category: "log", hasCapturedAt: false, capturedAt: "", hasLinks: true, linkCount: 1, links: `contradicts: ${h1} — ${r2}` }],
+    { id: "e1", hasLabel: false, label: "No label recorded", content: e1, hasSource: true, source: "https://logs.example.org/gateway/0900", hasUrl: true, url: "https://logs.example.org/gateway/0900", category: "log", hasCapturedAt: false, capturedAt: "", hasLinks: true, linkCount: 1, links: `supports: ${h1} — ${r1}`, capturedAtText: "Capture time not recorded", recordedBy: "investigator", recordedAt: "2026-11-06T12:06:00Z", recordedVersion: "6", verification: "unverified", superseded: false, href: "#/x/evidence?record=e1", selected: false },
+    { id: "e2", hasLabel: false, label: "No label recorded", content: e2, hasSource: true, source: "metrics dashboard", hasUrl: false, url: "", category: "log", hasCapturedAt: false, capturedAt: "", hasLinks: true, linkCount: 1, links: `contradicts: ${h1} — ${r2}`, capturedAtText: "Capture time not recorded", recordedBy: "investigator", recordedAt: "2026-11-06T12:06:00Z", recordedVersion: "6", verification: "unverified", superseded: false, href: "#/x/evidence?record=e2", selected: false }],
   "investigation.evidence.label": "", "investigation.evidence.source": "", "investigation.evidence.url": "", "investigation.evidence.content": "",
   ...action("investigation.evidence.record", true),
   // Links.fs
@@ -58,14 +79,14 @@ const projection = {
   // Timeline.fs
   "investigation.timeline.loaded": true, "investigation.timeline.missing": false, "investigation.timeline.notLoaded": "", "investigation.timeline.empty": false,
   "investigation.timeline.items": [
-    { id: "3", version: "3", eventType: "ObservationRecorded", at: "2026-11-06T12:03:00Z", actor: "investigator", summary: "Observation recorded: Error rate rose to 12% at 09:02" },
-    { id: "8", version: "8", eventType: "EvidenceRelationshipRecorded", at: "2026-11-06T12:08:00Z", actor: "investigator", summary: `Assessment recorded as supports: ${e1} supports ${h1}. Rationale: ${r1}` }],
+    { id: "3", version: "3", eventType: "ObservationRecorded", at: "2026-11-06T12:03:00Z", actor: "investigator", summary: "Observation recorded: Error rate rose to 12% at 09:02", category: "Observations", hasLink: true, linkLabel: "Open the observation", href: "#/x/overview?record=o3", selected: false },
+    { id: "8", version: "8", eventType: "EvidenceRelationshipRecorded", at: "2026-11-06T12:08:00Z", actor: "investigator", summary: `Assessment recorded as supports: ${e1} supports ${h1}. Rationale: ${r1}`, category: "Assessments", hasLink: true, linkLabel: "Open the assessment", href: "#/x/causal-analysis?record=r1", selected: false }],
   // Graph.fs
   "investigation.causal.loaded": true, "investigation.causal.missing": false, "investigation.causal.notLoaded": "",
   "investigation.causal.relationships.empty": false,
   "investigation.causal.relationships": [
-    { id: "r1", evidence: e1, kind: "supports", hypothesis: h1, rationale: r1, current: true, status: "current" },
-    { id: "r2", evidence: e2, kind: "contradicts", hypothesis: h1, rationale: r2, current: true, status: "current" }],
+    { id: "r1", evidence: e1, evidenceHref: "#/x/evidence?record=e1", kind: "supports", hypothesis: h1, hypothesisHref: "#/x/hypotheses?record=h1", rationale: r1, current: true, status: "current", href: "#/x/causal-analysis?record=r1", selected: false },
+    { id: "r2", evidence: e2, evidenceHref: "#/x/evidence?record=e2", kind: "contradicts", hypothesis: h1, hypothesisHref: "#/x/hypotheses?record=h1", rationale: r2, current: true, status: "current", href: "#/x/causal-analysis?record=r2", selected: false }],
   "investigation.causal.causes.empty": true, "investigation.causal.causes": [],
   // Report.fs
   "screen.investigation.report": true,
@@ -81,7 +102,7 @@ const projection = {
 
 const page = (state) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ui-3 sections</title>
 <link rel="stylesheet" href="/node_modules/@echelon-foundry/design-system/dist/all.css">
-<link rel="stylesheet" href="/web/screens/workspace-overview.css"><link rel="stylesheet" href="/web/screens/workspace-report.css"></head>
+<style>${styles}</style></head>
 <body class="causa"><main class="causa-main">${fragments}</main>
 <script type="module">
 import { BrowserKernel } from "/node_modules/@echelon-foundry/limen/dist/index.js";
@@ -108,6 +129,8 @@ await kernel.start(); window.__status = kernel.status;
 test("renders the projection", async ({ page: p }) => {
   const errors = [];
   p.on("pageerror", (e) => errors.push(e.message));
+  // Limen and Forma from this checkout's node_modules.
+  await p.route("**/node_modules/**", (route) => route.fulfill({ path: new URL(new URL(route.request().url()).pathname.slice(1), root).pathname }));
   await p.route("**/__ui3__.html", (route) => route.fulfill({ contentType: "text/html", body: page(projection) }));
   await p.goto("/__ui3__.html");
   await expect.poll(() => p.evaluate(() => window.__status)).toBe("running");
@@ -140,7 +163,9 @@ test("renders the projection", async ({ page: p }) => {
   await expect(evidenceCard.getByText(h1).first()).toBeVisible();
   await expect(evidenceCard.getByText(/supports/).first()).toBeVisible();
   await expect(evidenceCard.getByRole("link", { name: "https://logs.example.org/gateway/0900" })).toHaveAttribute("href", "https://logs.example.org/gateway/0900");
-  await expect(p.getByRole("article").filter({ hasText: e2 }).filter({ hasText: "Category" }).getByRole("link")).toHaveCount(0);
+  // The unsafe/non-URL source is text, never a link; the card's only link is its Details link (UI-033).
+  await expect(p.getByRole("article").filter({ hasText: e2 }).filter({ hasText: "Category" }).getByRole("link")).toHaveText(["Details"]);
+  await expect(p.getByRole("article").filter({ hasText: e2 }).filter({ hasText: "Category" })).toContainText("Recorded by investigator at 2026-11-06T12:06:00Z");
 
   // Links: J2-04 controls by role and name; choosing sends the engine the chosen values.
   await p.getByRole("combobox", { name: /evidence/i }).first().selectOption({ label: e2 });

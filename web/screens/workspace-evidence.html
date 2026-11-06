@@ -5,6 +5,24 @@
     <h2 class="ef-section-heading" id="causa-evidence-heading">Evidence</h2>
     <template data-if="investigation.evidence.loaded">
       <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.evidence.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-evidence" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-evidence" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
         <template data-if="investigation.evidence.empty">
           <p class="causa-analysis__empty">No evidence recorded yet.</p>
         </template>
@@ -16,13 +34,15 @@
                 <p class="causa-record__text" data-requirement-id="INV-012" data-text="content"></p>
                 <template data-if="hasSource"><p class="causa-record__meta" data-requirement-id="INV-028">Source: <span data-text="source"></span></p></template>
                 <template data-if="hasUrl"><p class="causa-record__meta" data-requirement-id="INV-029">Link: <a rel="noopener noreferrer" target="_blank" data-bind-href="url" data-text="url"></a></p></template>
-                <p class="causa-record__meta">Category: <span data-text="category"></span></p>
+                <p class="causa-record__meta">Category: <span data-text="category"></span> · Verification: <span data-text="verification"></span></p>
+                <p class="causa-record__meta" data-requirement-id="UI-005">Recorded by <span data-text="recordedBy"></span> at <span data-text="recordedAt"></span> (version <span data-text="recordedVersion"></span>) · <span data-text="capturedAtText"></span></p>
                 <template data-if="hasLinks">
                   <div class="causa-record__links" data-requirement-id="INV-044">
                     <p class="causa-record__meta">Assessed against</p>
                     <p class="causa-record__lines" data-text="links"></p>
                   </div>
                 </template>
+                <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a>
               </article>
             </li>
           </template>
@@ -116,7 +136,11 @@
       </div>
     </template>
     <template data-if="investigation.evidence.missing">
-      <p class="causa-analysis__empty" data-text="investigation.evidence.notLoaded"></p>
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.evidence.notLoaded"></p>
+        <p data-text="investigation.evidence.preserved"></p>
+        <p data-text="investigation.evidence.next"></p>
+      </div>
     </template>
   </section>
 </template>

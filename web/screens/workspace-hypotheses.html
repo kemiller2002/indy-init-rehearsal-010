@@ -4,6 +4,24 @@
     <h2 class="ef-section-heading" id="causa-hypotheses-heading">Hypotheses</h2>
     <template data-if="investigation.hypotheses.loaded">
       <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.hypotheses.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-hypotheses" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-hypotheses" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
         <template data-if="investigation.hypotheses.empty">
           <p class="causa-analysis__empty">No hypotheses recorded yet.</p>
         </template>
@@ -20,6 +38,7 @@
                     <p class="causa-record__lines" data-text="links"></p>
                   </div>
                 </template>
+                <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a>
               </article>
             </li>
           </template>
@@ -43,7 +62,11 @@
       </div>
     </template>
     <template data-if="investigation.hypotheses.missing">
-      <p class="causa-analysis__empty" data-text="investigation.hypotheses.notLoaded"></p>
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.hypotheses.notLoaded"></p>
+        <p data-text="investigation.hypotheses.preserved"></p>
+        <p data-text="investigation.hypotheses.next"></p>
+      </div>
     </template>
   </section>
 </template>

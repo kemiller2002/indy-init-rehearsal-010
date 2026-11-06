@@ -4,16 +4,49 @@
     <h2 class="ef-section-heading" id="causa-timeline-heading">Timeline</h2>
     <template data-if="investigation.timeline.loaded">
       <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.timeline.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-timeline" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-timeline" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
         <template data-if="investigation.timeline.empty">
           <p class="causa-analysis__empty">No events recorded yet.</p>
         </template>
+        <label class="ef-select-field causa-timeline__filter">
+          <span class="ef-field__label">Show events</span>
+          <span class="ef-select">
+            <select class="ef-select__input" data-event="investigation.timeline.category">
+              <option value="" data-bind-selected="investigation.timeline.allChosen">All events</option>
+              <template data-each="investigation.timeline.categories" data-key="id">
+                <option data-bind-value="id" data-bind-selected="selected" data-text="label"></option>
+              </template>
+            </select>
+            <span class="ef-select__indicator" aria-hidden="true"></span>
+          </span>
+        </label>
+        <p class="causa-record__meta" role="status" data-text="investigation.timeline.count"></p>
+        <p class="causa-record__meta">Events are listed in the order they were recorded (by version). Times are the times each event occurred.</p>
         <ol class="ef-timeline" aria-label="Investigation events">
           <template data-each="investigation.timeline.items" data-key="id">
             <li class="ef-timeline__item">
               <div class="ef-timeline__marker" aria-hidden="true"></div>
               <div class="ef-timeline__content">
-                <div class="ef-timeline__meta"><time data-bind-datetime="at" data-text="at"></time> <span data-text="actor"></span> <span>version <span data-text="version"></span></span></div>
+                <div class="ef-timeline__meta"><time data-bind-datetime="at" data-text="at"></time> · <span data-text="eventType"></span> · <span data-text="category"></span> · <span data-text="actor"></span> · <span>version <span data-text="version"></span></span></div>
                 <p data-text="summary"></p>
+                <template data-if="hasLink"><a data-bind-href="href" data-text="linkLabel"></a></template>
               </div>
             </li>
           </template>
@@ -21,7 +54,11 @@
       </div>
     </template>
     <template data-if="investigation.timeline.missing">
-      <p class="causa-analysis__empty" data-text="investigation.timeline.notLoaded"></p>
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.timeline.notLoaded"></p>
+        <p data-text="investigation.timeline.preserved"></p>
+        <p data-text="investigation.timeline.next"></p>
+      </div>
     </template>
   </section>
 </template>

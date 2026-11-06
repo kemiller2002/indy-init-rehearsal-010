@@ -84,6 +84,7 @@ module WorkspaceViews =
     let private allViews (draft: string -> string) (s: Investigation option) =
         Overview.keys draft s @ Hypotheses.keys draft s @ Evidence.keys draft s @ Links.keys draft s
         @ Conclusions.keys draft s @ Timeline.keys s @ Graph.keys s @ Causa.App.Views.Report.keys s
+        @ Inspector.keys s (Some(Ids.text (S.g 30))) EvidenceSection
 
     [<Fact>]
     let ``INV-007 INV-008 INV-018 overview shows creation time, original problem statement and state`` () =
@@ -210,6 +211,96 @@ module WorkspaceViews =
         Assert.True(flag (Causa.App.Views.Report.keys None) "investigation.report.missing")
 
     [<Fact>]
+    let ``UI-025 UI-032 the overview answers from the domain and links each next step to its record`` () =
+        let s = S.analysed ()
+        let keys = Overview.keys noDrafts (Some s)
+        // h2 has no assessment: the one domain-derived next step, linked to the hypothesis.
+        let steps = rows keys "investigation.overview.steps"
+        Assert.Equal<string list>([ $"No evidence has been assessed against the hypothesis: {S.h2Statement}" ], steps |> List.map (fun r -> cell r "text"))
+        Assert.EndsWith($"/hypotheses?record={Ids.text (S.g 21)}", cell steps.[0] "href")
+        Assert.Equal("1", text keys "investigation.overview.supportingCount")
+        Assert.Equal("1", text keys "investigation.overview.contradictingCount")
+        Assert.Equal("0", text keys "investigation.overview.contradictionCount")
+        // Nothing is supported or confirmed yet: no finding is invented.
+        Assert.True(flag keys "investigation.overview.findings.empty")
+        let actions = rows keys "investigation.overview.actions" |> List.map (fun r -> cell r "text")
+        Assert.Contains("Record a hypothesis", actions)
+        Assert.Contains("Link evidence to a hypothesis", actions)
+        Assert.Equal<string list>([ "causal-analysis"; "evidence"; "hypotheses"; "timeline" ], rows keys "investigation.overview.sections" |> List.map (fun r -> cell r "id"))
+        // Unknown is never zero: without an investigation the counts are empty, not "0".
+        Assert.Equal("", text (Overview.keys noDrafts None) "investigation.overview.contradictionCount")
+
+    [<Fact>]
+    let ``UI-005 evidence shows provenance and verification as recorded`` () =
+        let items = rows (Evidence.keys noDrafts (Some(S.analysed ()))) "investigation.evidence.items"
+        Assert.Equal("investigator", cell items.[0] "recordedBy")
+        Assert.Equal("2026-11-06T12:06:00Z", cell items.[0] "recordedAt")
+        Assert.Equal("6", cell items.[0] "recordedVersion")
+        Assert.Equal("unverified", cell items.[0] "verification")
+        Assert.Equal("Capture time not recorded", cell items.[0] "capturedAtText")
+
+    [<Fact>]
+    let ``UI-033 UI-034 the inspector shows the selected record and links to its related records`` () =
+        let s = Some(S.analysed ())
+        let keys = Inspector.keys s (Some(Ids.text (S.g 30))) EvidenceSection
+        Assert.True(flag keys "investigation.inspector.open")
+        Assert.Equal("Evidence", text keys "investigation.inspector.kind")
+        Assert.Equal(S.e1Content, text keys "investigation.inspector.title")
+        Assert.Contains($"Source: {S.e1Source}", text keys "investigation.inspector.body")
+        let related = rows keys "investigation.inspector.related"
+        Assert.Equal<string list>([ $"supports: {S.h1Statement}" ], related |> List.map (fun r -> cell r "label"))
+        Assert.EndsWith($"/hypotheses?record={Ids.text (S.g 20)}", cell related.[0] "href")
+        Assert.EndsWith("/evidence", text keys "investigation.inspector.close")
+        // An id this investigation does not hold is stated as absent, never guessed.
+        let absent = Inspector.keys s (Some(Ids.text (S.g 999))) EvidenceSection
+        Assert.False(flag absent "investigation.inspector.open")
+        Assert.True(flag absent "investigation.inspector.absent")
+        // The hypothesis shows both evidence items; an assessment links to both ends.
+        let h = Inspector.keys s (Some(Ids.text (S.g 20))) HypothesesSection
+        Assert.Equal(2, (rows h "investigation.inspector.related").Length)
+        let a = Inspector.keys s (Some(Ids.text (S.g 41))) CausalAnalysis
+        Assert.Equal("Assessment", text a "investigation.inspector.kind")
+        Assert.Contains($"Rationale: {S.r2}", text a "investigation.inspector.body")
+
+    [<Fact>]
+    let ``UI-003 the timeline is in version order, filters by category and links events to their records`` () =
+        let s = Some(S.reassessed ())
+        let all = rows (Timeline.keys s) "investigation.timeline.items"
+        Assert.Equal<string list>([ for v in 1 .. all.Length -> string v ], all |> List.map (fun r -> cell r "version"))
+        Assert.Equal("investigation started", cell all.[0] "eventType")
+        Assert.Equal("investigator", cell all.[0] "actor")
+        let filtered = Timeline.render (draftsOf (Map [ Timeline.category, "assessment" ])) (SectionContext.ofInvestigation s)
+        let assessments = rows filtered "investigation.timeline.items"
+        Assert.Equal(3, assessments.Length)
+        Assert.All(assessments, fun r -> Assert.Equal("Assessments", cell r "category"))
+        Assert.Equal($"3 of {all.Length} events", text filtered "investigation.timeline.count")
+        Assert.EndsWith($"/causal-analysis?record={Ids.text (S.g 40)}", cell assessments.[0] "href")
+
+    [<Fact>]
+    let ``UI-010 a section that has no verified investigation says what happened, what was kept and what to do`` () =
+        let copy, opening = SectionContext.copyOf (Some(LoadFailed(Unverifiable [])))
+        Assert.False(opening)
+        Assert.Equal("This investigation's stored history could not be verified, so none of it is shown.", copy.What)
+        Assert.Contains("kept only in this tab", copy.Preserved)
+        Assert.False(copy.Retry)
+        let ctx = { SectionContext.ofInvestigation None with Unavailable = copy }
+        let keys = Evidence.render noDrafts ctx
+        Assert.True(flag keys "investigation.evidence.missing")
+        Assert.Equal(copy.What, text keys "investigation.evidence.notLoaded")
+        Assert.Empty(rows keys "investigation.evidence.items")
+        Assert.True(snd (SectionContext.copyOf (Some(Loading(RequestId 1L, LoadHead)))))
+        Assert.Equal(SectionContext.notOpen, fst (SectionContext.copyOf None))
+
+    [<Fact>]
+    let ``UI-013 every section states the same investigation version`` () =
+        let s = Some(S.reassessed ())
+        let version = $"Version {AggregateVersion.value s.Value.Version}"
+        for k in [ Overview.keys noDrafts s, "overview"; Evidence.keys noDrafts s, "evidence"; Hypotheses.keys noDrafts s, "hypotheses"; Timeline.keys s, "timeline"; Graph.keys s, "causal" ] do
+            Assert.Equal(version, text (fst k) $"investigation.{snd k}.version")
+        Assert.Equal(Some "abc", SectionContext.selectedOf (Route "#/investigation/w/1/evidence?record=abc"))
+        Assert.Equal(None, SectionContext.selectedOf (Route "#/investigation/w/1/evidence"))
+
+    [<Fact>]
     let ``INV-042 J2-08 every section shows this investigation's content`` () =
         let s = Some(S.analysed ())
         Assert.Equal(S.problem, text (Overview.keys noDrafts s) "investigation.overview.problem")
@@ -247,7 +338,16 @@ module WorkspaceViews =
         let withLoad = { state with Model = { state.Model with Loads = Map [ ref, Loaded verified ] } }
         Assert.Equal(None, Analysis.loaded state)
         Assert.Equal(Some s, Analysis.loaded withLoad)
-        Assert.Equal<(string * ViewValue) list>(Evidence.keys noDrafts (Some s), Evidence.view withLoad)
+        // The same content as the investigation alone; only the record links name the route's workspace.
+        let content (keys: (string * ViewValue) list) =
+            keys
+            |> List.map (fun (k, v) ->
+                match v with
+                | BindingValue.Items rs -> k, BindingValue.Items(rs |> List.map (Map.remove "href"))
+                | v -> k, v)
+        Assert.Equal<(string * ViewValue) list>(content (Evidence.keys noDrafts (Some s)), content (Evidence.view withLoad))
+        let firstHref = rows (Evidence.view withLoad) "investigation.evidence.items" |> List.head |> fun r -> cell r "href"
+        Assert.Equal($"#/investigation/{Uri.EscapeDataString workspace}/{Ids.text (S.g 1)}/evidence?record={Ids.text (S.g 30)}", firstHref)
         let other, _ = Update.init $"#/investigation/{Uri.EscapeDataString workspace}/{Ids.text (S.g 99)}/evidence"
         Assert.Equal(None, Analysis.loaded { other with Model = withLoad.Model })
 
