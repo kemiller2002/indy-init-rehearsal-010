@@ -75,3 +75,51 @@ module Identity =
               "VerificationCriterionRecorded"; "CorrectiveActionImplemented"; "VerificationRecorded"; "InvestigationResolved"
               "InvestigationReopened"; "ProposalRecorded"; "ProposalRejected"; "ExtensionAttached" ] do
             Assert.Contains(frozen, names)
+
+    let private fields (t: Type) =
+        Microsoft.FSharp.Reflection.FSharpType.GetRecordFields(t) |> Array.map (fun p -> p.Name, p.PropertyType) |> List.ofArray
+
+    let private cases (t: Type) =
+        Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(t) |> Array.map (fun c -> c.Name) |> List.ofArray
+
+    [<Fact>]
+    let ``The frozen IF41-DOMAIN shapes match the interface manifest`` () =
+        Assert.Equal("IF41-DOMAIN", InterfaceManifest.contract)
+        Assert.Equal("4.1.5", InterfaceManifest.version)
+        Assert.Equal<string list>([ "A"; "B"; "C" ], InterfaceManifest.boundaries |> List.map (fun b -> b.Id))
+        // Every named type exists in the domain assembly.
+        let asm = typeof<DomainKernel>.Assembly
+        for b in InterfaceManifest.boundaries do
+            for name in b.Types do
+                Assert.True(not (isNull (asm.GetType("Causa.Domain." + name))), $"boundary {b.Id}: type {name} is missing")
+        // The kernel record has exactly the manifest's operations, with the frozen signatures.
+        let operations = InterfaceManifest.boundaries |> List.collect (fun b -> b.Operations) |> List.map (fun o -> o.Name)
+        Assert.Equal<string list>([ "Decide"; "Evolve"; "Project"; "Replay" ], List.sort operations)
+        Assert.Equal<(string * Type) list>(
+            [ "Decide", typeof<PolicySet -> ActorContext -> Investigation option -> CommandEnvelope -> Decision>
+              "Evolve", typeof<Investigation option -> EventEnvelope -> Result<Investigation, ProjectionError>>
+              "Replay", typeof<EventEnvelope list -> Result<Investigation, ReplayError>>
+              "Project", typeof<Investigation -> InvestigationProjection> ],
+            fields typeof<DomainKernel>)
+        // The error variants are exactly the manifest's.
+        let errorsOf name = InterfaceManifest.boundaries |> List.collect (fun b -> b.Operations) |> List.find (fun o -> o.Name = name) |> fun o -> o.Errors
+        Assert.Equal<string list>("Allowed" :: errorsOf "Decide", cases typeof<Decision>)
+        Assert.Equal<string list>(errorsOf "Replay", cases typeof<ReplayError>)
+        // Frozen envelopes (00-DOMAIN-STUBS.fs): field names and order.
+        Assert.Equal<string list>([ "CommandId"; "Investigation"; "ExpectedVersion"; "Command" ], fields typeof<CommandEnvelope> |> List.map fst)
+        Assert.Equal<string list>([ "EventId"; "Investigation"; "Version"; "Provenance"; "Payload" ], fields typeof<EventEnvelope> |> List.map fst)
+        Assert.Equal<string list>([ "OccurredAt"; "Actor"; "CorrelationId"; "FormatVersion"; "SemanticVersion" ], fields typeof<EventProvenance> |> List.map fst)
+        Assert.Equal<string list>([ "Investigation"; "Timeline"; "Capabilities" ], fields typeof<InvestigationProjection> |> List.map fst)
+        Assert.Equal<string list>([ "Code"; "Message" ], fields typeof<Blocker> |> List.map fst)
+        Assert.Equal<string list>([ "Core"; "Extension" ], cases typeof<Command>)
+        Assert.Equal<string list>([ "CoreEvent"; "ExtensionEvent" ], cases typeof<EventPayload>)
+        Assert.Equal<string list>(
+            [ "StartInvestigation"; "ActivateInvestigation"; "RecordObservation"; "RecordHypothesis"; "MarkHypothesisPlausible"
+              "MarkHypothesisSupported"; "FalsifyHypothesis"; "ReopenHypothesis"; "AdmitEvidence"; "RelateEvidence"; "IdentifyUnknown"
+              "RecordAssumption"; "RecordContradiction"; "RecordPrediction"; "RecordInvestigationAction"; "RecordFinding"
+              "EstablishNegativeKnowledge"; "RecordCausalAssertion"; "ConfirmCause"; "RecordCorrectiveAction"; "RecordVerificationCriterion"
+              "MarkCorrectiveActionImplemented"; "RecordVerification"; "ResolveInvestigation"; "ReopenInvestigation"; "RecordProposal"
+              "AcceptProposal"; "RejectProposal"; "AttachExtension" ],
+            cases typeof<CoreCommand>)
+        // The frozen Investigation fields lead the record.
+        Assert.Equal<(string * Type) list>([ "Id", typeof<InvestigationId>; "Version", typeof<AggregateVersion> ], fields typeof<Investigation> |> List.take 2)
