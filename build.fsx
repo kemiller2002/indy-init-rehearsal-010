@@ -13,7 +13,7 @@
 //   2. _framework/       the published runtime and assemblies (uncompressed files only)
 //   3. index.html        web/index.html with every web/screens/*.html fragment inlined at <!-- screens -->
 //   4. causa.css         web/causa.css followed by every web/screens/*.css, in the same order
-//   5. causa-theme.css, boundary.js, limen/ (Limen kernel ES modules), forma/ (Forma CSS)
+//   5. causa-theme.css, boundary.js, limen/ (Limen kernel ES modules), forma/all.css (the Forma stylesheet the shell links)
 //   6. build-info.json   the gate's verdict, the build inputs (digests) and the environment (tools, commit, CI run)
 open System
 open System.Diagnostics
@@ -333,7 +333,15 @@ File.WriteAllText(Path.Combine(dist, "causa.css"), styles |> List.map File.ReadA
 for name in [ "causa-theme.css"; "boundary.js"; "causa-icon.svg" ] do
     File.Copy(at ("web/" + name), Path.Combine(dist, name), true)
 copyDir (at "node_modules/@echelon-foundry/limen/dist") (Path.Combine(dist, "limen")) (fun f -> f.EndsWith ".js")
-copyDir (at "node_modules/@echelon-foundry/design-system/dist") (Path.Combine(dist, "forma")) (fun f -> not (f.EndsWith ".map"))
+// Only the Forma stylesheet the shell links (forma/all.css, self-contained: no imports or urls). The package's brand
+// examples and pattern demos are not the application and are not shipped (design contract: no literal colour outside
+// a theme file).
+Directory.CreateDirectory(Path.Combine(dist, "forma")) |> ignore
+File.Copy(at "node_modules/@echelon-foundry/design-system/dist/all.css", Path.Combine(dist, "forma", "all.css"), true)
+// WDL-001 (T24): the identified workflow layout capability, @echelon-foundry/forma-workflow (the <forma-workflow>
+// element and its own .NET WebAssembly engine, Forma.Workflow). Shipped as published; precompressed copies are not
+// needed by the static host.
+copyDir (at "node_modules/@echelon-foundry/forma-workflow/dist") (Path.Combine(dist, "forma-workflow")) (fun f -> not (f.EndsWith ".br" || f.EndsWith ".gz"))
 File.WriteAllText(Path.Combine(dist, ".nojekyll"), "")
 
 // ---- the build record (AR-011) --------------------------------------------------------------------------------------

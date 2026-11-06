@@ -130,6 +130,17 @@
       "telemetryExecutionIds": [
         "EXE-20261106T184749118Z-1af17138"
       ]
+    },
+    {
+      "id": "WI-0015",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T19:01:03Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T190103856Z-4955924b"
+      ]
     }
   ]
 }
