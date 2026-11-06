@@ -1,0 +1,6 @@
+{"at":"2026-11-06T16:52:46Z","reason":"hard-blocker","scopeSha256":"26e6ff3cde467ca97ba9c2eda869947a367854a63dbd221db3987790d949f71f",
+ "blockers":[
+  {"id":"AUTH-STEP3-PRAXIS-IDS","kind":"implementation","workItems":["T10","T11","T12","T13","T14","T15","T16","T17","T18","T19","T20","T21","T22","T23","T24","T25","T26","T27","T28","T29","T30","T31","T32","T33","T34","T35","T36","WI-GEN-AR","WI-GEN-EXT-DATA","WI-GEN-PF","WI-GEN-RECORDS","WI-GEN-UI","WI-GEN-VER","WI-GEN-WDL","WI-INV-LIST","WI-INV-START","WI-INV-WORKSPACE"],
+   "evidence":["evidence/t0/authorize-implementation.refused.log","praxis 3.25.0: 'praxis work capture --id T11' -> ERROR invalid work-item ID 'T11'; r9.fsx:885 matches Praxis items by id"]},
+  {"id":"AUTH-STEP4-NO-LINKS","kind":"implementation","workItems":["T10","T11","T12","T13","T14","T15","T16","T17","T18","T19","T20","T21","T22","T23","T24","T25","T26","T27","T28","T29","T30","T31","T32","T33","T34","T35","T36","WI-GEN-AR","WI-GEN-EXT-DATA","WI-GEN-PF","WI-GEN-RECORDS","WI-GEN-UI","WI-GEN-VER","WI-GEN-WDL","WI-INV-LIST","WI-INV-START","WI-INV-WORKSPACE"],
+   "evidence":["evidence/t0/authorize-implementation.refused.log","r9.fsx:911-912 refuses the approved work items T14 T17 T20 T23 T26 T27 T28 T32 T35, which the generated scope work plan gives no requirement or obligation"]}]}

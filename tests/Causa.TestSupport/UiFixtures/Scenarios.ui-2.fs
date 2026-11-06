@@ -35,7 +35,8 @@ module Ui2Scenarios =
           Route = UiRoutes.parse (Routes.hashOf model.Route)
           Drafts = Map.ofList drafts
           Credential = None
-          Announcements = [] }
+          Announcements = []
+          Build = None }
 
     let workspaceHash (section: Causa.Ui.Contracts.Section) =
         let (Workspace w) = workingCopy.Workspace

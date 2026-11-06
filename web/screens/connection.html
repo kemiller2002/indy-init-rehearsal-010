@@ -20,7 +20,8 @@
         </div>
         <div class="ef-field">
           <label class="ef-field__label" for="causa-connection-branch">Branch</label>
-          <input type="text" id="causa-connection-branch" autocomplete="off" spellcheck="false" placeholder="main"
+          <span class="ef-field__description" id="causa-connection-branch-description">Leave empty for main.</span>
+          <input type="text" id="causa-connection-branch" autocomplete="off" spellcheck="false" aria-describedby="causa-connection-branch-description"
             data-event="connection.branch" data-on="input" data-bind-value="connection.branch">
         </div>
         <div class="ef-field" data-requirement-id="EXT-DATA-004">
@@ -33,6 +34,18 @@
           <button type="submit" class="ef-button" data-bind-disabled="connection.busy">Connect data repository</button>
         </div>
       </form>
+    </template>
+    <template data-if="connection.can-disconnect">
+      <p class="ef-actions"><button type="button" class="ef-button" data-event="connection.disconnect">Disconnect</button></p>
+    </template>
+    <template data-if="connection.confirming">
+      <div class="ef-alert causa-connection-confirm" role="alertdialog" aria-labelledby="causa-connection-confirm-text">
+        <p id="causa-connection-confirm-text" data-text="connection.confirm-text"></p>
+        <p class="ef-actions">
+          <button type="button" class="ef-button" data-event="connection.disconnect">Disconnect and drop unsaved changes</button>
+          <button type="button" class="ef-button" data-event="connection.keep">Keep working</button>
+        </p>
+      </div>
     </template>
   </section>
 </template>

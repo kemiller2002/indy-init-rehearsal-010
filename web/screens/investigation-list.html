@@ -1,24 +1,55 @@
-<!-- Owner: ui. investigation-list (UI-001, UI-020): the Investigations destination, the investigations the engine
-     listed and the New investigation action. The data repository region follows (connection fragment). -->
+<!-- Owner: ui. investigation-list (UI-001, UI-020, UI-022): the Investigations destination. The data repository region
+     follows (connection fragment). -->
 <template data-if="screen.investigations">
-  <section class="causa-screen causa-investigations" aria-labelledby="investigations-heading" data-requirement-id="UI-001">
+  <section class="causa-screen causa-investigations" aria-labelledby="investigations-heading">
     <h1 id="investigations-heading" data-text="investigations.heading">Investigations</h1>
     <template data-if="investigations.status">
-      <p class="causa-note" role="status" data-text="investigations.status"></p>
+      <p class="causa-note" data-text="investigations.status"></p>
     </template>
     <template data-if="investigations.can-start">
       <p class="ef-actions"><a class="ef-button" href="#/new">New investigation</a></p>
     </template>
-    <template data-if="investigations.any">
-      <ul class="causa-investigation-list" aria-label="Investigations">
-        <template data-each="investigations.items" data-key="key">
-          <li class="causa-investigation-list__item">
-            <a class="causa-investigation-list__title" data-bind-href="href" data-text="title"></a>
-            <span class="ef-status-lozenge" data-bind-data-state="kindState" data-text="kind"></span>
-            <span class="causa-note" data-text="note"></span>
-          </li>
-        </template>
-      </ul>
+    <template data-if="investigations.loading">
+      <p class="ef-spinner" role="status"><span class="ef-spinner__indicator" aria-hidden="true"></span><span class="ef-spinner__label" data-text="investigations.loadingText"></span></p>
+    </template>
+    <template data-if="investigations.empty">
+      <p class="causa-note" role="status" data-text="investigations.emptyText"></p>
+    </template>
+    <template data-if="investigations.hasItems">
+      <div class="ef-stack causa-investigations__list">
+        <div class="ef-cluster">
+          <label class="ef-select-field">
+            <span class="ef-field__label">Sort by</span>
+            <span class="ef-select">
+              <select class="ef-select__input" data-event="investigations.sort">
+                <template data-each="investigations.sortOptions" data-key="id">
+                  <option data-bind-value="id" data-bind-selected="selected" data-text="label"></option>
+                </template>
+              </select>
+              <span class="ef-select__indicator" aria-hidden="true"></span>
+            </span>
+          </label>
+          <p class="causa-note" role="status" data-text="investigations.count"></p>
+        </div>
+        <ul class="ef-card-grid causa-investigations__cards" aria-labelledby="investigations-heading" data-requirement-id="UI-001">
+          <template data-each="investigations.items" data-key="id">
+            <li>
+              <article class="ef-card causa-investigation-card" data-bind-aria-label="title">
+                <h2 class="ef-card__title"><a class="ef-card__link" data-bind-href="href" data-text="title"></a></h2>
+                <p class="ef-eyebrow" data-text="where"></p>
+                <dl class="ef-key-value-list">
+                  <div><dt>Status</dt><dd data-text="status"></dd></div>
+                  <div><dt>Last activity</dt><dd data-text="lastActivity"></dd></div>
+                  <div><dt>Hypotheses</dt><dd data-text="hypotheses"></dd></div>
+                  <div><dt>Evidence</dt><dd data-text="evidence"></dd></div>
+                  <div><dt>Unresolved contradictions</dt><dd data-text="contradictions"></dd></div>
+                </dl>
+                <a class="ef-button causa-investigation-card__open" data-bind-href="href">Open investigation</a>
+              </article>
+            </li>
+          </template>
+        </ul>
+      </div>
     </template>
   </section>
 </template>

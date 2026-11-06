@@ -21,6 +21,8 @@ module Program =
         | HttpResult of HttpOutcome
         /// The browser's connectivity (limen.lifecycle: the subscription's first state, then each change).
         | Connectivity of online: bool
+        /// The answer to the build record read (same origin): its text, or why it could not be read.
+        | BuildInfo of Result<string, string>
         /// A limen.schedule timeout fired; its correlation id names the timer.
         | TimerDue of correlationId: string
         /// Results of effects the engine does not wait on (navigation) and messages it does not use.
@@ -87,6 +89,10 @@ module Program =
         // Cancelled (the engine never cancels) and anything unclassified: the request may have reached the provider.
         | _ -> NotAnswered(id, LostAfterSending)
 
+    /// The correlation id of the build record read; never an http-<n> id, so it never reaches the GitHub machines.
+    [<Literal>]
+    let BuildInfoCorrelation = "build-info"
+
     let decode (json: string) : Inbound =
         use doc = JsonDocument.Parse json
         let m = doc.RootElement
@@ -102,6 +108,16 @@ module Program =
             | None -> Ignored
         | Some "EffectResult" ->
             match prop m "result" with
+            | Some r when str r "kind" = Some "HttpResult" && str r "correlationId" = Some BuildInfoCorrelation ->
+                match prop r "outcome" with
+                | Some o when str o "kind" = Some "Success" ->
+                    let status = prop o "status" |> Option.bind (fun s -> match s.TryGetInt32() with | true, v -> Some v | _ -> None)
+                    match status, prop o "body" with
+                    | Some 200, Some b when b.ValueKind = JsonValueKind.String -> BuildInfo(Ok(textOf b))
+                    | Some 200, Some b -> BuildInfo(Ok(b.GetRawText()))
+                    | s, _ -> BuildInfo(Error(sprintf "build-info.json answered %s" (s |> Option.map string |> Option.defaultValue "without a status")))
+                | Some o -> BuildInfo(Error(sprintf "build-info.json could not be read (%s)" (str o "kind" |> Option.defaultValue "no outcome")))
+                | None -> BuildInfo(Error "build-info.json could not be read")
             | Some r when str r "kind" = Some "HttpResult" ->
                 match str r "correlationId" |> Option.bind requestIdOf, prop r "outcome" with
                 | Some id, Some outcome -> HttpResult(httpOutcome id outcome)
@@ -218,6 +234,18 @@ module Program =
             w.WriteString("data", content)
             w.WriteEndObject()
             w.WriteEndObject()
+        | ReadBuildInfo ->
+            w.WriteStartObject()
+            w.WriteString("kind", "Http")
+            w.WriteString("correlationId", BuildInfoCorrelation)
+            w.WriteString("method", "GET")
+            w.WriteString("url", "./build-info.json")
+            w.WriteStartObject("headers")
+            w.WriteEndObject()
+            w.WriteNumber("timeoutMs", 10000)
+            w.WriteString("response", "text")
+            w.WriteString("credentials", "omit")
+            w.WriteEndObject()
         | SubscribeConnectivity ->
             w.WriteStartObject()
             w.WriteString("kind", "Capability")
@@ -324,10 +352,18 @@ module Program =
 
         let private relate (env: HostEnv) (state: AppState) (reassess: bool) : AppMsg list =
             let d = Drafts.get state
-            let evidence = d "investigation.link.evidence" |> guidOf |> Option.map EvidenceId
-            let hypothesis = d "investigation.link.hypothesis" |> guidOf |> Option.map HypothesisId
-            let kind = Causa.App.Workspace.Analysis.storedKindOf (d "investigation.link.kind")
             let current = UiAdapter.investigation state
+            // A choice with exactly one option is that option (the view shows it selected).
+            let only (keys: Guid list) = match keys with [ k ] -> Some k | _ -> None
+            let evidence =
+                d "investigation.link.evidence" |> guidOf
+                |> Option.orElse (current |> Option.bind (fun s -> s.Evidence |> Map.toList |> List.map (fst >> fun (EvidenceId g) -> g) |> only))
+                |> Option.map EvidenceId
+            let hypothesis =
+                d "investigation.link.hypothesis" |> guidOf
+                |> Option.orElse (current |> Option.bind (fun s -> s.Hypotheses |> Map.toList |> List.map (fst >> fun (HypothesisId g) -> g) |> only))
+                |> Option.map HypothesisId
+            let kind = Causa.App.Workspace.Analysis.storedKindOf (d "investigation.link.kind")
             match evidence, hypothesis, kind, optional 10000 (d "investigation.link.rationale") with
             | None, _, _, _ -> announce "Choose the evidence to link."
             | _, None, _, _ -> announce "Choose the hypothesis to link."
@@ -358,7 +394,12 @@ module Program =
                     match state.Model.Connection with
                     | CredentialRefused -> Some [ EngineMsg(Connection(ConnectionInput.ReconnectSubmitted credential)) ]
                     | _ -> Some [ EngineMsg(Connection(ConnectionInput.ConnectSubmitted(repo, credential))) ]
-            | ConnectForm.Disconnect -> Some [ EngineMsg(Connection ConnectionInput.DisconnectConfirmed) ]
+            // T-N08, T-N09: confirmation is asked first when anything in the tab is not Saved (PERSIST-019).
+            | ConnectForm.Disconnect ->
+                let unsaved = state.Model.Sessions |> Map.exists (fun _ s -> match s.State with SaveState.Saved _ -> false | _ -> true)
+                if unsaved && d ConnectForm.ConfirmDisconnect = "" then Some [ DraftChanged(ConnectForm.ConfirmDisconnect, "1") ]
+                else Some [ DraftsCleared [ ConnectForm.ConfirmDisconnect ]; EngineMsg(Connection ConnectionInput.DisconnectConfirmed) ]
+            | ConnectForm.KeepConnection -> Some [ DraftsCleared [ ConnectForm.ConfirmDisconnect ] ]
             | "new.start" ->
                 let f = Start.form state
                 match Start.validateForm f, Start.workingCopy state.Model |> Option.bind Writable.ofAddress, guidOf f.Identifier with
@@ -423,7 +464,11 @@ module Program =
                 | Error m, _
                 | _, Error m -> Some(announce m)
             | "investigation.evidence.record" ->
-                match bounded "Evidence content" 10000 (d "investigation.evidence.content"), bounded "Source" 2000 (d "investigation.evidence.source") with
+                // Evidence keeps exactly the content and source entered (the label has no v1.0.0 field, OD-HC-06); a
+                // missing one is refused with every failed rule shown, never filled in (INV-028).
+                let content = d "investigation.evidence.content"
+                let source = d "investigation.evidence.source"
+                match bounded "Evidence original content" 10000 content, bounded "Evidence source reference" 2000 source with
                 | Ok content, Ok source ->
                     Some(
                         onRoute env state
@@ -435,8 +480,9 @@ module Program =
                                   Category = EvidenceCategory.DirectObservation
                                   Source = source
                                   CapturedAt = None })
-                            [ "investigation.evidence.content"; "investigation.evidence.source" ]
+                            [ "investigation.evidence.content"; "investigation.evidence.source"; "investigation.evidence.label"; "investigation.evidence.url" ]
                     )
+                | Error a, Error b -> Some(announce (a + " " + b))
                 | Error m, _
                 | _, Error m -> Some(announce m)
             | "investigation.link.relate" -> Some(relate env state false)
@@ -485,6 +531,7 @@ module Program =
                     | None -> { s with Announcements = [] }, []
             | Located hash, Some s -> Update.updateAt env (LocationChanged hash) s
             | HttpResult outcome, Some s -> Update.updateAt env (EngineMsg(Browser(HttpCompleted outcome))) s
+            | BuildInfo read, Some s -> Update.updateAt env (BuildRead read) s
             | Connectivity online, Some s -> Update.updateAt env (EngineMsg(Browser(ConnectivityChanged online))) s
             | TimerDue id, Some s ->
                 match id.Split('|') with

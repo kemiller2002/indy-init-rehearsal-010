@@ -1,6 +1,7 @@
 // Owner: ui-3. The Causal Analysis section (screen.investigation.causal-analysis): the accessible text relationship
 // list, the UI-026 P0 floor. It lists every evidence-hypothesis assessment (current and earlier) and every causal
-// assertion with the state the domain gives it; no graph is drawn.
+// assertion with the state the domain gives it, each linked to its records (UI-033). It is read-only: nothing here
+// changes the domain (UI-026-O4). No drawn graph yet (the WDL workflow layout is not part of this build).
 namespace Causa.App.Views
 
 open Causa.Domain
@@ -13,7 +14,8 @@ open Causa.App.Views.Workspace
 module Graph =
     let private p = "investigation.causal."
 
-    let keys (investigation: Investigation option) : (string * ViewValue) list =
+    let render (ctx: SectionContext) : (string * ViewValue) list =
+        let investigation = ctx.Investigation
         let relationships = investigation |> Option.map Analysis.links |> Option.defaultValue []
         let causes =
             investigation
@@ -32,21 +34,24 @@ module Graph =
                            |> List.map (fun m -> $"{Analysis.hypothesisStatement s m.HypothesisId} ({Words.causeRole m.Role})")
                            |> String.concat "; ") ]))
             |> Option.defaultValue []
-        [ Bind.flag (p + "loaded") investigation.IsSome
-          Bind.flag (p + "missing") investigation.IsNone
-          Bind.text (p + "notLoaded") SectionBindings.notLoaded
-          Bind.flag (p + "relationships.empty") relationships.IsEmpty
-          Bind.items
-              (p + "relationships")
-              [ for l in relationships ->
-                    [ Cell.text "id" l.Id
-                      Cell.text "evidence" l.EvidenceLabel
-                      Cell.text "kind" (Words.kind l.Kind)
-                      Cell.text "hypothesis" l.HypothesisStatement
-                      Cell.text "rationale" l.Rationale
-                      Cell.flag "current" l.Current
-                      Cell.text "status" (if l.Current then "current" else "earlier assessment") ] ]
-          Bind.flag (p + "causes.empty") causes.IsEmpty
-          Bind.items (p + "causes") causes ]
+        SectionBindings.status p ctx
+        @ [ Bind.flag (p + "relationships.empty") relationships.IsEmpty
+            Bind.items
+                (p + "relationships")
+                [ for l in relationships ->
+                      [ Cell.text "id" l.Id
+                        Cell.text "evidence" l.EvidenceLabel
+                        Cell.text "evidenceHref" (RecordLinks.href ctx l.Evidence)
+                        Cell.text "kind" (Words.kind l.Kind)
+                        Cell.text "hypothesis" l.HypothesisStatement
+                        Cell.text "hypothesisHref" (RecordLinks.href ctx l.Hypothesis)
+                        Cell.text "rationale" l.Rationale
+                        Cell.flag "current" l.Current
+                        Cell.text "status" (if l.Current then "current" else "earlier assessment") ]
+                      @ SectionBindings.recordCells ctx { Kind = RelationshipEntity; Id = l.Id } ]
+            Bind.flag (p + "causes.empty") causes.IsEmpty
+            Bind.items (p + "causes") causes ]
 
-    let view (state: AppState) : (string * ViewValue) list = keys (Analysis.loaded state)
+    let keys (investigation: Investigation option) = render (SectionContext.ofInvestigation investigation)
+
+    let view (state: AppState) : (string * ViewValue) list = render (SectionContext.ofState state)

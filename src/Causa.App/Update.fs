@@ -103,6 +103,23 @@ module Update =
             | _ -> model, []
         | _ -> model, []
 
+    /// How many working-copy investigations are opened at once to name them in the list. Every listed investigation
+    /// is shown (by its identity until its title is read); titles are read a few at a time, never all at once.
+    [<Literal>]
+    let MaxOpening = 6
+
+    /// Opens the next listed working-copy investigations not read yet, while fewer than MaxOpening are being read.
+    let openMore (now: DateTimeOffset) (model: Model) : Model * HostEffect list =
+        let loading = model.Loads |> Map.filter (fun _ l -> match l with Loading _ -> true | _ -> false) |> Map.count
+        let waiting =
+            model.Listings
+            |> Map.toList
+            |> List.filter (fun (a, _) -> a.Role = WorkspaceRole.WorkingCopy)
+            |> List.collect (fun (_, l) -> l.Investigations |> List.map (fun i -> i.Ref))
+            |> List.filter (fun r -> not (model.Loads.ContainsKey r))
+            |> List.truncate (max 0 (MaxOpening - loading))
+        waiting |> List.fold (fun (m, acc) r -> let m, e = openRef now r m in m, acc @ e) (model, [])
+
     let private loadStep (now: DateTimeOffset) (r: InvestigationRef) (input: LoadInput) (model: Model) =
         match contextFor now model (Some r), Map.tryFind r model.Loads with
         | Some ctx, Some state ->
@@ -280,18 +297,11 @@ module Update =
                 [ Http request ]
             | ListingComplete listing ->
                 let model = { model with Listings = Map.add listing.Address listing model.Listings }
-                // A working copy lists ids only: each is opened so the list can name it by its title (and is ready to
-                // edit); then the route's investigation, if the listing just made it known.
+                // A working copy lists ids only: they are opened a few at a time so the list can name them by their
+                // titles (and they are ready to edit); then the route's investigation, if the listing made it known.
                 let model, opened =
                     match listing.Address.Role with
-                    | WorkspaceRole.WorkingCopy ->
-                        listing.Investigations
-                        |> List.fold
-                            (fun (m, acc) i ->
-                                match Map.tryFind i.Ref m.Loads with
-                                | None -> let m, e = openRef now i.Ref m in m, acc @ e
-                                | Some _ -> m, acc)
-                            (model, [])
+                    | WorkspaceRole.WorkingCopy -> openMore now model
                     | WorkspaceRole.Catalog -> model, []
                 let model, routeOpen = openRoute now model
                 model, opened @ routeOpen
@@ -417,7 +427,10 @@ module Update =
             match contextFor now model (Some r) with
             | Some ctx ->
                 match saveMachine.InterpretLoad ctx model.Loads[r] outcome with
-                | LoadEvent input -> loadStep now r input model
+                | LoadEvent input ->
+                    let model, effects = loadStep now r input model
+                    let model, more = openMore now model
+                    model, effects @ more
                 | LoadNextRequest(state, request) ->
                     { model with Loads = Map.add r state model.Loads; NextRequestId = next request.Id }, [ Http request ]
             | None -> model, []
@@ -520,8 +533,10 @@ module Update =
               Route = UiRoutes.parse (Routes.hashOf route)
               Drafts = Map.empty
               Credential = None
-              Announcements = [] }
+              Announcements = []
+              Build = None }
             (model, effects)
+        |> fun (state, effects) -> state, effects @ [ ReadBuildInfo ]
 
     let updateAt (env: HostEnv) (msg: AppMsg) (state: AppState) : AppState * AppEffect list =
         let step m model = stepAt env.Now m model
@@ -539,6 +554,7 @@ module Update =
         | DraftsCleared keys -> { state with Drafts = keys |> List.fold (fun d k -> Map.remove k d) state.Drafts; Announcements = [] }, []
         | CredentialEntered credential -> { state with Credential = Some credential; Announcements = [] }, []
         | Announced(p, text) -> { state with Announcements = [ p, text ] }, []
+        | BuildRead read -> { state with Build = Some read; Announcements = [] }, []
 
     /// One message at the host's clock.
     let update (msg: AppMsg) (state: AppState) : AppState * AppEffect list =

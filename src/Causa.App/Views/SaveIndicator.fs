@@ -203,6 +203,16 @@ module SaveIndicator =
           Bind.flag "investigation.save.canCheckAgain" (has CheckAgainAction)
           Bind.flag "investigation.save.canReconnect" (has Reconnect)
           Bind.flag "investigation.save.conflict" (k = Some ConflictKind)
+          // PERSIST-030: Forma operation status for Unknown commit outcome and Save failed only.
+          Bind.flag "investigation.save.operation" (k = Some UnknownOutcomeKind || k = Some SaveFailedKind)
+          Bind.text "investigation.save.operationTitle" (
+              match k with
+              | Some UnknownOutcomeKind -> "GitHub may or may not have this change"
+              | Some SaveFailedKind -> "The change did not reach GitHub"
+              | _ -> "")
+          // Forma freshness: the time of the last confirmed save, or that there is none in this tab.
+          Bind.text "investigation.save.freshness" (
+              shown |> Option.bind (fun v -> v.LastSavedCommitTime) |> Option.map Frame.formatTime |> Option.defaultValue "None in this tab")
           Bind.text "investigation.save.assertiveText" (
               shown |> Option.filter (fun v -> v.Politeness = Assertive) |> Option.map (fun v -> v.Label) |> Option.defaultValue "")
           Bind.flag "investigation.save.offlineSaved" (state.Model.Network = NetworkState.Offline && k = Some SavedKind)
