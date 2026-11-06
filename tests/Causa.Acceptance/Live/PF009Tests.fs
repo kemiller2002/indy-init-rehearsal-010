@@ -18,20 +18,26 @@ module PF009Tests =
     let private step (m: SaveMachine) (p: GitHubProvider) (state: LoadState) (input: LoadInput) =
         m.StepLoad (ProviderPort.context p) state input |> Result.defaultWith (fun f -> failwithf "SM-LOAD refused: %s" f.Reason)
 
+    /// Interprets one answer, executing at once any follow-up read of the same load (the blob of a large file, the
+    /// catalog manifest a catalog case is checked against): the state the load is in and the event the answer means.
+    let rec private settle (m: SaveMachine) (p: GitHubProvider) (state: LoadState) (outcome: HttpOutcome) : LoadState * LoadInput =
+        match m.InterpretLoad (ProviderPort.context p) state outcome with
+        | LoadNextRequest(next, request) -> settle m p next (p.Execute request)
+        | LoadEvent input -> state, input
+
     /// Delivers one held answer: interpret, then step the event. A superseded answer leaves the state as it is: a
     /// no-op where the machine defines one, and the fail-closed fault of an illegal pair (state unchanged) elsewhere.
     let private deliver (m: SaveMachine) (p: GitHubProvider) (state: LoadState) (held: HttpOutcome) : LoadState =
-        match m.InterpretLoad (ProviderPort.context p) state held with
-        | LoadEvent(LoadInput.SupersededReply _ as input) ->
-            match m.StepLoad (ProviderPort.context p) state input with
+        match settle m p state held with
+        | at, (LoadInput.SupersededReply _ as input) ->
+            match m.StepLoad (ProviderPort.context p) at input with
             | Ok(next, effects) ->
                 Assert.Empty(effects)
                 next
             | Error fault ->
                 Assert.Equal("SupersededReply", fault.Input)
-                state
-        | LoadEvent input -> step m p state input |> fst
-        | LoadNextRequest _ -> failwith "the fixtures fit in one read"
+                at
+        | at, input -> step m p at input |> fst
 
     let private readAt (s: LoadState) =
         match s with
@@ -60,9 +66,9 @@ module PF009Tests =
             else deliver m p (deliver m p s3 a.Outcome) b.Outcome
         Assert.Equal(Some newer, readAt final)
         // A's real answer was a verified read at the older head: it was never applied.
-        match m.InterpretLoad (ProviderPort.context p) (Loading(a.Request.Id, LoadHead)) a.Outcome with
-        | LoadEvent(LoadInput.LoadVerified older) -> Assert.NotEqual(newer, older.ReadAt)
-        | other -> failwithf "A's answer was not a verified read: %A" other
+        match settle m p (Loading(a.Request.Id, LoadHead)) a.Outcome with
+        | _, LoadInput.LoadVerified older -> Assert.NotEqual(newer, older.ReadAt)
+        | _, other -> failwithf "A's answer was not a verified read: %A" other
         final
 
     /// O1: delayed, reordered, superseded, cancelled and retried requests are scheduled deterministically, in both

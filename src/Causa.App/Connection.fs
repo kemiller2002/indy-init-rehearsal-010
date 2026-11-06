@@ -104,6 +104,13 @@ module ConnectForm =
     [<Literal>]
     let Disconnect = "connection.disconnect"
 
+    /// Set while the user is asked to confirm a disconnect that would drop unsaved changes.
+    [<Literal>]
+    let ConfirmDisconnect = "connection.confirm-disconnect"
+
+    [<Literal>]
+    let KeepConnection = "connection.keep"
+
     /// The branch used when none is entered.
     let defaultBranch = "main"
 

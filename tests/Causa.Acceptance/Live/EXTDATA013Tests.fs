@@ -30,13 +30,13 @@ module EXTDATA013Tests =
 
     /// Connect, list the active catalog and open each investigation through the application engine.
     let private connectAndLoad (p: GitHubProvider) =
-        let app = AppDriver.start p
-        AppDriver.connect app p.Connection.Credential
+        let app = EngineDriver.start p
+        EngineDriver.connect app p.Connection.Credential
         let listing =
             app.Model.Listings |> Map.toList |> List.map snd |> List.tryFind (fun l -> l.Address.Role = WorkspaceRole.Catalog)
             |> Option.defaultWith (fun () -> failwithf "Connect listed no active catalog: %A" app.Announced)
         for i in listing.Investigations do
-            AppDriver.openInvestigation app i.Ref
+            EngineDriver.openInvestigation app i.Ref
         app, listing
 
     /// O1: the active catalog is the one causa-data's catalog/active.json names, at the pinned commit and on main:
@@ -70,7 +70,7 @@ module EXTDATA013Tests =
         let dir = sprintf "workspaces/demo/demonstration-v1/investigations/%s" synthetic
         FixtureData.seed p (FixtureData.demonstrationCatalog () @ [ dir + "/manifest.json", fs.Manifest; dir + "/events.ndjson", fs.Events; dir + "/snapshot.json", fs.Snapshot ]) "Causa: catalog plus a stray synthetic investigation" |> ignore
         // Nothing is listed or loaded before the explicit Connect.
-        let before = AppDriver.start p
+        let before = EngineDriver.start p
         Assert.True(before.Model.Listings.IsEmpty && before.Model.Loads.IsEmpty && before.Sent.IsEmpty)
         let app, listing = connectAndLoad p
         let manifest = json Datasets.catalog.Value["catalog/demonstration-v1/manifest.json"]

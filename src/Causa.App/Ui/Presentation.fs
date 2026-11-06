@@ -27,7 +27,10 @@ type AppState =
       /// The credential the user entered, opaque (IF41-WIRE Credential.T). Never a draft, never rendered or logged.
       Credential: Credential.T option
       /// Live-region announcements of the last update (frozen Politeness).
-      Announcements: (Politeness * string) list }
+      Announcements: (Politeness * string) list
+      /// The build record (dist/build-info.json) as this page read it from its own origin: not read yet, its text, or
+      /// why it could not be read (UI-018). Never part of the GitHub machines.
+      Build: Result<string, string> option }
 
 /// Builds one binding: `Bind.text "investigations.heading" "Investigations"`. A screen's whole output is a list of
 /// these (`view : AppState -> (string * ViewValue) list`).

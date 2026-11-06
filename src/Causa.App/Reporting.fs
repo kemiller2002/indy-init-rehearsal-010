@@ -406,3 +406,198 @@ module Report =
 
     /// The IF41-REPORT value.
     let reporting: Reporting = { Project = project }
+
+/// What an analysis section shows for the current route: the investigation when the loader verified it, otherwise why
+/// not (UI-010: what happened, what was preserved, the next step), the selected record (UI-033, UI-034) and how to link
+/// to a record of this investigation. A history that did not verify is never shown in part (UI-010-O4).
+type SectionContext =
+    { Investigation: Investigation option
+      Unavailable: FailureCopy
+      Opening: bool
+      Selected: string option
+      /// The hash of a section of this investigation, optionally selecting a record (`?record=<id>`).
+      Href: Section -> string option -> string }
+
+[<RequireQualifiedAccess>]
+module SectionContext =
+    let private preservedInTab = "Nothing was changed in the repository. Unsaved changes, if any, are kept only in this tab."
+
+    let notOpen: FailureCopy =
+        { What = "This investigation is not open."
+          Preserved = "Nothing was changed."
+          NextStep = "Go to Investigations and open it from the list."
+          Retry = false }
+
+    let opening: FailureCopy =
+        { What = "Opening investigation."; Preserved = "Nothing has been changed."; NextStep = "Wait a moment."; Retry = false }
+
+    /// The plain-language copy for each load outcome (UI-010, UI-024); technical detail stays in Administration.
+    let copyOf (load: LoadState option) : FailureCopy * bool =
+        match load with
+        | Some(Loading _) -> opening, true
+        | Some(LoadFailed(Unverifiable _)) ->
+            { What = "This investigation's stored history could not be verified, so none of it is shown."
+              Preserved = preservedInTab
+              NextStep = "Open it again later. The details are in Administration."
+              Retry = false },
+            false
+        | Some(LoadFailed(ProviderFailed _)) ->
+            { What = "The repository could not be read, so this investigation is not shown."
+              Preserved = preservedInTab
+              NextStep = "Check the connection, then open the investigation again from Investigations."
+              Retry = false },
+            false
+        | Some UnavailableOffline ->
+            { What = "You are offline, so this investigation cannot be opened."
+              Preserved = preservedInTab
+              NextStep = "It can be opened when the connection returns."
+              Retry = false },
+            false
+        | Some NotLoaded
+        | Some(Loaded _)
+        | None -> notOpen, false
+
+    /// The record a route selects: `...?record=<id>`.
+    let selectedOf (route: Route) : string option =
+        let hash = Routes.hashOf route
+        match hash.IndexOf '?' with
+        | -1 -> None
+        | i ->
+            hash.Substring(i + 1).Split('&')
+            |> Array.tryPick (fun pair ->
+                match pair.Split('=', 2) with
+                | [| "record"; v |] when v <> "" -> Some(Uri.UnescapeDataString v)
+                | _ -> None)
+
+    let hrefFor (target: RouteTarget option) (section: Section) (record: string option) : string =
+        match target with
+        | None -> ""
+        | Some t ->
+            UiRoutes.href (WorkspaceRoute(t, section))
+            + (record |> Option.map (fun r -> "?record=" + Uri.EscapeDataString r) |> Option.defaultValue "")
+
+    /// A context for an investigation outside any route (tests, the report): links point at a working copy route.
+    let ofInvestigation (investigation: Investigation option) : SectionContext =
+        let target =
+            investigation
+            |> Option.map (fun s ->
+                { Workspace = "workspaces/demo/causa-app-local"; Role = WorkspaceRole.WorkingCopy; Id = s.Id })
+        { Investigation = investigation
+          Unavailable = notOpen
+          Opening = false
+          Selected = None
+          Href = hrefFor target }
+
+    let ofState (state: AppState) : SectionContext =
+        let target, load =
+            match state.Route with
+            | WorkspaceRoute(t, _) ->
+                Some t,
+                state.Model.Loads
+                |> Map.toList
+                |> List.tryPick (fun (r, l) ->
+                    let (Workspace w) = r.Address.Workspace
+                    if r.Id = t.Id && w = t.Workspace then Some l else None)
+            | _ -> None, None
+        let copy, opening = copyOf load
+        { Investigation = Analysis.loaded state
+          Unavailable = copy
+          Opening = opening
+          Selected = selectedOf state.Model.Route
+          Href = hrefFor target }
+
+/// The section each kind of record is shown in (UI-033 traversal).
+[<RequireQualifiedAccess>]
+module RecordLinks =
+    let sectionOf (kind: EntityKind) : Section =
+        match kind with
+        | EvidenceEntity -> EvidenceSection
+        | HypothesisEntity -> HypothesesSection
+        | RelationshipEntity -> CausalAnalysis
+        | ObservationEntity
+        | ConclusionEntity
+        | ContradictionEntity
+        | OtherEntity _ -> Overview
+        | CorrectiveActionEntity -> CorrectiveActions
+
+    let href (ctx: SectionContext) (r: EntityRef) = ctx.Href (sectionOf r.Kind) (Some r.Id)
+
+/// The Overview's answers (UI-025) and the domain-derived next steps (UI-032), from the kernel's state only. Absent
+/// information is said to be absent, never summarised as "none" when it is unknown.
+[<RequireQualifiedAccess>]
+module Summary =
+    let private text (t: NonEmptyText) = t.Value
+
+    type Step = { Text: string; Target: EntityRef }
+
+    /// UI-032: unresolved contradictions, hypotheses no evidence has been assessed against, open questions, and
+    /// corrective actions awaiting verification, each linked to its record.
+    let nextSteps (s: Investigation) : Step list =
+        let assessed = Assessments.current s |> List.map (fun r -> r.Value.HypothesisId) |> Set.ofList
+        [ for KeyValue(id, c) in s.Contradictions do
+              if c.State <> ContradictionState.Resolved && c.State <> ContradictionState.Superseded then
+                  yield { Text = $"Resolve the contradiction: {text c.Contradiction.Statement}"
+                          Target = { Kind = ContradictionEntity; Id = Ids.text (Ids.contradiction id) } }
+          for KeyValue(id, h) in s.Hypotheses do
+              if not (assessed.Contains id) && h.State <> HypothesisState.Falsified && h.State <> HypothesisState.Superseded then
+                  yield { Text = $"No evidence has been assessed against the hypothesis: {text h.Hypothesis.Statement}"
+                          Target = { Kind = HypothesisEntity; Id = Ids.text (Ids.hypothesis id) } }
+          for KeyValue(id, u) in s.Unknowns do
+              if u.State = UnknownState.Identified || u.State = UnknownState.Investigating then
+                  yield { Text = $"Answer the open question: {text u.Unknown.Question}"
+                          Target = { Kind = OtherEntity "unknown"; Id = Ids.text (Ids.unknown id) } }
+          for KeyValue(id, c) in s.CorrectiveActions do
+              if c.State = CorrectiveActionState.Implemented || c.State = CorrectiveActionState.AwaitingVerificationOfEffect then
+                  yield { Text = $"Verify the effect of the corrective action: {text c.CorrectiveAction.Description}"
+                          Target = { Kind = CorrectiveActionEntity; Id = Ids.text (Ids.correctiveAction id) } } ]
+
+    /// UI-025: supported findings are hypotheses the domain marks supported and recorded findings.
+    let supportedFindings (s: Investigation) : string list =
+        [ for KeyValue(_, h) in s.Hypotheses do
+              if h.State = HypothesisState.Supported then yield $"Supported hypothesis: {text h.Hypothesis.Statement}"
+          for KeyValue(_, c) in s.Causes do
+              if c.State = CauseState.Confirmed then yield $"Confirmed cause: {text c.Cause.Outcome}"
+          for KeyValue(_, f) in s.Findings do
+              yield $"Finding: {text f.Value.OriginalResult}" ]
+
+    let openQuestions (s: Investigation) : string list =
+        [ for KeyValue(_, u) in s.Unknowns do
+              if u.State = UnknownState.Identified || u.State = UnknownState.Investigating then yield text u.Unknown.Question
+          for KeyValue(_, c) in s.Contradictions do
+              if c.State <> ContradictionState.Resolved && c.State <> ContradictionState.Superseded then
+                  yield $"Unresolved contradiction: {text c.Contradiction.Statement}" ]
+
+    /// The commands the engine authorizes now, as the actions a person reads (UI-004, UI-025 "next authorized actions").
+    let authorizedActions (s: Investigation) : string list =
+        let words =
+            [ "RecordObservation", "Record an observation"
+              "RecordHypothesis", "Record a hypothesis"
+              "AdmitEvidence", "Record evidence"
+              "RelateEvidence", "Link evidence to a hypothesis"
+              "IdentifyUnknown", "Record an open question"
+              "RecordContradiction", "Record a contradiction"
+              "RecordCausalAssertion", "Record a causal assertion"
+              "ResolveInvestigation", "Resolve the investigation"
+              "ReopenInvestigation", "Reopen the investigation" ]
+        let available = (Kernel.domain.Project s).Capabilities |> Set.ofList
+        words |> List.filter (fun (c, _) -> available.Contains c) |> List.map snd
+
+    /// UI-038: why a conclusion stands, from its causes' hypotheses and their current assessments; missing links are
+    /// stated, not filled in.
+    let conclusionExplanation (s: Investigation) (c: Conclusion) : string =
+        let causes = c.CauseIds |> List.choose s.Causes.TryFind
+        if causes.IsEmpty then
+            "No causal assertion is linked to this conclusion, so no supporting or conflicting evidence can be shown."
+        else
+            [ for cause in causes do
+                  yield $"Cause ({Words.causeState cause.State}): {text cause.Cause.Outcome}."
+                  for m in cause.Cause.Members do
+                      let assessments = Assessments.ofHypothesis s m.HypothesisId
+                      let named kind =
+                          assessments
+                          |> List.filter (fun r -> r.Value.Kind = kind)
+                          |> List.map (fun r -> Analysis.evidenceName s r.Value.EvidenceId)
+                      let listOr (xs: string list) = if xs.IsEmpty then "none recorded" else String.concat "; " xs
+                      yield
+                          $"Hypothesis {Analysis.hypothesisStatement s m.HypothesisId}: supporting evidence {listOr (named Causa.Domain.RelationshipKind.Supports)}; conflicting evidence {listOr (named Causa.Domain.RelationshipKind.Contradicts)}." ]
+            |> String.concat " "

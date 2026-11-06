@@ -38,16 +38,16 @@ module EXTDATA010Tests =
     /// The five phases, each measured on its own with its own outcome.
     let private phases (p: GitHubProvider) =
         FixtureData.seed p (FixtureData.frozenCatalog ()) "Causa: populate the test repository" |> ignore
-        let app = AppDriver.start p
+        let app = EngineDriver.start p
         let mutable run: LiveRun.T option = None
         [ measure "startup" (fun () -> app.Model.Loads.IsEmpty && app.Model.Context.IsNone, "fresh tab, nothing loaded")
           measure "authorization" (fun () ->
-              AppDriver.connect app p.Connection.Credential
+              EngineDriver.connect app p.Connection.Credential
               (match app.Model.Connection with Causa.App.Connected _ -> true | _ -> false), sprintf "%A" app.Model.Connection)
           measure "read" (fun () ->
-              AppDriver.listCatalog app
+              EngineDriver.listCatalog app
               let listing = app.Model.Listings |> Map.toList |> List.map snd |> List.find (fun l -> l.Address.Role = WorkspaceRole.Catalog)
-              for i in listing.Investigations do AppDriver.openInvestigation app i.Ref
+              for i in listing.Investigations do EngineDriver.openInvestigation app i.Ref
               listing.Investigations |> List.forall (fun i -> match app.Model.Loads.TryFind i.Ref with Some(Loaded v) -> Some(ProviderPort.stateDigest v) = i.ExpectedStateSha256 | _ -> false), "catalog read and verified")
           measure "write" (fun () ->
               let r = LiveRun.createOn p "extdata010"

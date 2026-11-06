@@ -1828,7 +1828,7 @@ module SaveSimulation =
 /// The application engine (Causa.App IF41-APP Update.engine) driven over a provider: every Http effect it asks for is
 /// executed and its outcome stepped back as HttpCompleted, as the Limen host does (PF-014, EXT-DATA-009, EXT-DATA-010).
 [<RequireQualifiedAccess>]
-module AppDriver =
+module EngineDriver =
     open Causa.App
 
     type T =

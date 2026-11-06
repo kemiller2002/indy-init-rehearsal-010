@@ -86,7 +86,12 @@ module PF008Tests =
             let again, effects2 = machine.StepLoad (ProviderPort.context p) failed (LoadInput.OpenRequested r) |> Result.defaultWith (fun f -> failwith f.Reason)
             let retry = (SaveKit.requests effects2).Head
             Assert.NotEqual(request.Id, retry.Id)
-            match machine.InterpretLoad (ProviderPort.context p) again (p.Execute retry) with
+            // The retry's answer, and any follow-up read of the same load (the catalog manifest), executed in turn.
+            let rec settle state outcome =
+                match machine.InterpretLoad (ProviderPort.context p) state outcome with
+                | LoadNextRequest(next, request) -> settle next (p.Execute request)
+                | other -> other
+            match settle again (p.Execute retry) with
             | LoadEvent(LoadInput.LoadVerified v) -> Assert.Equal(r.Id, v.Investigation.Id)
             | other -> failwithf "the retry did not verify: %A" other
 

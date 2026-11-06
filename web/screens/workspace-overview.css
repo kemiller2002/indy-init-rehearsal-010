@@ -8,3 +8,9 @@
 .causa-editor { max-width: 48rem; }
 .causa-editor__reason:empty { display: none; }
 .causa-overview__facts dd { overflow-wrap: anywhere; }
+.causa-analysis__version { margin: 0; color: var(--ef-color-text-secondary); }
+.causa-unavailable p { margin: 0; }
+.causa-inspector { border-inline-start: 4px solid var(--ef-color-border-functional); }
+.causa-record__open { display: inline-block; min-height: 44px; line-height: 44px; }
+.causa-record__open[aria-current="true"] { font-weight: var(--ef-primitive-font-weight-bold, 700); }
+.causa-analysis a { min-height: 24px; }
