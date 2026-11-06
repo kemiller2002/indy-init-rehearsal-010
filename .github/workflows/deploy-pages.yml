@@ -42,7 +42,18 @@ jobs:
             npm install --no-audit --no-fund
           fi
 
+      # HELD until the owner records ODR-COMP-P13 / ODR-R10-36 (the test deploy key exception to EXT-DATA-004-O1 and
+      # DF-CON-2026-A002). This build alone receives the four secrets; it writes dist/deploy-connection.json so the
+      # deployed test app connects to REPO_OWNER/DATA_SOURCE@CAUSA_BRANCH with DATA_ACCESS_KEY_CAUSA. The site is
+      # public: anyone can read that key from it (the accepted risk). With no secret set the site is built exactly
+      # as every other build (the Connect form, no connection). GitHub masks the secret values in this log.
       - name: Build the site
+        env:
+          CAUSA_DEPLOY_CONNECTION: "1"
+          REPO_OWNER: ${{ secrets.REPO_OWNER }}
+          DATA_SOURCE: ${{ secrets.DATA_SOURCE }}
+          CAUSA_BRANCH: ${{ secrets.CAUSA_BRANCH }}
+          DATA_ACCESS_KEY_CAUSA: ${{ secrets.DATA_ACCESS_KEY_CAUSA }}
         run: npm run build
 
       - name: Require the site bundle
@@ -51,6 +62,35 @@ jobs:
             echo "::error::npm run build must write the deployable site, including dist/index.html. See DEPLOYMENT.md."
             exit 1
           fi
+
+      # The credential scan of what is published, independent of the build: any GitHub token literal fails, except
+      # the one injected key, and that only in dist/deploy-connection.json. A build without the key may ship no
+      # connection at all. Findings name the file, never the value.
+      - name: Scan the site for credentials
+        env:
+          DATA_ACCESS_KEY_CAUSA: ${{ secrets.DATA_ACCESS_KEY_CAUSA }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          pattern='gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}'
+          config=dist/deploy-connection.json
+          status=0
+          for f in $(grep -rlaE "$pattern" dist | grep -vxF "$config"); do
+            echo "::error file=$f::a GitHub token literal is in the published site"; status=1
+          done
+          if [ -n "${DATA_ACCESS_KEY_CAUSA:-}" ]; then
+            for f in $(grep -rlaF -- "$DATA_ACCESS_KEY_CAUSA" dist | grep -vxF "$config"); do
+              echo "::error file=$f::the deploy key is outside $config"; status=1
+            done
+            if [ -f "$config" ]; then
+              others=$(grep -oaE "$pattern" "$config" | grep -vxF -- "$DATA_ACCESS_KEY_CAUSA" | wc -l)
+              if [ "$others" -ne 0 ]; then echo "::error file=$config::a credential other than the deploy key"; status=1; fi
+            fi
+          elif [ -f "$config" ] && grep -q '"connection"' "$config"; then
+            echo "::error file=$config::a connection in a build without the deploy key"; status=1
+          fi
+          if [ "$status" -eq 0 ]; then echo "Credential scan: PASS"; fi
+          exit "$status"
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -23,6 +23,8 @@ module Program =
         | Connectivity of online: bool
         /// The answer to the build record read (same origin): its text, or why it could not be read.
         | BuildInfo of Result<string, string>
+        /// The answer to the deploy connection read (same origin): its text, or why it could not be read.
+        | DeployConnection of Result<string, string>
         /// A limen.schedule timeout fired; its correlation id names the timer.
         | TimerDue of correlationId: string
         /// Results of effects the engine does not wait on (navigation) and messages it does not use.
@@ -93,6 +95,18 @@ module Program =
     [<Literal>]
     let BuildInfoCorrelation = "build-info"
 
+    /// A same-origin read's answer: the body text of a 200, or why it could not be read (never the body).
+    let private sameOriginText (file: string) (outcome: JsonElement option) : Result<string, string> =
+        match outcome with
+        | Some o when str o "kind" = Some "Success" ->
+            let status = prop o "status" |> Option.bind (fun s -> match s.TryGetInt32() with | true, v -> Some v | _ -> None)
+            match status, prop o "body" with
+            | Some 200, Some b when b.ValueKind = JsonValueKind.String -> Ok(textOf b)
+            | Some 200, Some b -> Ok(b.GetRawText())
+            | s, _ -> Error(sprintf "%s answered %s" file (s |> Option.map string |> Option.defaultValue "without a status"))
+        | Some o -> Error(sprintf "%s could not be read (%s)" file (str o "kind" |> Option.defaultValue "no outcome"))
+        | None -> Error(sprintf "%s could not be read" file)
+
     let decode (json: string) : Inbound =
         use doc = JsonDocument.Parse json
         let m = doc.RootElement
@@ -109,15 +123,9 @@ module Program =
         | Some "EffectResult" ->
             match prop m "result" with
             | Some r when str r "kind" = Some "HttpResult" && str r "correlationId" = Some BuildInfoCorrelation ->
-                match prop r "outcome" with
-                | Some o when str o "kind" = Some "Success" ->
-                    let status = prop o "status" |> Option.bind (fun s -> match s.TryGetInt32() with | true, v -> Some v | _ -> None)
-                    match status, prop o "body" with
-                    | Some 200, Some b when b.ValueKind = JsonValueKind.String -> BuildInfo(Ok(textOf b))
-                    | Some 200, Some b -> BuildInfo(Ok(b.GetRawText()))
-                    | s, _ -> BuildInfo(Error(sprintf "build-info.json answered %s" (s |> Option.map string |> Option.defaultValue "without a status")))
-                | Some o -> BuildInfo(Error(sprintf "build-info.json could not be read (%s)" (str o "kind" |> Option.defaultValue "no outcome")))
-                | None -> BuildInfo(Error "build-info.json could not be read")
+                BuildInfo(sameOriginText "build-info.json" (prop r "outcome"))
+            | Some r when str r "kind" = Some "HttpResult" && str r "correlationId" = Some DeployedConnection.Correlation ->
+                DeployConnection(sameOriginText "deploy-connection.json" (prop r "outcome"))
             | Some r when str r "kind" = Some "HttpResult" ->
                 match str r "correlationId" |> Option.bind requestIdOf, prop r "outcome" with
                 | Some id, Some outcome -> HttpResult(httpOutcome id outcome)
@@ -234,12 +242,17 @@ module Program =
             w.WriteString("data", content)
             w.WriteEndObject()
             w.WriteEndObject()
-        | ReadBuildInfo ->
+        | ReadBuildInfo
+        | ReadDeployConnection ->
+            let correlation, url =
+                match effect with
+                | ReadDeployConnection -> DeployedConnection.Correlation, DeployedConnection.Url
+                | _ -> BuildInfoCorrelation, "./build-info.json"
             w.WriteStartObject()
             w.WriteString("kind", "Http")
-            w.WriteString("correlationId", BuildInfoCorrelation)
+            w.WriteString("correlationId", correlation)
             w.WriteString("method", "GET")
-            w.WriteString("url", "./build-info.json")
+            w.WriteString("url", url)
             w.WriteStartObject("headers")
             w.WriteEndObject()
             w.WriteNumber("timeoutMs", 10000)
@@ -532,6 +545,7 @@ module Program =
             | Located hash, Some s -> Update.updateAt env (LocationChanged hash) s
             | HttpResult outcome, Some s -> Update.updateAt env (EngineMsg(Browser(HttpCompleted outcome))) s
             | BuildInfo read, Some s -> Update.updateAt env (BuildRead read) s
+            | DeployConnection read, Some s -> Update.updateAt env (DeployConnectionRead read) s
             | Connectivity online, Some s -> Update.updateAt env (EngineMsg(Browser(ConnectivityChanged online))) s
             | TimerDue id, Some s ->
                 match id.Split('|') with

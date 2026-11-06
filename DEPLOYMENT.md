@@ -17,6 +17,19 @@ needs a backend, which this workflow does not provide.
   first bundling decision.
 - Every push to `main` deploys `dist/` once the workflow is enabled.
 
+## Test data connection (HELD: owner decision ODR-COMP-P13 / ODR-R10-36)
+
+This branch is held until the owner records the exception. With it, the deploy
+build alone receives the secrets `REPO_OWNER`, `DATA_SOURCE`, `CAUSA_BRANCH` and
+`DATA_ACCESS_KEY_CAUSA` and `CAUSA_DEPLOY_CONNECTION=1`; `build.fsx` writes
+`dist/deploy-connection.json` (`build/DeployConnection.fs`), and the app connects
+to `REPO_OWNER/DATA_SOURCE@CAUSA_BRANCH` at load without the key being typed.
+Every other build writes the file without a connection and shows the Connect form.
+The build, and a separate workflow step before upload, scan `dist/` and fail on
+any credential but that one key in that one file. **The site is public: anyone can
+read the key from it.** Use a fine-grained token on that one repository with
+Contents read and write only, a short expiry, and revoke it when the test ends.
+
 ## Enable GitHub Pages
 
 1. Settings, Pages: set the source to "GitHub Actions"

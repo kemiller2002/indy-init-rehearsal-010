@@ -119,3 +119,40 @@ module ConnectForm =
         let owner, name, branch = owner.Trim(), name.Trim(), branch.Trim()
         if owner = "" || name = "" then None
         else Some { Owner = owner; Name = name; Branch = (if branch = "" then defaultBranch else branch) }
+
+/// HELD until the owner records ODR-COMP-P13 / ODR-R10-36. The test data connection the deploy build injected
+/// (./deploy-connection.json, written by the deploy build (CAUSA_DEPLOY_CONNECTION=1) from four Actions secrets; same origin, read
+/// once after the build record). Every other build writes the file without a connection, and the Connect form is
+/// shown exactly as before. The key becomes the opaque credential at once and is never kept as text.
+[<RequireQualifiedAccess>]
+module DeployedConnection =
+    /// The correlation id of the read; never an http-<n> id, so it never reaches the GitHub machines.
+    [<Literal>]
+    let Correlation = "deploy-connection"
+
+    [<Literal>]
+    let Url = "./deploy-connection.json"
+
+    [<Literal>]
+    let Schema = "causa.deploy-connection/1"
+
+    /// The repository and credential the file names, when it names one completely; otherwise None.
+    let parse (text: string) : (Repository * Credential.T) option =
+        try
+            use doc = System.Text.Json.JsonDocument.Parse text
+            let root = doc.RootElement
+            let str (e: System.Text.Json.JsonElement) (name: string) =
+                match e.TryGetProperty name with
+                | true, v when v.ValueKind = System.Text.Json.JsonValueKind.String -> v.GetString() |> Option.ofObj |> Option.map (fun s -> s.Trim()) |> Option.filter (fun s -> s <> "")
+                | _ -> None
+            match root.ValueKind, (if root.ValueKind = System.Text.Json.JsonValueKind.Object then str root "schema" else None) with
+            | System.Text.Json.JsonValueKind.Object, Some Schema ->
+                match root.TryGetProperty "connection" with
+                | true, c when c.ValueKind = System.Text.Json.JsonValueKind.Object ->
+                    match str c "owner", str c "repository", str c "branch", str c "key" with
+                    | Some owner, Some name, Some branch, Some key ->
+                        ConnectForm.repository owner name branch |> Option.map (fun repo -> repo, Credential.create key)
+                    | _ -> None
+                | _ -> None
+            | _ -> None
+        with _ -> None

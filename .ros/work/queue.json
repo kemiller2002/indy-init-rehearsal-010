@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "indy-init-rehearsal-010",
-  "nextSeq": 38,
+  "nextSeq": 39,
   "items": [
     {
       "id": "COND-MISSION-001",
@@ -793,6 +793,27 @@
       "attachments": [],
       "createdAt": "2026-11-06T16:45:16.701Z",
       "updatedAt": "2026-11-06T16:47:23Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0038",
+      "title": "Held: deploy-time test data connection from the four Actions secrets (pending owner decision ODR-COMP-P13 / ODR-R10-36)",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-11-06T21:47:15.638Z",
+      "updatedAt": "2026-11-06T21:47:27.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -2,6 +2,11 @@
 //
 //   dotnet fsi build.fsx [--root DIR] [--out DIR]   (`npm run build`): the gate, then the site in dist/ (or --out)
 //   dotnet fsi build.fsx gate [--root DIR]          the gate alone; prints its verdict as JSON
+//   dotnet fsi build.fsx scan [--out DIR]           the credential scan of a built site alone
+//
+// CAUSA_DEPLOY_CONNECTION=1 (HELD until the owner records ODR-COMP-P13 / ODR-R10-36; set only by deploy-pages.yml's
+// build step): the site connects to the test data repository the four Actions secrets name (build/DeployConnection.fs).
+// Without it, as in every local and CI build, the secrets are never read and deploy-connection.json holds no connection.
 //
 // The gate is mandatory: the build never runs without it and stops unless it passes. It verifies the locked manifests
 // (global.json, Directory.Packages.props, package.json, package-lock.json, .echelon records) against each other and
@@ -15,6 +20,9 @@
 //   4. causa.css         web/causa.css followed by every web/screens/*.css, in the same order
 //   5. causa-theme.css, boundary.js, limen/ (Limen kernel ES modules), forma/all.css (the Forma stylesheet the shell links)
 //   6. build-info.json   the gate's verdict, the build inputs (digests) and the environment (tools, commit, CI run)
+//   7. deploy-connection.json   the deploy build's test data connection, or none (build/DeployConnection.fs)
+// Then the credential scan of dist/: any credential but the one injected key, where it is allowed, fails the build.
+#load "build/DeployConnection.fs"
 open System
 open System.Diagnostics
 open System.IO
@@ -29,6 +37,8 @@ let rec option name = function
     | _ :: rest -> option name rest
     | [] -> None
 let gateOnly = List.contains "gate" args
+let scanOnly = List.contains "scan" args
+let deployConnection = Environment.GetEnvironmentVariable "CAUSA_DEPLOY_CONNECTION" = "1"
 let root = option "--root" args |> Option.map Path.GetFullPath |> Option.defaultValue __SOURCE_DIRECTORY__
 let at (relative: string) = Path.Combine(root, relative)
 let dist = option "--out" args |> Option.map Path.GetFullPath |> Option.defaultValue (at "dist")
@@ -46,6 +56,26 @@ let run (dir: string) (file: string) (arguments: string) =
 let sha256 (path: string) =
     use s = File.OpenRead path
     Convert.ToHexString(SHA256.HashData s).ToLowerInvariant()
+
+// ---- the deploy connection and the credential scan ------------------------------------------------------------------
+/// The deploy build's settings: read from the environment only when CAUSA_DEPLOY_CONNECTION=1; every other build has none.
+let deploySettings () : Result<DeployConnection.Settings option, string> =
+    if deployConnection then DeployConnection.fromLookup (Environment.GetEnvironmentVariable >> Option.ofObj) else Ok None
+
+/// Scans `site` for credentials; prints each finding (file and reason, never a value) and returns whether it is clean.
+let scanSite (site: string) (settings: DeployConnection.Settings option) =
+    match DeployConnection.scan settings (DeployConnection.filesUnder site) with
+    | [] ->
+        printfn "credential scan: PASS (%s%s)" (Path.GetFileName site) (if settings.IsSome then "; the one deploy key, in " + DeployConnection.FileName + " only" else "; no credential")
+        true
+    | findings ->
+        for f in findings do eprintfn "credential scan: FAIL %s: %s" f.Path f.Reason
+        false
+
+if scanOnly then
+    match deploySettings () with
+    | Error why -> eprintfn "build.fsx: %s" why; exit 1
+    | Ok settings -> exit (if scanSite dist settings then 0 else 1)
 
 // ---- the gate -------------------------------------------------------------------------------------------------------
 type Status =
@@ -345,7 +375,7 @@ File.WriteAllText(Path.Combine(dist, ".nojekyll"), "")
 // whose inputs match but whose output differs is an environment difference, not a source change (AR-011-O2).
 let inputs =
     [ "global.json"; "Directory.Packages.props"; "Directory.Build.props"; "package.json"; "package-lock.json"
-      "build.fsx"; "web/index.html"; "web/boundary.js"; "web/causa.css"; "web/causa-theme.css"; "web/causa-icon.svg" ]
+      "build.fsx"; "build/DeployConnection.fs"; "web/index.html"; "web/boundary.js"; "web/causa.css"; "web/causa-theme.css"; "web/causa-icon.svg" ]
     |> List.map at
     |> fun fixedInputs -> fixedInputs @ screens @ ordered ".css"
 let environmentValue (name: string) = Environment.GetEnvironmentVariable name |> Option.ofObj |> Option.defaultValue ""
@@ -381,5 +411,15 @@ let record =
         w.WriteEndObject()
         w.WriteEndObject())
 File.WriteAllText(Path.Combine(dist, "build-info.json"), record)
+
+// ---- the deploy connection (HELD: ODR-COMP-P13 / ODR-R10-36) and the credential scan --------------------------------
+let settings =
+    match deploySettings () with
+    | Ok s -> s
+    | Error why -> fail why
+if deployConnection && settings.IsNone then
+    printfn "build.fsx: CAUSA_DEPLOY_CONNECTION=1 without the deploy secrets: the site shows the Connect form, as every other build."
+File.WriteAllText(Path.Combine(dist, DeployConnection.FileName), DeployConnection.render settings)
+if not (scanSite dist settings) then fail "the credential scan of the built site failed; nothing may be published."
 
 printfn "build.fsx: %s written (%d screen fragment(s)%s)" (relative dist) screens.Length (if screens.IsEmpty then "" else ": " + String.Join(", ", screens |> List.map Path.GetFileName))

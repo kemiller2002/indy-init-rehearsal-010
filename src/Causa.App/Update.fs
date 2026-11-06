@@ -554,7 +554,22 @@ module Update =
         | DraftsCleared keys -> { state with Drafts = keys |> List.fold (fun d k -> Map.remove k d) state.Drafts; Announcements = [] }, []
         | CredentialEntered credential -> { state with Credential = Some credential; Announcements = [] }, []
         | Announced(p, text) -> { state with Announcements = [ p, text ] }, []
-        | BuildRead read -> { state with Build = Some read; Announcements = [] }, []
+        // The deploy connection is read once, after the build record, so a page load still starts by reading only its
+        // build record (EXT-DATA-004-O3).
+        | BuildRead read -> { state with Build = Some read; Announcements = [] }, (if state.Build.IsNone then [ ReadDeployConnection ] else [])
+        // HELD (ODR-COMP-P13 / ODR-R10-36): a deploy build that injected the test data connection connects at once, as
+        // if the user had entered it; anything else (no connection, already connecting or connected) changes nothing.
+        | DeployConnectionRead(Ok text) ->
+            match DeployedConnection.parse text, state.Model.Connection with
+            | Some(repo, credential), Disconnected ->
+                let drafts =
+                    [ ConnectForm.Owner, repo.Owner; ConnectForm.Repository, repo.Name; ConnectForm.Branch, repo.Branch ]
+                    |> List.fold (fun d (k, v) -> Map.add k v d) state.Drafts
+                withModel
+                    { state with Credential = Some credential; Drafts = drafts; Announcements = [] }
+                    (step (Connection(ConnectionInput.ConnectSubmitted(repo, credential))) state.Model)
+            | _ -> { state with Announcements = [] }, []
+        | DeployConnectionRead(Error _) -> { state with Announcements = [] }, []
 
     /// One message at the host's clock.
     let update (msg: AppMsg) (state: AppState) : AppState * AppEffect list =

@@ -25,6 +25,8 @@ type AppMsg =
     | Announced of Politeness * string
     /// The build record was read (its text) or could not be read (why).
     | BuildRead of Result<string, string>
+    /// The deploy connection file was read (its text) or could not be read (why). HELD: ODR-COMP-P13 / ODR-R10-36.
+    | DeployConnectionRead of Result<string, string>
 
 /// What the integration engine asks the browser to do: the frozen IF41-APP host effects plus same-origin navigation.
 type AppEffect =
@@ -35,6 +37,8 @@ type AppEffect =
     | SubscribeConnectivity
     /// Read the page's own build record (./build-info.json, same origin, no credential), once after Initialize.
     | ReadBuildInfo
+    /// Read ./deploy-connection.json (same origin, no credential sent), once after the build record was read.
+    | ReadDeployConnection
 
 [<RequireQualifiedAccess>]
 module Events =
