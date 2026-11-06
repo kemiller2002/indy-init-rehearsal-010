@@ -1,0 +1,15 @@
+<!-- Owner: ui. Administration (UI-018, UI-020-O2, UI-031): read-only system facts, each with its status in words. -->
+<template data-if="screen.administration">
+  <section class="causa-screen causa-administration" aria-labelledby="administration-heading">
+    <h1 id="administration-heading" data-text="administration.heading">Administration</h1>
+    <p class="causa-intro" data-text="administration.intro"></p>
+    <dl class="ef-key-value-list causa-facts" aria-label="System facts">
+      <template data-each="administration.facts" data-key="key">
+        <div class="causa-fact">
+          <dt data-text="label"></dt>
+          <dd><span class="causa-fact__value" data-text="value"></span> <span class="ef-status-lozenge" data-bind-data-state="tone" data-text="status"></span></dd>
+        </div>
+      </template>
+    </dl>
+  </section>
+</template>

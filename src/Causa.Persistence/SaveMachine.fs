@@ -286,20 +286,26 @@ module InvestigationFiles =
             | _ -> None
         else None
 
-    let private blob (commit: JsonElement) (alias: string) : Result<byte[] option, string> =
+    type private Blob =
+        | Present of byte[]
+        | Absent
+        | Truncated of blobOid: string
+
+    let private blob (commit: JsonElement) (alias: string) : Result<Blob, string> =
         match prop alias commit |> Option.bind (prop "object") with
-        | None -> Ok None
+        | None -> Ok Absent
         | Some b ->
-            match prop "isTruncated" b, prop "text" b with
-            | Some t, _ when t.ValueKind = JsonValueKind.True -> Error(sprintf "%s is too large to read in one answer" alias)
-            | _, Some text ->
+            match prop "isTruncated" b, prop "text" b, prop "oid" b |> Option.bind (fun o -> Option.ofObj (o.GetString())) with
+            | Some t, _, Some oid when t.ValueKind = JsonValueKind.True -> Ok(Truncated oid)
+            | _, Some text, _ ->
                 match text.GetString() with
                 | null -> Error "binary file"
-                | s -> Ok(Some(System.Text.Encoding.UTF8.GetBytes s))
-            | _, None -> Error "binary file"
+                | s -> Ok(Present(System.Text.Encoding.UTF8.GetBytes s))
+            | _ -> Error "binary file"
 
-    /// Decodes a classified answer to GitHubRequests.investigationFiles.
-    let decode (answer: ProviderAnswer) : Result<InvestigationFilesAnswer, ProviderError> =
+    /// Decodes a classified answer to GitHubRequests.investigationFiles: the files GraphQL returned whole, and the
+    /// (alias, blob oid) of each file too large for one GraphQL answer, which is then read through the Git blobs API.
+    let decodeParts (answer: ProviderAnswer) : Result<InvestigationFilesAnswer * (string * string) list, ProviderError> =
         try
             use doc = JsonDocument.Parse answer.Body
             match prop "data" doc.RootElement |> Option.bind (prop "repository") |> Option.bind (prop "object") with
@@ -313,14 +319,30 @@ module InvestigationFiles =
                         match System.DateTimeOffset.TryParse(d, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal) with
                         | true, v -> Some v
                         | _ -> None)
-                match oid, blob commit "m", blob commit "e", blob commit "s" with
-                | Some o, Ok m, Ok e, Ok s ->
-                    Ok { Commit = CommitOid o; CommittedAt = at |> Option.defaultValue System.DateTimeOffset.MinValue; Manifest = m; Events = e; Snapshot = s }
+                let part alias =
+                    blob commit alias
+                    |> Result.map (function
+                        | Present b -> Some b, []
+                        | Absent -> None, []
+                        | Truncated o -> None, [ alias, o ])
+                match oid, part "m", part "e", part "s" with
+                | Some o, Ok(m, tm), Ok(e, te), Ok(sn, ts) ->
+                    Ok(
+                        { Commit = CommitOid o; CommittedAt = at |> Option.defaultValue System.DateTimeOffset.MinValue; Manifest = m; Events = e; Snapshot = sn },
+                        tm @ te @ ts
+                    )
                 | None, _, _, _ -> Error(Malformed "the files answer has no commit oid")
                 | _, Error d, _, _
                 | _, _, Error d, _
                 | _, _, _, Error d -> Error(Malformed d)
         with _ -> Error(Malformed "the files answer does not decode")
+
+    /// The answer with one file's bytes filled in.
+    let withFile (alias: string) (bytes: byte[]) (a: InvestigationFilesAnswer) =
+        match alias with
+        | "m" -> { a with Manifest = Some bytes }
+        | "e" -> { a with Events = Some bytes }
+        | _ -> { a with Snapshot = Some bytes }
 
     /// The complete file set, when all three files are present.
     let fileSet (a: InvestigationFilesAnswer) : FileSet option =
@@ -349,6 +371,15 @@ type SaveSupport =
       EventActor: Actor
       /// `<workspace>/investigations/<id>` (StorageCodec.PathOf).
       PathOf: Workspace -> InvestigationId -> RepoPath }
+
+/// T20: the REST read of one investigation's files at one commit, used when the GraphQL files read is refused or
+/// unsupported for the credential (an installation token without GraphQL access, a schema without Commit.file): the
+/// commit (oid and time), then each file at exactly that commit through the contents API, a large file through the Git
+/// blobs API. Steps inside the existing reads; no machine state is added.
+type internal RestFilesStep =
+    | RestCommit
+    | RestFile of alias: string
+    | RestBlob of alias: string
 
 /// SM-SAVE, SM-CONFLICT and SM-LOAD as state-machine-contracts.json decides them (IF41-SAVE).
 [<RequireQualifiedAccess>]
@@ -468,6 +499,15 @@ module SaveMachines =
         let gate = obj ()
         let versions = Dictionary<InvestigationId * CommitOid, VerifiedInvestigation>()
         let prepared = Dictionary<InvestigationId, PreparedSave>()
+        /// Which investigation a load or conflict read is for, by its (tab-unique) request identity.
+        let readsFor = Dictionary<RequestId, InvestigationRef>()
+        let mutable lastConflict: InvestigationRef option = None
+        let readFor (id: RequestId) (r: InvestigationRef) = lock gate (fun () -> readsFor[id] <- r)
+        let refOfRead (id: RequestId) =
+            lock gate (fun () ->
+                match readsFor.TryGetValue id with
+                | true, r -> Some r
+                | _ -> None)
         let remember (v: VerifiedInvestigation) =
             lock gate (fun () -> versions[(v.Investigation.Id, v.ReadAt)] <- v)
         let rememberAs (id: InvestigationId) (head: CommitOid) (v: VerifiedInvestigation) =
@@ -598,8 +638,166 @@ module SaveMachines =
             let request = GitHubRequests.compare ctx.NextId ctx.Connection s.BaseHead 1
             { s with Outstanding = Some(ctx.NextId, ReconcileCommits 1); ReconcileReadsSentAt = ctx.Now :: s.ReconcileReadsSentAt }, [ Send request ]
 
+        /// The revision and directory of each GraphQL files read, by request identity, so that a refused or
+        /// unsupported GraphQL read can be completed through REST at the same revision (T20).
+        let filesReads = Dictionary<RequestId, GitHubRequests.Revision * RepoPath>()
+
+        let filesRequest (ctx: RequestContext) (revision: GitHubRequests.Revision) (dir: RepoPath) =
+            lock gate (fun () -> filesReads[ctx.NextId] <- (revision, dir))
+            GitHubRequests.investigationFiles ctx.NextId ctx.Connection revision dir
+
         let conflictRead (ctx: RequestContext) (s: InvestigationSession) (revision: GitHubRequests.Revision) =
-            GitHubRequests.investigationFiles ctx.NextId ctx.Connection revision (dirOf s)
+            readFor ctx.NextId (refOf s)
+            lastConflict <- Some(refOf s)
+            filesRequest ctx revision (dirOf s)
+
+        /// Files reads whose large files are still being read through the Git blobs API, by the request now awaited.
+        let partial = Dictionary<RequestId, InvestigationFilesAnswer * (string * string) list>()
+
+        /// REST files reads in progress (T20), by the request now awaited: the directory, the step and what is read.
+        let restReads = Dictionary<RequestId, RepoPath * RestFilesStep * InvestigationFilesAnswer>()
+
+        let fileNameOf (alias: string) =
+            match alias with
+            | "m" -> "manifest.json"
+            | "e" -> "events.ndjson"
+            | _ -> "snapshot.json"
+
+        let nextAlias (alias: string option) =
+            match alias with
+            | None -> Some "m"
+            | Some "m" -> Some "e"
+            | Some "e" -> Some "s"
+            | _ -> None
+
+        /// Whether a GraphQL files read failed because GraphQL cannot be used for it (the credential or endpoint refuses
+        /// GraphQL, the schema lacks a field, the answer has an unexpected shape), not because of the repository: then
+        /// the same read is made through REST. A refused credential, a rate limit, a lost answer or a revision that does
+        /// not exist is not retried another way.
+        let graphQlUnusable (outcome: HttpOutcome) (error: ProviderError) =
+            match error, outcome with
+            | (PermissionDenied _ | Unrecognised _ | Malformed _ | ValidationFailed _), _ -> true
+            | NotFound _, Answered(_, status, _, body) ->
+                status = 404
+                || (try
+                        use doc = System.Text.Json.JsonDocument.Parse body
+                        not (Classify.graphQlErrors (Some(doc.RootElement.Clone()))).IsEmpty
+                    with _ -> false)
+            | _ -> false
+
+        /// The commit oid and committer time of a classified REST commit answer.
+        let commitOf (answer: ProviderAnswer) : Result<CommitOid * DateTimeOffset, ProviderError> =
+            try
+                use doc = System.Text.Json.JsonDocument.Parse answer.Body
+                let root = doc.RootElement
+                match root.TryGetProperty "sha" with
+                | true, sha when sha.ValueKind = System.Text.Json.JsonValueKind.String ->
+                    let at =
+                        match root.TryGetProperty "commit" with
+                        | true, c ->
+                            match c.TryGetProperty "committer" with
+                            | true, who ->
+                                match who.TryGetProperty "date" with
+                                | true, d when d.ValueKind = System.Text.Json.JsonValueKind.String ->
+                                    match DateTimeOffset.TryParse(d.GetString(), Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.AssumeUniversal) with
+                                    | true, v -> v
+                                    | _ -> DateTimeOffset.MinValue
+                                | _ -> DateTimeOffset.MinValue
+                            | _ -> DateTimeOffset.MinValue
+                        | _ -> DateTimeOffset.MinValue
+                    match sha.GetString() with
+                    | null -> Error(Malformed "the commit answer has no sha")
+                    | oid -> Ok(CommitOid oid, at)
+                | _ -> Error(Malformed "the commit answer has no sha")
+            with _ -> Error(Malformed "the commit answer does not decode")
+
+        /// The blob sha of a contents answer that carries no content (a file of 1 to 100 MB).
+        let blobShaOf (answer: ProviderAnswer) =
+            try
+                use doc = System.Text.Json.JsonDocument.Parse answer.Body
+                match doc.RootElement.TryGetProperty "sha" with
+                | true, sha when sha.ValueKind = System.Text.Json.JsonValueKind.String -> Option.ofObj (sha.GetString())
+                | _ -> None
+            with _ -> None
+
+        /// Reads one investigation's files: the GraphQL answer, then one blob read per file too large for it; or, when
+        /// GraphQL cannot be used, the REST read of the same revision (T20). Either the complete answer, or the next
+        /// request (sent with ctx.NextId, which the caller records as outstanding).
+        let readFiles (ctx: RequestContext) (outcome: HttpOutcome) : Result<Choice<InvestigationFilesAnswer, HttpRequest>, ProviderError> =
+            let id =
+                match outcome with
+                | Answered(id, _, _, _) -> id
+                | NotAnswered(id, _) -> id
+            let take (d: Dictionary<RequestId, 'v>) = lock gate (fun () -> match d.TryGetValue id with | true, p -> d.Remove id |> ignore; Some p | _ -> None)
+            let pending = take partial
+            let rest = take restReads
+            let graphQl = take filesReads
+            let carry () =
+                match refOfRead id with
+                | Some r -> readFor ctx.NextId r
+                | None -> ()
+            let next (answer, rest) =
+                match rest with
+                | [] -> Ok(Choice1Of2 answer)
+                | (_, oid) :: _ ->
+                    lock gate (fun () -> partial[ctx.NextId] <- (answer, rest))
+                    carry ()
+                    Ok(Choice2Of2(GitHubRequests.blob ctx.NextId ctx.Connection oid))
+            let restNext (dir: RepoPath) (step: RestFilesStep) (answer: InvestigationFilesAnswer) (request: HttpRequest) =
+                lock gate (fun () -> restReads[ctx.NextId] <- (dir, step, answer))
+                carry ()
+                Ok(Choice2Of2 request)
+            let restFile (RepoPath d as dir) (answer: InvestigationFilesAnswer) (after: string option) =
+                match nextAlias after with
+                | Some alias -> restNext dir (RestFile alias) answer (GitHubRequests.fileAt ctx.NextId ctx.Connection answer.Commit (RepoPath(d + "/" + fileNameOf alias)))
+                | None -> Ok(Choice1Of2 answer)
+            match pending, rest with
+            | Some(answer, (alias, oid) :: rest), _ ->
+                Classify.answer (ReadBlob oid) outcome
+                |> Result.bind (fun a ->
+                    match Classify.fileBytes a with
+                    | Some bytes -> Ok(InvestigationFiles.withFile alias bytes answer, rest)
+                    | None -> Error(Malformed "the blob answer has no content"))
+                |> Result.bind next
+            | _, Some(dir, RestCommit, answer) ->
+                Classify.answer (ReadCommit answer.Commit) outcome
+                |> Result.bind commitOf
+                |> Result.bind (fun (oid, at) -> restFile dir { answer with Commit = oid; CommittedAt = at } None)
+            | _, Some((RepoPath d as dir), RestFile alias, answer) ->
+                match Classify.answer (ReadFileAt(RepoPath(d + "/" + fileNameOf alias), answer.Commit)) outcome with
+                | Error(NotFound _) -> restFile dir answer (Some alias)
+                | Error e -> Error e
+                | Ok a ->
+                    // GH-LARGE-FILE: a file of 1 to 100 MB comes without content; its blob is read once.
+                    match Classify.isLargeFile a.Status a.Body, Classify.fileBytes a, blobShaOf a with
+                    | true, _, Some sha -> restNext dir (RestBlob alias) answer (GitHubRequests.blob ctx.NextId ctx.Connection sha)
+                    | false, Some bytes, _ -> restFile dir (InvestigationFiles.withFile alias bytes answer) (Some alias)
+                    | _ -> Error(Malformed "the file answer has no content")
+            | _, Some(dir, RestBlob alias, answer) ->
+                Classify.answer (ReadBlob alias) outcome
+                |> Result.bind (fun a ->
+                    match Classify.fileBytes a with
+                    | Some bytes -> restFile dir (InvestigationFiles.withFile alias bytes answer) (Some alias)
+                    | None -> Error(Malformed "the blob answer has no content"))
+            | _ ->
+                match Classify.answer (ReadInvestigationAt "files") outcome |> Result.bind InvestigationFiles.decodeParts with
+                | Ok parts -> next parts
+                | Error e when graphQlUnusable outcome e ->
+                    match graphQl with
+                    | Some(revision, dir) ->
+                        let rev =
+                            match revision with
+                            | GitHubRequests.BranchHead -> ctx.Connection.Repository.Branch
+                            | GitHubRequests.AtCommit(CommitOid oid) -> oid
+                        let start = { Commit = CommitOid rev; CommittedAt = DateTimeOffset.MinValue; Manifest = None; Events = None; Snapshot = None }
+                        restNext dir RestCommit start (GitHubRequests.commit ctx.NextId ctx.Connection (CommitOid rev))
+                    | None -> Error e
+                | Error e -> Error e
+
+        let verify (r: InvestigationRef) (files: InvestigationFilesAnswer) =
+            match InvestigationFiles.fileSet files with
+            | None -> Error None
+            | Some fs -> StorageReader.verify support.Kernel (Some r.Id) r.Address files.Commit fs |> Result.mapError Some
 
         let confirm (s: InvestigationSession) (c: Confirmation.T) =
             // The confirmed version becomes the base of the next save.
@@ -871,8 +1069,9 @@ module SaveMachines =
                     | Error AuthenticationFailed -> MachineEvent SaveInput.CredentialRefused
                     | Error e -> MachineEvent(SaveInput.ProviderRefused e)
                 | ReadBackAt commit ->
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = commit in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         let written = lastPrepared s.Id |> Option.map _.Written
                         match written, InvestigationFiles.fileSet files with
                         | Some w, Some readBack ->
@@ -896,8 +1095,9 @@ module SaveMachines =
                         match s.State with
                         | SaveState.UnknownOutcome _ -> MachineEvent SaveInput.ReconcileReadFailed
                         | _ -> MachineEvent SaveInput.RebaseReadFailed
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = fresh in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         match s.State, unchangedSinceBase s files with
                         | SaveState.UnknownOutcome _, true -> MachineEvent(SaveInput.ReconcileNothingWrittenHeadMoved fresh)
                         | _, true -> MachineEvent(SaveInput.StaleHeadUnrelated fresh)
@@ -940,8 +1140,9 @@ module SaveMachines =
                                     | None -> MachineEvent SaveInput.ReconcileNothingWrittenHeadUnchanged
                         with _ -> MachineEvent SaveInput.ReconcileReadFailed
                 | ReconcileFilesAt commit ->
-                    match Classify.answer (ReadInvestigationAt(let (CommitOid c) = commit in c)) outcome |> Result.bind InvestigationFiles.decode with
-                    | Ok files ->
+                    match readFiles ctx outcome with
+                    | Ok(Choice2Of2 request) -> NextRequest({ s with Outstanding = Some(ctx.NextId, awaited) }, request)
+                    | Ok(Choice1Of2 files) ->
                         match lastPrepared s.Id, InvestigationFiles.fileSet files with
                         | Some p, Some readBack ->
                             match Confirmation.ofReadBack s.Id commit files.CommittedAt p.Written readBack with
@@ -953,9 +1154,14 @@ module SaveMachines =
         // SM-CONFLICT
         let stepConflict (ctx: RequestContext) (view: ConflictView) (input: ConflictInput) =
             let refuse reason = Error(fault "SM-CONFLICT" (viewName view) (conflictInputName input) reason)
-            let reread () =
-                // The investigation is named by the version under review; ReadAgain re-reads at the branch's head.
-                ReadingRemote ctx.NextId
+            /// Re-reads the investigation under review at the branch's current head.
+            let reread (r: InvestigationRef option) =
+                match r |> Option.orElse lastConflict with
+                | Some r ->
+                    readFor ctx.NextId r
+                    Ok(ReadingRemote ctx.NextId, [ Send(filesRequest ctx GitHubRequests.BranchHead (support.PathOf r.Address.Workspace r.Id)) ])
+                | None -> refuse "no investigation is under review"
+            let ofVersion (v: VerifiedInvestigation) = Some { Address = v.Address; Id = v.Investigation.Id }
             match view, input with
             | ReadingRemote _, ConflictInput.RemoteVerified v -> Ok(Reviewable v, [])
             | ReadingRemote _, ConflictInput.RemoteReadFailed _ -> Ok(RemoteUnavailable, [])
@@ -966,7 +1172,7 @@ module SaveMachines =
                     | Some f -> sprintf "GitHub's version does not verify (%A); your changes are kept." f
                 Ok(Unresolvable reason, [])
             | ReadingRemote id, ConflictInput.SupersededReply r when r <> id -> Ok(view, [])
-            | Reviewable _, ConflictInput.ReadAgain -> Ok(reread (), [])
+            | Reviewable v, ConflictInput.ReadAgain -> reread (ofVersion v)
             | Reviewable _, ConflictInput.ReviewChosen -> Ok(view, [])
             | Reviewable v, ConflictInput.ReapplyChosen -> Ok(Reapplying v, [])
             | Reviewable v, ConflictInput.DiscardChosen ->
@@ -975,8 +1181,8 @@ module SaveMachines =
             | Reapplying v, ConflictInput.ReapplyDone(_, refused) -> Ok(Reapplied(v, refused), [])
             | ConfirmingDiscard v, ConflictInput.DiscardConfirmed -> Ok(Discarded v, [])
             | ConfirmingDiscard v, ConflictInput.DiscardCancelled -> Ok(Reviewable v, [])
-            | RemoteUnavailable, ConflictInput.ReadAgain -> Ok(reread (), [])
-            | Unresolvable _, ConflictInput.ReadAgain -> Ok(reread (), [])
+            | RemoteUnavailable, ConflictInput.ReadAgain -> reread None
+            | Unresolvable _, ConflictInput.ReadAgain -> reread None
             // The engine fills the export with the session's unsaved commands (Unsaved @ AfterInFlight).
             | Unresolvable _, ConflictInput.ExportChosen -> Ok(view, [ ExportCommands [] ])
             | _ -> refuse (sprintf "SM-CONFLICT/%s/%s is not a transition of the machine" (viewName view) (conflictInputName input))
@@ -988,9 +1194,17 @@ module SaveMachines =
                 | NotAnswered(id, _) -> id
             match view with
             | ReadingRemote current when current = id ->
-                match Classify.answer (ReadInvestigationAt "conflict") outcome |> Result.bind InvestigationFiles.decode with
-                | Ok files when InvestigationFiles.absent files -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
-                | Ok _ -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid(Some(VerificationFailure.SchemaInvalid("investigation", "verification of GitHub's version is pending"))))
+                match readFiles ctx outcome with
+                | Ok(Choice2Of2 request) -> ConflictNextRequest(ReadingRemote ctx.NextId, request)
+                | Ok(Choice1Of2 files) when InvestigationFiles.absent files -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
+                | Ok(Choice1Of2 files) ->
+                    match refOfRead id with
+                    | None -> ConflictEvent(ConflictInput.SupersededReply id)
+                    | Some r ->
+                        match verify r files with
+                        | Ok v -> ConflictEvent(ConflictInput.RemoteVerified v)
+                        | Error None -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
+                        | Error(Some failures) -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid(List.tryHead failures))
                 | Error(NetworkUnavailable f) -> ConflictEvent(ConflictInput.RemoteReadFailed f)
                 | Error(NotFound _) -> ConflictEvent(ConflictInput.RemoteMissingOrInvalid None)
                 | Error _ -> ConflictEvent(ConflictInput.RemoteReadFailed LostAfterSending)
@@ -1002,7 +1216,8 @@ module SaveMachines =
             match state, input with
             | NotLoaded, LoadInput.OpenRequested r
             | LoadFailed _, LoadInput.OpenRequested r ->
-                let request = GitHubRequests.investigationFiles ctx.NextId ctx.Connection GitHubRequests.BranchHead (support.PathOf r.Address.Workspace r.Id)
+                readFor ctx.NextId r
+                let request = filesRequest ctx GitHubRequests.BranchHead (support.PathOf r.Address.Workspace r.Id)
                 Ok(Loading(ctx.NextId, LoadHead), [ Send request ])
             | Loading _, LoadInput.LoadVerified v ->
                 remember v
@@ -1011,8 +1226,9 @@ module SaveMachines =
             | Loading(id, _), LoadInput.SupersededReply r when r <> id -> Ok(state, [])
             | Loaded _, LoadInput.WentOffline -> Ok(state, [])
             | Loaded v, LoadInput.RefreshRequested ->
+                readFor ctx.NextId { Address = v.Address; Id = v.Investigation.Id }
                 let request =
-                    GitHubRequests.investigationFiles ctx.NextId ctx.Connection GitHubRequests.BranchHead (support.PathOf v.Address.Workspace v.Investigation.Id)
+                    filesRequest ctx GitHubRequests.BranchHead (support.PathOf v.Address.Workspace v.Investigation.Id)
                 Ok(Loading(ctx.NextId, LoadHead), [ Send request ])
             | Loaded _, LoadInput.SupersededReply _ -> Ok(state, [])
             | UnavailableOffline, LoadInput.WentOnline -> Ok(NotLoaded, [])
@@ -1025,10 +1241,17 @@ module SaveMachines =
                 | NotAnswered(id, _) -> id
             match state with
             | Loading(current, _) when current = id ->
-                match Classify.answer (ReadInvestigationAt "load") outcome |> Result.bind InvestigationFiles.decode with
-                | Ok files when InvestigationFiles.absent files -> LoadEvent(LoadInput.LoadRejected(ProviderFailed(NotFound "investigation")))
-                | Ok _ ->
-                    LoadEvent(LoadInput.LoadRejected(Unverifiable [ VerificationFailure.SchemaInvalid("investigation", "the storage reader is not available in this build") ]))
+                match readFiles ctx outcome with
+                | Ok(Choice2Of2 request) -> LoadNextRequest(Loading(ctx.NextId, LoadHead), request)
+                | Ok(Choice1Of2 files) when InvestigationFiles.absent files -> LoadEvent(LoadInput.LoadRejected(ProviderFailed(NotFound "investigation")))
+                | Ok(Choice1Of2 files) ->
+                    match refOfRead id with
+                    | None -> LoadEvent(LoadInput.SupersededReply id)
+                    | Some r ->
+                        match verify r files with
+                        | Ok v -> LoadEvent(LoadInput.LoadVerified v)
+                        | Error None -> LoadEvent(LoadInput.LoadRejected(Unverifiable [ VerificationFailure.ReaderStage("CAUSA.PATH_INVALID", "investigation", None, "the directory does not hold exactly manifest.json, events.ndjson and snapshot.json") ]))
+                        | Error(Some failures) -> LoadEvent(LoadInput.LoadRejected(Unverifiable failures))
                 | Error e -> LoadEvent(LoadInput.LoadRejected(ProviderFailed e))
             | _ -> LoadEvent(LoadInput.SupersededReply id)
 

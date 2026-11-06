@@ -1,0 +1,10 @@
+<!-- Owner: ui. investigation-list (UI-020): the Investigations destination. The connection region and the listing are
+     added here by their slices. -->
+<template data-if="screen.investigations">
+  <section class="causa-screen causa-investigations" aria-labelledby="investigations-heading">
+    <h1 id="investigations-heading" data-text="investigations.heading">Investigations</h1>
+    <template data-if="investigations.status">
+      <p class="causa-note" data-text="investigations.status"></p>
+    </template>
+  </section>
+</template>

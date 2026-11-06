@@ -4,7 +4,7 @@
   "repository": "indy-init-rehearsal-010",
   "actor": "domain",
   "startedAt": "2026-11-06T16:40:13.993Z",
-  "updatedAt": "2026-11-06T17:19:11Z",
+  "updatedAt": "2026-11-06T18:27:59Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -29,29 +29,8 @@
       "evidence": [],
       "updatedAt": "2026-11-06T16:47:23Z",
       "telemetryExecutionIds": [
-        "EXE-20261106T164732877Z-65d0154e",
-        "EXE-20261106T190940556Z-e6aa6436"
-      ],
-      "latestCheckpoint": {
-        "id": "775798bbb1fa4cc0339bb1e5",
-        "recordedAt": "2026-11-06T19:10:02Z",
-        "executionId": "EXE-20261106T190940556Z-e6aa6436",
-        "repository": "indy-init-rehearsal-010",
-        "branch": "setup/praxis-checkpoints",
-        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "remote": {
-          "name": "origin",
-          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
-        },
-        "remoteBranch": "setup/praxis-checkpoints",
-        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "summary": "T10: slice/SL-T10 head f8ae9f2 (VER-001/002/003/005 release-baseline acceptance tests; FSharp.Core under CPM) merged to main in 7186a38 under owner rule B (implementer-verified, not governed-accepted); checkpoint observed on setup/praxis-checkpoints over main ae04f44",
-        "nextAction": "Governed acceptance by the verification gate; AR-023 needs its independent-review record; not complete",
-        "verification": {
-          "status": "verified",
-          "mechanism": "git-remote-observation"
-        }
-      }
+        "EXE-20261106T164732877Z-65d0154e"
+      ]
     },
     {
       "id": "WI-0002",
@@ -61,29 +40,8 @@
       "evidence": [],
       "updatedAt": "2026-11-06T17:19:11Z",
       "telemetryExecutionIds": [
-        "EXE-20261106T171912199Z-f6eebfae",
-        "EXE-20261106T190948295Z-1c0dafb8"
-      ],
-      "latestCheckpoint": {
-        "id": "ef13112a7aae55d9c54caf40",
-        "recordedAt": "2026-11-06T19:10:03Z",
-        "executionId": "EXE-20261106T190948295Z-1c0dafb8",
-        "repository": "indy-init-rehearsal-010",
-        "branch": "setup/praxis-checkpoints",
-        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "remote": {
-          "name": "origin",
-          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
-        },
-        "remoteBranch": "setup/praxis-checkpoints",
-        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "summary": "T11: slice/SL-T11 head 1c4ade2 (stack lock and compatibility gate, WASM runtime pipeline, VER-004/006/008 tests) merged to main in d6ad873 under owner rule B (implementer-verified, not governed-accepted); checkpoint observed on setup/praxis-checkpoints over main ae04f44",
-        "nextAction": "Governed acceptance by the verification gate; not complete",
-        "verification": {
-          "status": "verified",
-          "mechanism": "git-remote-observation"
-        }
-      }
+        "EXE-20261106T171912199Z-f6eebfae"
+      ]
     },
     {
       "id": "WI-0003",
@@ -93,29 +51,85 @@
       "evidence": [],
       "updatedAt": "2026-11-06T17:17:13Z",
       "telemetryExecutionIds": [
-        "EXE-20261106T171713776Z-a5ba0d39",
-        "EXE-20261106T190948766Z-2eaefedf"
-      ],
-      "latestCheckpoint": {
-        "id": "2df99be7b2cb53d1741b7206",
-        "recordedAt": "2026-11-06T19:10:04Z",
-        "executionId": "EXE-20261106T190948766Z-2eaefedf",
-        "repository": "indy-init-rehearsal-010",
-        "branch": "setup/praxis-checkpoints",
-        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "remote": {
-          "name": "origin",
-          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
-        },
-        "remoteBranch": "setup/praxis-checkpoints",
-        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
-        "summary": "T12: slice/SL-T12 head 7a1be97 (domain kernel types, SM-SAVE/SM-CONFLICT and INV-03/07/25 invariant tests; also carries T19 commit 2a4ae18) merged to main in ae04f44 under owner rule B (implementer-verified, not governed-accepted)",
-        "nextAction": "Remaining T12 invariant inventory per the plan, then governed acceptance by the verification gate; not complete",
-        "verification": {
-          "status": "verified",
-          "mechanism": "git-remote-observation"
-        }
-      }
+        "EXE-20261106T171713776Z-a5ba0d39"
+      ]
+    },
+    {
+      "id": "WI-0004",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:26:09Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172609515Z-3923f14a"
+      ]
+    },
+    {
+      "id": "WI-0005",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:22:16Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172216498Z-892104ac"
+      ]
+    },
+    {
+      "id": "WI-0006",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:28:20Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172820760Z-67e0e29a"
+      ]
+    },
+    {
+      "id": "WI-0007",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:25:28Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172529170Z-c59a46dd"
+      ]
+    },
+    {
+      "id": "WI-0009",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:16:08Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171608548Z-87460711"
+      ]
+    },
+    {
+      "id": "WI-0010",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:32:18Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T173218407Z-a25885c8"
+      ]
+    },
+    {
+      "id": "WI-0011",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T18:27:59Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T182800040Z-42992ff6"
+      ]
     }
   ]
 }

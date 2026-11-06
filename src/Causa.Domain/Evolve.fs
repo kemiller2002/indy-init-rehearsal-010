@@ -62,6 +62,139 @@ module Evolve =
           Correlations = Map.ofList [ env.Provenance.CorrelationId, [ env.EventId ] ]
           History = [ env ] }
 
+    /// Admissibility a stored event must meet against the replayed state, beyond its structure: the transition tables
+    /// (STATE-TRANSITION-TABLES sections 1, 2 and 10) and the core cause-confirmation and resolution gates, which a
+    /// history cannot bypass (negative fixtures illegal-hypothesis-transition, forged-cause-confirmation,
+    /// forged-resolution).
+    let private admissible (s: Investigation) (env: EventEnvelope) (e: CoreEvent) : Result<unit, string> =
+        let blockers (rule: Policy.Rule) command =
+            match rule.Check s command with
+            | [] -> Ok()
+            | bs -> Error(String.Join("; ", bs |> List.map (fun b -> b.Code)))
+        match e with
+        | HypothesisMarkedPlausible t
+        | HypothesisMarkedSupported t
+        | HypothesisWeakened t
+        | HypothesisFalsified t
+        | HypothesisSuperseded t
+        | HypothesisReopened t ->
+            let _, target = (Events.hypothesisChange e).Value
+            let isReopen = match e with HypothesisReopened _ -> true | _ -> false
+            if List.contains t.From (Transitions.hypothesisEventFrom target isReopen) then Ok()
+            else Error $"{Events.caseName e} is not allowed from {WireEnum.toWire Enums.hypothesisState t.From}"
+        | InvestigationActivated _
+        | InvestigationMarkedAwaitingEvidence _
+        | InvestigationMarkedAwaitingVerification _
+        | InvestigationResolved _
+        | InvestigationClosed _
+        | InvestigationReopened _
+        | InvestigationVerificationFailed _ ->
+            let from, target = (Events.lifecycleChange e).Value
+            let isReopen = match e with InvestigationReopened _ -> true | _ -> false
+            let isFailure = match e with InvestigationVerificationFailed _ -> true | _ -> false
+            if not (List.contains from (Transitions.lifecycleEventFrom target isReopen isFailure)) then
+                Error $"{Events.caseName e} is not allowed from {WireEnum.toWire Enums.lifecycle from}"
+            else
+                match e with
+                | InvestigationResolved _ -> blockers Policy.resolutionGate ResolveInvestigation
+                | _ -> Ok()
+        | CauseConfirmed p ->
+            match s.Causes.TryFind p.CauseId with
+            | Some c when not (List.contains c.State Transitions.confirmCauseFrom) ->
+                Error $"the cause is already {WireEnum.toWire Enums.causeState c.State}"
+            | _ -> blockers Policy.causeConfirmationGate (ConfirmCause p)
+        | _ -> Ok()
+
+    /// Domain rules a stored event must meet beyond its transition (the reference engine's admissibility rules that
+    /// causa-storage's negative fixtures name). Each returns the rule code that refuses the event.
+    let private semantic (s: Investigation) (env: EventEnvelope) (e: CoreEvent) : Result<unit, string> =
+        let fail code detail = Error $"{code}: {detail}"
+        let isLifecycle = (Events.lifecycleChange e).IsSome
+        let materialOpenUnknown =
+            s.Unknowns |> Map.exists (fun _ u ->
+                (u.Unknown.Materiality = Materiality.Blocking)
+                && (u.State = UnknownState.Identified || u.State = UnknownState.Investigating))
+        match e with
+        | _ when not isLifecycle && not (Transitions.recordingAllowedIn s.Lifecycle) ->
+            fail "INVESTIGATION.NOT_OPEN" $"{Events.caseName e} while the investigation is {WireEnum.toWire Enums.lifecycle s.Lifecycle}"
+        | InvestigationMarkedAwaitingVerification _ when
+            not (s.CorrectiveActions |> Map.exists (fun _ a ->
+                    match a.State with
+                    | CorrectiveActionState.Implemented
+                    | CorrectiveActionState.AwaitingVerificationOfEffect
+                    | CorrectiveActionState.VerifiedEffective
+                    | CorrectiveActionState.VerificationFailed -> true
+                    | _ -> false)) ->
+            fail "LIFECYCLE.NO_VERIFICATION_WORK" "no corrective action is implemented"
+        | EvidenceSuperseded p when p.EvidenceId = p.ReplacementEvidenceId -> fail "EVIDENCE.SELF" "evidence supersedes itself"
+        | EvidenceSuperseded p when (s.Evidence.TryFind p.EvidenceId |> Option.exists (fun x -> x.SupersededBy.IsSome)) ->
+            fail "EVIDENCE.ALREADY_SUPERSEDED" "the evidence is already superseded"
+        | EvidenceAdmitted p when p.ContentKind = ContentKind.Artifact ->
+            match Uri.TryCreate(p.Content.Value, UriKind.Absolute) with
+            | true, NonNull uri when (uri.Scheme = Uri.UriSchemeHttp || uri.Scheme = Uri.UriSchemeHttps) && uri.Host <> "" && uri.OriginalString = p.Content.Value -> Ok()
+            | _ -> fail "EVIDENCE.URL" "artifact evidence is not a well-formed absolute http(s) URL"
+        | FindingRecorded p when
+            (s.Actions.TryFind p.ActionId |> Option.exists (fun a -> a.State = ActionState.Rejected || a.State = ActionState.Cancelled)) ->
+            fail "ACTION.NOT_EXECUTABLE" "a finding for a rejected or cancelled action"
+        | ProposalAccepted(id, _)
+        | ProposalRejected(id, _) when (s.Proposals.TryFind id |> Option.exists (fun p -> p.State <> ProposalState.Active)) ->
+            fail "PROPOSAL.NOT_ACTIVE" "the proposal was already decided"
+        | CorrectiveActionAwaitingVerificationOfEffect id when not (s.Criteria |> Map.exists (fun _ c -> c.Value.CorrectiveActionId = id)) ->
+            fail "CORRECTION.NO_CRITERIA" "verification of effect starts without success criteria"
+        | HypothesisReopened t ->
+            let falsifiedAt =
+                s.Hypotheses.TryFind t.HypothesisId
+                |> Option.bind (fun h -> h.History |> List.filter (fun c -> c.To = HypothesisState.Falsified) |> List.tryLast)
+                |> Option.map (fun c -> AggregateVersion.value c.Version)
+            let isNew (id: EvidenceId) =
+                match s.Evidence.TryFind id, falsifiedAt with
+                | Some x, Some at -> AggregateVersion.value x.Provenance.AtVersion > at
+                | _ -> false
+            if t.EvidenceIds |> List.exists isNew then Ok()
+            else fail "HYPOTHESIS.REOPEN_NEEDS_NEW_EVIDENCE" "reopening cites no evidence admitted after the falsification"
+        | ConclusionRecorded p when p.ResidualUncertainty.IsNone && materialOpenUnknown ->
+            fail "CONCLUSION.RESIDUAL_REQUIRED" "a blocking unknown is open and the conclusion states no residual uncertainty"
+        | ConclusionRecorded p when
+            p.Strength = ConclusionStrength.ConfirmedCause
+            && not (p.CauseIds |> List.forall (fun c -> s.Causes.TryFind c |> Option.exists (fun x -> x.State = CauseState.Confirmed))) ->
+            fail "CONCLUSION.UNSUPPORTED" "the conclusion claims a cause that is not confirmed"
+        | PredictionRecorded p when
+            p.Timing = PredictionTiming.Prospective
+            && (s.Findings |> Map.exists (fun _ f ->
+                    s.Actions.TryFind f.Value.ActionId |> Option.exists (fun a -> List.contains p.HypothesisId a.Action.TargetHypothesisIds))) ->
+            fail "PREDICTION.TIMING" "a prospective prediction recorded after a relevant finding"
+        | VerificationRecorded p when p.Outcome = VerificationOutcome.Satisfied ->
+            let since =
+                s.Criteria.TryFind p.CriterionId
+                |> Option.bind (fun c -> s.CorrectiveActions.TryFind c.Value.CorrectiveActionId)
+                |> Option.bind (fun a -> a.AwaitingSince)
+            match since with
+            | Some at when
+                p.EvidenceIds |> List.exists (fun id ->
+                    s.Evidence.TryFind id |> Option.exists (fun x -> AggregateVersion.value x.Provenance.AtVersion < AggregateVersion.value at)) ->
+                fail "VERIFICATION.EVIDENCE_PREDATES_ROUND" "a satisfied verification cites evidence admitted before verification started"
+            | _ -> Ok()
+        | HypothesisRecorded _
+        | ProposalRecorded _ when
+            (match env.Provenance.Actor.Kind with ActorKind.Agent _ -> true | _ -> false)
+            && (let statement =
+                    match e with
+                    | HypothesisRecorded p -> Some p.Statement.Value
+                    | ProposalRecorded p when p.Kind = ProposalKind.Hypothesis -> Some p.ProposalText.Value
+                    | _ -> None
+                match statement with
+                | Some text ->
+                    s.Hypotheses |> Map.exists (fun _ h ->
+                        h.State = HypothesisState.Falsified
+                        && String.Equals(h.Hypothesis.Statement.Value.Trim(), text.Trim(), StringComparison.OrdinalIgnoreCase))
+                | None -> false) ->
+            fail "PROPOSAL.REPEATS_NEGATIVE_KNOWLEDGE" "an agent proposes an explanation already falsified (R5.4)"
+        | _ ->
+            match s.History with
+            | last :: _ when last.Provenance.CorrelationId = env.Provenance.CorrelationId && last.Provenance.OccurredAt <> env.Provenance.OccurredAt ->
+                fail "COMMAND.TIME_DISAGREEMENT" "events of one command disagree on occurredAt"
+            | _ -> Ok()
+
     /// One step of the fold for an investigation that exists.
     let private step (s: Investigation) (env: EventEnvelope) (e: CoreEvent) : Result<Investigation, string> =
         let prov = { Actor = env.Provenance.Actor; RecordedAt = env.Provenance.OccurredAt; AtVersion = env.Version }
@@ -223,6 +356,28 @@ module Evolve =
         | true, last :: _ -> last.Provenance.CorrelationId = c
         | true, [] -> false
 
+    /// The envelopes an Allowed decision would append, with a placeholder provenance (no clock is read; the time is
+    /// the state's last), folded through evolve: Ok when every event the decision allows also evolves.
+    let rehearse (actor: Actor) (state: Investigation option) (command: CommandEnvelope) (events: EventPayload list) (evolve: Investigation option -> EventEnvelope -> Result<Investigation, ProjectionError>) =
+        let start = state |> Option.map (fun s -> AggregateVersion.value s.Version) |> Option.defaultValue 0L
+        let at = state |> Option.map (fun s -> s.UpdatedAt) |> Option.defaultValue DateTimeOffset.UnixEpoch
+        events
+        |> List.indexed
+        |> List.fold
+            (fun acc (i, payload) ->
+                acc
+                |> Result.bind (fun s ->
+                    let env =
+                        { EventId = EventId command.CommandId
+                          Investigation = command.Investigation
+                          Version = AggregateVersion(start + int64 (i + 1))
+                          Provenance =
+                            { OccurredAt = at; Actor = actor; CorrelationId = command.CommandId
+                              FormatVersion = Events.formatVersion; SemanticVersion = Events.semanticVersion }
+                          Payload = payload }
+                    evolve s env |> Result.map Some))
+            (Ok state)
+
     /// IF41-DOMAIN Evolve.
     let evolve (state: Investigation option) (env: EventEnvelope) : Result<Investigation, ProjectionError> =
         let fail reason = Error { At = env.Version; Reason = reason }
@@ -238,7 +393,7 @@ module Evolve =
                 fail $"version {AggregateVersion.value env.Version} does not follow {AggregateVersion.value s.Version}"
             elif not (correlationFree s env) then fail $"correlation {txt env.Provenance.CorrelationId} reused"
             else
-                match step s env e with
+                match admissible s env e |> Result.bind (fun () -> semantic s env e) |> Result.bind (fun () -> step s env e) with
                 | Error reason -> fail $"{Events.caseName e}: {reason}"
                 | Ok next ->
                     let c = env.Provenance.CorrelationId
@@ -249,3 +404,13 @@ module Evolve =
                             UpdatedAt = env.Provenance.OccurredAt
                             Correlations = next.Correlations.Add(c, ids @ [ env.EventId ])
                             History = env :: next.History }
+
+    /// Decide with the core invariant firewall: an Allowed decision whose events would not evolve (a structural or
+    /// admissibility rule refuses one) is Blocked with that rule. Capabilities and the kernel both decide through this.
+    let decide (policies: PolicySet) (actor: ActorContext) (state: Investigation option) (command: CommandEnvelope) : Decision =
+        match Decide.decide policies actor state command, NonEmptyText.tryCreate actor.ActorId with
+        | Allowed events, Some id ->
+            match rehearse ({ ActorId = id; Kind = ActorKind.Human }: Actor) state command events evolve with
+            | Ok _ -> Allowed events
+            | Error e -> Blocked [ { Code = "invariant.violation"; Message = e.Reason } ]
+        | decision, _ -> decision
