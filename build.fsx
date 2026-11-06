@@ -330,7 +330,7 @@ File.WriteAllText(Path.Combine(dist, "index.html"), shell.Replace(marker, marker
 
 let styles = at "web/causa.css" :: ordered ".css"
 File.WriteAllText(Path.Combine(dist, "causa.css"), styles |> List.map File.ReadAllText |> String.concat "\n")
-for name in [ "causa-theme.css"; "boundary.js" ] do
+for name in [ "causa-theme.css"; "boundary.js"; "causa-icon.svg" ] do
     File.Copy(at ("web/" + name), Path.Combine(dist, name), true)
 copyDir (at "node_modules/@echelon-foundry/limen/dist") (Path.Combine(dist, "limen")) (fun f -> f.EndsWith ".js")
 copyDir (at "node_modules/@echelon-foundry/design-system/dist") (Path.Combine(dist, "forma")) (fun f -> not (f.EndsWith ".map"))
@@ -341,7 +341,7 @@ File.WriteAllText(Path.Combine(dist, ".nojekyll"), "")
 // whose inputs match but whose output differs is an environment difference, not a source change (AR-011-O2).
 let inputs =
     [ "global.json"; "Directory.Packages.props"; "Directory.Build.props"; "package.json"; "package-lock.json"
-      "build.fsx"; "web/index.html"; "web/boundary.js"; "web/causa.css"; "web/causa-theme.css" ]
+      "build.fsx"; "web/index.html"; "web/boundary.js"; "web/causa.css"; "web/causa-theme.css"; "web/causa-icon.svg" ]
     |> List.map at
     |> fun fixedInputs -> fixedInputs @ screens @ ordered ".css"
 let environmentValue (name: string) = Environment.GetEnvironmentVariable name |> Option.ofObj |> Option.defaultValue ""
