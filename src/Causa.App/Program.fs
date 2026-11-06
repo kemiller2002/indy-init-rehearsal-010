@@ -464,12 +464,11 @@ module Program =
                 | Error m, _
                 | _, Error m -> Some(announce m)
             | "investigation.evidence.record" ->
-                // causa-storage v1.0.0 stores the evidence's content and source; the label has no field (OD-HC-06). With
-                // no content entered the label is the content; with no source entered, the source is this application.
-                let orElse (fallback: string) (v: string) = if System.String.IsNullOrWhiteSpace v then fallback else v
-                let content = d "investigation.evidence.content" |> orElse (d "investigation.evidence.label")
-                let source = d "investigation.evidence.source" |> orElse "Entered by the investigator in Causa"
-                match bounded "Evidence content" 10000 content, bounded "Source" 2000 source with
+                // Evidence keeps exactly the content and source entered (the label has no v1.0.0 field, OD-HC-06); a
+                // missing one is refused with every failed rule shown, never filled in (INV-028).
+                let content = d "investigation.evidence.content"
+                let source = d "investigation.evidence.source"
+                match bounded "Evidence original content" 10000 content, bounded "Evidence source reference" 2000 source with
                 | Ok content, Ok source ->
                     Some(
                         onRoute env state
@@ -483,6 +482,7 @@ module Program =
                                   CapturedAt = None })
                             [ "investigation.evidence.content"; "investigation.evidence.source"; "investigation.evidence.label"; "investigation.evidence.url" ]
                     )
+                | Error a, Error b -> Some(announce (a + " " + b))
                 | Error m, _
                 | _, Error m -> Some(announce m)
             | "investigation.link.relate" -> Some(relate env state false)
