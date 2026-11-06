@@ -1,7 +1,7 @@
-<!-- Owner: ui-2. Save state detail (PERSIST-030..033): what the state means and its recovery actions (Forma operation
-     status), the last confirmed save (Forma freshness), conflict review (Forma conflict review: this tab's version,
-     GitHub's version, the kept changes and the legal choices), the connection state and every investigation of this
-     tab whose changes GitHub does not have. The state itself (role=status "Save state") and Save are in the header. -->
+<!-- Owner: ui-2. The workspace's save summary (PERSIST-030 O6, PERSIST-031 O23, PERSIST-033): the assertive
+     announcement of Conflict, Unknown commit outcome and Save failed, the connection state, the offline notice while
+     Saved, and every investigation of this tab whose changes GitHub does not have. The indicator itself, its operation
+     status and the conflict review are in the workspace header (workspace-frame). -->
 <template data-if="screen.investigation">
   <div class="causa-save-panel">
     <span class="causa-visually-hidden" aria-live="assertive" data-text="investigation.save.assertiveText"></span>
@@ -16,66 +16,6 @@
           <template data-each="investigation.notSaved.items" data-key="key"><li><a data-bind-href="href" data-text="title"></a></li></template>
         </ul>
       </nav>
-    </template>
-    <template data-if="investigation.save.shown">
-      <section class="ef-operation-status causa-save-detail" aria-labelledby="causa-save-detail-title" data-requirement-id="PERSIST-030">
-        <div class="ef-operation-status__symbol" aria-hidden="true" data-text="investigation.save.glyph"></div>
-        <div>
-          <h2 id="causa-save-detail-title" class="causa-visually-hidden">Save details</h2>
-          <p data-text="investigation.save.text"></p>
-          <template data-if="investigation.save.hasLastSaved">
-            <p class="ef-freshness"><span class="ef-freshness__label">Last saved</span> <time data-bind-datetime="investigation.save.lastSavedIso" data-text="investigation.save.lastSaved"></time></p>
-          </template>
-        </div>
-        <div class="ef-operation-status__actions">
-          <template data-if="investigation.save.canCheckAgain">
-            <button type="button" data-event="investigation.save.check-again">Check again</button>
-          </template>
-          <template data-if="investigation.save.canReconnect">
-            <button type="button" data-event="investigation.save.reconnect">Reconnect</button>
-          </template>
-        </div>
-      </section>
-    </template>
-    <template data-if="investigation.conflict.shown">
-      <article class="ef-conflict-review causa-conflict" aria-labelledby="causa-conflict-title" data-requirement-id="PERSIST-012">
-        <header class="ef-conflict-review__header">
-          <span class="ef-status-lozenge" data-state="blocked">Conflict</span>
-          <h2 id="causa-conflict-title">Another writer changed this investigation</h2>
-          <p data-text="investigation.conflict.explanation"></p>
-        </header>
-        <div class="ef-diff-viewer">
-          <div class="ef-diff-viewer__grid">
-            <section class="ef-diff-viewer__side">
-              <h3>This tab</h3>
-              <p data-text="investigation.conflict.mine"></p>
-              <ul class="causa-conflict__changes">
-                <template data-each="investigation.conflict.changes" data-key="key"><li data-text="text"></li></template>
-              </ul>
-            </section>
-            <section class="ef-diff-viewer__side">
-              <h3>GitHub</h3>
-              <p data-text="investigation.conflict.theirs"></p>
-            </section>
-          </div>
-        </div>
-        <template data-if="investigation.conflict.hasRefused">
-          <section class="causa-conflict__refused" aria-labelledby="causa-conflict-refused-title">
-            <h3 id="causa-conflict-refused-title">Changes that no longer apply</h3>
-            <ul>
-              <template data-each="investigation.conflict.refused" data-key="key"><li><span data-text="text"></span> — <span data-text="reason"></span></li></template>
-            </ul>
-          </section>
-        </template>
-        <footer class="ef-conflict-review__actions">
-          <template data-if="investigation.conflict.reapply.offered"><button type="button" data-event="investigation.conflict.reapply">Reapply mine</button></template>
-          <template data-if="investigation.conflict.discard.offered"><button type="button" data-event="investigation.conflict.discard">Discard mine</button></template>
-          <template data-if="investigation.conflict.discard-confirm.offered"><button type="button" data-event="investigation.conflict.discard-confirm">Discard my changes</button></template>
-          <template data-if="investigation.conflict.discard-cancel.offered"><button type="button" data-event="investigation.conflict.discard-cancel">Keep my changes</button></template>
-          <template data-if="investigation.conflict.export.offered"><button type="button" data-event="investigation.conflict.export">Export mine</button></template>
-          <template data-if="investigation.conflict.read-again.offered"><button type="button" data-event="investigation.conflict.read-again">Read again</button></template>
-        </footer>
-      </article>
     </template>
   </div>
 </template>

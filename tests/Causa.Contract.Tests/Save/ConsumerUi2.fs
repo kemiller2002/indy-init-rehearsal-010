@@ -121,10 +121,16 @@ let IndicatorFollowsMachine () =
     Assert.Contains("refused", text "investigation.save.text" failedView)
     Assert.Contains("kept in this tab", text "investigation.save.text" failedView)
     Assert.Equal("Save failed", text "investigation.save.assertiveText" failedView)
+    // PERSIST-030-O1: an operation status explains Save failed and Unknown commit outcome only; freshness is always shown.
+    Assert.Equal(BindingValue.Flag true, value "investigation.save.operation" failedView)
+    Assert.Equal(BindingValue.Flag false, value "investigation.save.operation" unsavedView)
+    Assert.Equal(BindingValue.Flag false, value "investigation.save.operation" offlineView)
+    Assert.Equal("None in this tab", text "investigation.save.freshness" unsavedView)
     // J3-07: the answer is lost: Unknown commit outcome, never Saved; Check again only once the automatic reads are spent.
     let unknown = failed |> on 7L SaveInput.SaveRequested |> on 8L SaveInput.AnswerLost
     let unknownView = check "Unknown commit outcome" false unknown
     Assert.Equal(BindingValue.Flag false, value "investigation.save.canCheckAgain" unknownView)
+    Assert.Equal(BindingValue.Flag true, value "investigation.save.operation" unknownView)
     Assert.True(Result.isError (Ui2Scenarios.context 9L |> fun ctx -> saveMachine.Step ctx unknown SaveInput.CheckAgain))
     let spent = unknown |> on 9L SaveInput.ReconcileReadsSpent
     let spentView = check "Unknown commit outcome" false spent
