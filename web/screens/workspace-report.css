@@ -1,0 +1,9 @@
+/* Owner: ui-3. The investigation report and its print presentation (UI-009): Forma tokens only. */
+.causa-report__facts dd { overflow-wrap: anywhere; }
+.causa-report__section h3 { margin: 0; }
+@media print {
+  body.causa > header, body.causa > nav, .causa-primary, nav[aria-label="Investigation sections"], .causa-report__print-hint { display: none !important; }
+  .causa-main { padding: 0; }
+  .causa-report { color: var(--ef-color-text-primary); background: none; }
+  .causa-report__section { break-inside: avoid-page; }
+}

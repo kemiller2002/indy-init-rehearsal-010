@@ -31,7 +31,7 @@ module Producer =
     let UnverifiedNeverConfirmed () =
         let s = withCause ()
         Assert.Equal(CauseState.Proposed, s.Causes[CausalAssertionId(S.g 60)].State)
-        let report = Report.reporting.Project(Kernel.domain.Project s)
+        let report = Causa.App.Workspace.Report.reporting.Project(Kernel.domain.Project s)
         Assert.Equal(s.Id, report.Investigation)
         Assert.Equal(s.Version, report.Version)
         let paragraphs = report.Sections |> List.collect (fun x -> x.Paragraphs)
@@ -83,7 +83,7 @@ module WorkspaceViews =
 
     let private allViews (draft: string -> string) (s: Investigation option) =
         Overview.keys draft s @ Hypotheses.keys draft s @ Evidence.keys draft s @ Links.keys draft s
-        @ Conclusions.keys draft s @ Timeline.keys s @ Graph.keys s
+        @ Conclusions.keys draft s @ Timeline.keys s @ Graph.keys s @ Causa.App.Views.Report.keys s
 
     [<Fact>]
     let ``INV-007 INV-008 INV-018 overview shows creation time, original problem statement and state`` () =
@@ -188,6 +188,28 @@ module WorkspaceViews =
         Assert.False(flag keys "investigation.conclusion.record.offered")
 
     [<Fact>]
+    let ``UI-009 the report shows title, state, version, findings, chronology and uncertainties without inventing a confirmation`` () =
+        let s = S.full ()
+        let keys = Causa.App.Views.Report.keys (Some s)
+        Assert.Equal(S.title, text keys "investigation.report.title")
+        Assert.Equal("active", text keys "investigation.report.state")
+        Assert.Equal(string (AggregateVersion.value s.Version), text keys "investigation.report.version")
+        let sections = rows keys "investigation.report.sections"
+        Assert.Equal<string list>(
+            [ "Problem"; "Hypotheses"; "Evidence"; "Evidence assessments"; "Causes"; "Findings"; "Conclusions"; "Corrective actions"; "Chronology" ],
+            sections |> List.map (fun r -> cell r "heading"))
+        let body heading = sections |> List.find (fun r -> cell r "heading" = heading) |> fun r -> cell r "body"
+        Assert.Contains(S.problem, body "Problem")
+        Assert.Contains($"Observation recorded: {S.observationText}", body "Chronology")
+        Assert.Contains($"{S.conclusionStatement} (leading explanation)", body "Conclusions")
+        Assert.StartsWith("Causal assertion (proposed, not confirmed)", body "Causes")
+        Assert.DoesNotContain("Confirmed cause", sections |> List.map (fun r -> cell r "body") |> String.concat "\n")
+        let uncertainties = rows keys "investigation.report.uncertainties" |> List.map (fun r -> cell r "text")
+        Assert.Contains("Cause not confirmed: Checkout payments fail", uncertainties)
+        Assert.Contains("Residual uncertainty: The certificate renewal log is incomplete", uncertainties)
+        Assert.True(flag (Causa.App.Views.Report.keys None) "investigation.report.missing")
+
+    [<Fact>]
     let ``INV-042 J2-08 every section shows this investigation's content`` () =
         let s = Some(S.analysed ())
         Assert.Equal(S.problem, text (Overview.keys noDrafts s) "investigation.overview.problem")
@@ -208,7 +230,7 @@ module WorkspaceViews =
         Assert.Equal(loaded.Length, (List.distinct loaded).Length)
         Assert.All(loaded, fun k -> Assert.StartsWith("investigation.", k))
         let none = allViews noDrafts None
-        Assert.All([ "overview"; "hypotheses"; "evidence"; "timeline"; "causal" ], fun sec -> Assert.True(flag none $"investigation.{sec}.missing"))
+        Assert.All([ "overview"; "hypotheses"; "evidence"; "timeline"; "causal"; "report" ], fun sec -> Assert.True(flag none $"investigation.{sec}.missing"))
         Assert.False(flag none "investigation.observation.record.offered")
 
     [<Fact>]
@@ -263,7 +285,7 @@ module WorkspaceViews =
     let ``Every key the ui-3 fragments bind is emitted by the views`` () =
         let views = allViews noDrafts (Some(S.full ()))
         let keys = views |> List.map fst |> Set.ofList
-        let files = [ "workspace-overview"; "workspace-hypotheses"; "workspace-evidence"; "workspace-causal-analysis"; "workspace-timeline" ]
+        let files = [ "workspace-overview"; "workspace-hypotheses"; "workspace-evidence"; "workspace-causal-analysis"; "workspace-timeline"; "workspace-report" ]
         let found = files |> List.collect (fun f -> bindings (File.ReadAllText(Path.Combine(repoRoot (), "web", "screens", f + ".html"))))
         Assert.NotEmpty(found)
         for scope, k in found do
