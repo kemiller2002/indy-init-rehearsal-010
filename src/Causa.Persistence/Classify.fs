@@ -123,6 +123,7 @@ module Classify =
         | CompareFrom _ -> "compare commits"
         | CommitOnBranch _ -> "write to the branch"
         | CreateBranch -> "create a branch"
+        | ReadInvestigationAt _ -> "read the investigation"
 
     let private whatOf (operation: GitHubOperation) =
         match operation with
@@ -134,6 +135,7 @@ module Classify =
         | ConnectRepository -> "repository"
         | CommitOnBranch _ -> "branch"
         | CreateBranch -> "branch"
+        | ReadInvestigationAt rev -> "revision " + rev
 
     /// GH-LARGE-FILE: the contents API refused a file over 1 MB (403 `too_large`) or answered `encoding: none`. Not an
     /// error: the caller re-reads the file once through the Git blobs API.
@@ -231,6 +233,21 @@ module Classify =
                         | CommitOnBranch expected, s when s >= 200 && s < 300 ->
                             if parsed.IsNone then Error(Malformed "the mutation answer is not JSON")
                             else classifyGraphQl operation expected result parsed errors
+                        | ReadInvestigationAt _, s when s >= 200 && s < 300 ->
+                            match parsed with
+                            | None -> Error(Malformed "the files answer is not JSON")
+                            | Some root ->
+                                if errors |> List.exists (fun e -> e.Type = Some "FORBIDDEN") then Error(PermissionDenied(operationName operation))
+                                elif errors |> List.exists (fun e -> e.Type = Some "NOT_FOUND") then Error(NotFound(whatOf operation))
+                                elif not errors.IsEmpty then Error(Unrecognised status)
+                                else
+                                    match prop "data" root |> Option.bind (prop "repository") with
+                                    | None -> Error(Malformed "the files answer has no repository")
+                                    | Some repo ->
+                                        match prop "object" repo with
+                                        | None -> Error(NotFound(whatOf operation))
+                                        | Some o when (prop "oid" o).IsNone -> Error(NotFound(whatOf operation))
+                                        | Some _ -> Ok result
                         | ReadFileAt _, 403 when isLargeFile status body -> Ok result
                         | _, 403 -> Error(PermissionDenied(operationName operation))
                         | ConnectRepository, 404 -> Error(PermissionDenied(operationName operation))

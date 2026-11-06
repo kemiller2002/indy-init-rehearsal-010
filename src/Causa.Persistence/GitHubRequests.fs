@@ -24,6 +24,9 @@ type GitHubOperation =
     | CommitOnBranch of expectedHead: CommitOid
     /// POST a new ref (test-repository set-up only; the application never creates or moves refs).
     | CreateBranch
+    /// One GraphQL read of a commit (the branch head, or a named commit) and the given files at exactly that commit:
+    /// the files of one investigation are read atomically, with the commit they were read at.
+    | ReadInvestigationAt of revision: string
 
 /// One file a commit adds or replaces, with its exact bytes.
 type FileAddition = { Path: RepoPath; Contents: byte[] }
@@ -193,6 +196,36 @@ module GitHubRequests =
         body["variables"] <- variables
         postJson id connection (ApiBase + "/graphql") body
 
+    /// Which commit a files read is at: the branch's current head, or a named commit.
+    type Revision =
+        | BranchHead
+        | AtCommit of CommitOid
+
+    [<Literal>]
+    let FilesQuery =
+        "query($owner: String!, $name: String!, $rev: String!, $m: String!, $e: String!, $s: String!) { repository(owner: $owner, name: $name) { object(expression: $rev) { ... on Commit { oid committedDate m: file(path: $m) { object { ... on Blob { oid text isTruncated byteSize } } } e: file(path: $e) { object { ... on Blob { oid text isTruncated byteSize } } } s: file(path: $s) { object { ... on Blob { oid text isTruncated byteSize } } } } } } }"
+
+    let revisionText (connection: ConnectionContext) (revision: Revision) =
+        match revision with
+        | BranchHead -> "refs/heads/" + connection.Repository.Branch
+        | AtCommit(CommitOid oid) -> oid
+
+    /// One read of the three files of an investigation directory (manifest.json, events.ndjson, snapshot.json) at one
+    /// commit, with that commit's oid (a GraphQL query: it writes nothing).
+    let investigationFiles (id: RequestId) (connection: ConnectionContext) (revision: Revision) (RepoPath dir) : HttpRequest =
+        let repo = connection.Repository
+        let variables = JsonObject()
+        variables["owner"] <- JsonValue.Create(repo.Owner)
+        variables["name"] <- JsonValue.Create(repo.Name)
+        variables["rev"] <- JsonValue.Create(revisionText connection revision)
+        variables["m"] <- JsonValue.Create(dir + "/manifest.json")
+        variables["e"] <- JsonValue.Create(dir + "/events.ndjson")
+        variables["s"] <- JsonValue.Create(dir + "/snapshot.json")
+        let body = JsonObject()
+        body["query"] <- JsonValue.Create(FilesQuery)
+        body["variables"] <- variables
+        postJson id connection (ApiBase + "/graphql") body
+
     /// The operation a request built here performs, recovered from the request itself (for the fake and for logs).
     let operationOf (request: HttpRequest) : GitHubOperation option =
         let path = Uri(request.Url).AbsolutePath
@@ -210,10 +243,14 @@ module GitHubRequests =
             |> Option.bind (fun b ->
                 try
                     use doc = System.Text.Json.JsonDocument.Parse b
-                    let expected = doc.RootElement.GetProperty("variables").GetProperty("input").GetProperty("expectedHeadOid").GetString()
-                    match expected with
-                    | null -> None
-                    | e -> Some(CommitOnBranch(CommitOid e))
+                    let variables = doc.RootElement.GetProperty("variables")
+                    match variables.TryGetProperty("rev") with
+                    | true, rev -> rev.GetString() |> Option.ofObj |> Option.map ReadInvestigationAt
+                    | _ ->
+                        let expected = variables.GetProperty("input").GetProperty("expectedHeadOid").GetString()
+                        match expected with
+                        | null -> None
+                        | e -> Some(CommitOnBranch(CommitOid e))
                 with _ -> None)
         | Get, [ "repos"; _; _ ] -> Some ConnectRepository
         | Get, "repos" :: _ :: _ :: "git" :: "ref" :: "heads" :: _ -> Some ReadBranchHead
