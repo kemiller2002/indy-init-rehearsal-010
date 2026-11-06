@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocolVersion": "1.0.0",
   "repository": "indy-init-rehearsal-010",
-  "actor": "domain",
+  "actor": "persistence",
   "startedAt": "2026-11-06T16:40:13.993Z",
   "updatedAt": "2026-11-06T17:28:20Z",
   "baselineDirtyPaths": [],
@@ -55,17 +55,6 @@
       ]
     },
     {
-      "id": "WI-0005",
-      "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-06T17:22:16Z",
-      "telemetryExecutionIds": [
-        "EXE-20261106T172216498Z-892104ac"
-      ]
-    },
-    {
       "id": "WI-0004",
       "type": "task",
       "state": "active",
@@ -77,6 +66,17 @@
       ]
     },
     {
+      "id": "WI-0005",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:22:16Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172216498Z-892104ac"
+      ]
+    },
+    {
       "id": "WI-0006",
       "type": "task",
       "state": "active",
@@ -85,6 +85,17 @@
       "updatedAt": "2026-11-06T17:28:20Z",
       "telemetryExecutionIds": [
         "EXE-20261106T172820760Z-67e0e29a"
+      ]
+    },
+    {
+      "id": "WI-0009",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:16:08Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171608548Z-87460711"
       ]
     }
   ]
