@@ -189,7 +189,7 @@ module Frame =
           Bind.text "investigation.question" (q |> Option.defaultValue "")
           Bind.text "investigation.state" (i |> Option.map (fun x -> lifecycle x.Lifecycle) |> Option.defaultValue "")
           Bind.text "investigation.copy" (t |> Option.map (fun (target, _) -> copyKind target.Role) |> Option.defaultValue "")
-          Bind.text "investigation.created" (located |> Option.bind createdAt |> Option.map formatTime |> Option.defaultValue "Not yet saved")
+          Bind.text "investigation.created" (located |> Option.bind createdAt |> Option.map formatTime |> Option.defaultValue "Not on GitHub until the first commit")
           Bind.text "investigation.version" (i |> Option.map (fun x -> string (AggregateVersion.value x.Version)) |> Option.defaultValue "")
           for s in sections do
               let slug = UiRoutes.sectionSlug s

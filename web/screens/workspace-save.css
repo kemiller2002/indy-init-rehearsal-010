@@ -1,2 +1,6 @@
-/* Owner: ui-2. Save-state explanation and recovery actions (Forma operation status, freshness). */
-.causa-save-detail { margin-block: var(--ef-primitive-spacing-3, 0.75rem); min-inline-size: 0; overflow-wrap: anywhere; }
+/* Owner: ui-2. Save state detail, connection state, unsent-investigation links and conflict review (Forma tokens only). */
+.causa-save-panel { display: flex; flex-direction: column; gap: var(--ef-primitive-spacing-3, 0.75rem); margin-block: var(--ef-primitive-spacing-3, 0.75rem); min-inline-size: 0; overflow-wrap: anywhere; }
+.causa-save-panel__connection { margin: 0; color: var(--ef-color-text-secondary, inherit); }
+.causa-save-panel__unsaved ul, .causa-conflict__changes, .causa-conflict__refused ul { margin: 0; padding-inline-start: var(--ef-primitive-spacing-4, 1rem); }
+.causa-save-panel__unsaved a { display: inline-block; min-height: 44px; line-height: 44px; }
+.causa-save-detail, .causa-conflict { min-inline-size: 0; }

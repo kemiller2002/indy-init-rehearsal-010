@@ -124,3 +124,35 @@ module Ui2Scenarios =
                 Loads = Map.ofList [ reference, Loaded v ]
                 Sessions = Map.ofList [ reference, session saveState [] ] }
         stateAt model []
+
+    // ---- the real SM-SAVE / SM-CONFLICT machine (Causa.Persistence.saveMachine) ----------------------------------------
+
+    let context (n: int64) : RequestContext =
+        { Connection = { Repository = repository; Credential = Credential.create "harness-token" }
+          NextId = RequestId n
+          MutationInFlightElsewhere = false
+          Now = at }
+
+    /// A new investigation's session as the machine starts it (CreateRequested -> SaveMachine.InitialNew, online).
+    let initialNew (title: string) (problem: string) : InvestigationSession =
+        saveMachine.InitialNew writable investigationId head (startCommand title problem) true
+
+    /// One SM-SAVE step; a refused (illegal) step fails the test.
+    let step (n: int64) (input: SaveInput) (s: InvestigationSession) : InvestigationSession =
+        match saveMachine.Step (context n) s input with
+        | Ok(next, _) -> next
+        | Error fault -> failwithf "SM-SAVE refused %A: %A" input fault
+
+    /// One SM-CONFLICT step; a refused step fails the test.
+    let stepConflict (n: int64) (input: ConflictInput) (view: ConflictView) : ConflictView =
+        match saveMachine.StepConflict (context n) view input with
+        | Ok(next, _) -> next
+        | Error fault -> failwithf "SM-CONFLICT refused %A: %A" input fault
+
+    /// The workspace as the engine holds this session (and, when given, its verified base).
+    let withSession (base': VerifiedInvestigation option) (s: InvestigationSession) : AppState =
+        let model =
+            { connectedModel true (workspaceHash Causa.Ui.Contracts.Overview) with
+                Loads = (match base' with Some v -> Map.ofList [ reference, Loaded v ] | None -> Map.empty)
+                Sessions = Map.ofList [ reference, s ] }
+        stateAt model []
