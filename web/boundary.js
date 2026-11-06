@@ -25,11 +25,12 @@ const transport = new DotnetWasmTransport({
   exportPath: ["Causa", "Host", "Host", "Dispatch"],
 });
 
+// WASM-LOAD-005: never leave the loading status up indefinitely. A start that has not finished in this time is a
+// failure the user can retry (the kernel never rejects; it reports through diagnostics).
+const START_TIMEOUT_MS = 30000;
 const kernel = new BrowserKernel(transport, document, diagnostics);
-try {
-  await kernel.start();
-} catch (error) {
-  console.error(`Causa could not start: ${error instanceof Error ? error.message : String(error)}`);
-}
-if (kernel.status !== "running") showFailure();
+const timedOut = new Promise((resolve) => setTimeout(() => resolve("timeout"), START_TIMEOUT_MS));
+const outcome = await Promise.race([kernel.start().then(() => "started", () => "failed"), timedOut]);
+if (outcome === "timeout") console.error(`Causa did not start within ${START_TIMEOUT_MS / 1000} seconds.`);
+if (outcome !== "started" || kernel.status !== "running") showFailure();
 else document.documentElement.dataset.causaStartedMs = String(Math.round(performance.now()));

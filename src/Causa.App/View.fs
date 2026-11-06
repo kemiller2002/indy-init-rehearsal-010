@@ -41,7 +41,12 @@ module View =
 
     /// The screens' views, in navigation order. Each screen slice adds its module's `view` here when it lands
     /// (e.g. Causa.App.Views.InvestigationList.view).
-    let screens: (AppState -> (string * ViewValue) list) list = []
+    let screens: (AppState -> (string * ViewValue) list) list =
+        [ Causa.App.Views.Shell.view
+          Causa.App.Views.InvestigationList.view
+          Causa.App.Views.Administration.view
+          Causa.App.Views.Settings.view
+          Causa.App.Views.NotFound.view ]
 
     /// The complete view: shell first; a later duplicate of a key is dropped (the first writer wins).
     let render (state: AppState) : (string * ViewValue) list =

@@ -1,0 +1,8 @@
+/* Owner: ui. Settings: each option is a whole-row target (the radio covers its Forma choice row). */
+.causa-preferences { display: grid; gap: 1rem; max-inline-size: 40rem; }
+.causa-choice { display: grid; gap: 0.5rem; border: 1px solid var(--causa-border); padding: 0.75rem; }
+.causa-choice .ef-choice { background: var(--causa-surface); color: var(--causa-ink); border-color: var(--causa-border); }
+.causa-choice .ef-choice input { inset: 0; inline-size: 100%; block-size: 100%; margin: 0; cursor: pointer; }
+.causa-choice .ef-choice:has(input:checked) { border-inline-start: 0.375rem solid var(--causa-teal); font-weight: 700; }
+.causa-choice .ef-choice:has(input:focus-visible) { outline: 3px solid var(--causa-focus-on-light); outline-offset: 2px; }
+.causa-choice .ef-choice__content { min-block-size: 44px; display: flex; align-items: center; }
