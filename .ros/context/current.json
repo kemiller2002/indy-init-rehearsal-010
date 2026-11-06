@@ -31,7 +31,27 @@
       "telemetryExecutionIds": [
         "EXE-20261106T164732877Z-65d0154e",
         "EXE-20261106T190940556Z-e6aa6436"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "775798bbb1fa4cc0339bb1e5",
+        "recordedAt": "2026-11-06T19:10:02Z",
+        "executionId": "EXE-20261106T190940556Z-e6aa6436",
+        "repository": "indy-init-rehearsal-010",
+        "branch": "setup/praxis-checkpoints",
+        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
+        },
+        "remoteBranch": "setup/praxis-checkpoints",
+        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "summary": "T10: slice/SL-T10 head f8ae9f2 (VER-001/002/003/005 release-baseline acceptance tests; FSharp.Core under CPM) merged to main in 7186a38 under owner rule B (implementer-verified, not governed-accepted); checkpoint observed on setup/praxis-checkpoints over main ae04f44",
+        "nextAction": "Governed acceptance by the verification gate; AR-023 needs its independent-review record; not complete",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     },
     {
       "id": "WI-0002",
@@ -43,7 +63,27 @@
       "telemetryExecutionIds": [
         "EXE-20261106T171912199Z-f6eebfae",
         "EXE-20261106T190948295Z-1c0dafb8"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "ef13112a7aae55d9c54caf40",
+        "recordedAt": "2026-11-06T19:10:03Z",
+        "executionId": "EXE-20261106T190948295Z-1c0dafb8",
+        "repository": "indy-init-rehearsal-010",
+        "branch": "setup/praxis-checkpoints",
+        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
+        },
+        "remoteBranch": "setup/praxis-checkpoints",
+        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "summary": "T11: slice/SL-T11 head 1c4ade2 (stack lock and compatibility gate, WASM runtime pipeline, VER-004/006/008 tests) merged to main in d6ad873 under owner rule B (implementer-verified, not governed-accepted); checkpoint observed on setup/praxis-checkpoints over main ae04f44",
+        "nextAction": "Governed acceptance by the verification gate; not complete",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     },
     {
       "id": "WI-0003",
@@ -55,7 +95,27 @@
       "telemetryExecutionIds": [
         "EXE-20261106T171713776Z-a5ba0d39",
         "EXE-20261106T190948766Z-2eaefedf"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "2df99be7b2cb53d1741b7206",
+        "recordedAt": "2026-11-06T19:10:04Z",
+        "executionId": "EXE-20261106T190948766Z-2eaefedf",
+        "repository": "indy-init-rehearsal-010",
+        "branch": "setup/praxis-checkpoints",
+        "commit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
+        },
+        "remoteBranch": "setup/praxis-checkpoints",
+        "remoteCommit": "fa655529539c4662a4faa16901dbcb66fb2b5ed8",
+        "summary": "T12: slice/SL-T12 head 7a1be97 (domain kernel types, SM-SAVE/SM-CONFLICT and INV-03/07/25 invariant tests; also carries T19 commit 2a4ae18) merged to main in ae04f44 under owner rule B (implementer-verified, not governed-accepted)",
+        "nextAction": "Remaining T12 invariant inventory per the plan, then governed acceptance by the verification gate; not complete",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }
