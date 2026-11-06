@@ -235,3 +235,68 @@ module SMLOAD =
         | LoadEvent(LoadInput.SupersededReply id) -> Assert.Equal(request.Id, id)
         | other -> failwithf "%A" other
         Assert.Equal(state, Loading(request.Id, LoadHead))
+
+    // ---- EXT-DATA-013: a catalog investigation loads only as a case of its catalog manifest ----
+
+    let private catalogRef (id: string) : InvestigationRef =
+        { Address = WorkspaceAddress.catalog (Workspace "workspaces/demo/demonstration-v1"); Id = InvestigationId(Guid id) }
+
+    let private catalogFake (change: Map<string, byte[]> -> Map<string, byte[]>) =
+        StatefulFake.start (StatefulFake.initial "owner" "repo" "main" (Datasets.catalog.Value |> change |> Map.toList) [ "kit-token", ReadOnly ])
+
+    let private openCatalog (running: StatefulFake.Running) (r: InvestigationRef) =
+        let machine = SaveMachines.create SaveMachines.support
+        let clock = SaveKit.clock ()
+        let state, effects = machine.StepLoad (SaveKit.context clock) NotLoaded (LoadInput.OpenRequested r) |> Result.defaultWith (fun f -> failwith f.Reason)
+        SaveKit.advance clock effects
+        let rec loop state request sent =
+            let interpretation = machine.InterpretLoad (SaveKit.context clock) state (running.Execute request)
+            clock.Next <- clock.Next + 1L
+            match interpretation with
+            | LoadNextRequest(next, req) -> loop next req (request :: sent)
+            | LoadEvent e -> e, List.rev (request :: sent)
+        loop state (SaveKit.requests effects).Head []
+
+    let private manifestPath = "catalog/demonstration-v1/manifest.json"
+
+    let private editManifest (f: string -> string) (files: Map<string, byte[]>) =
+        files.Add(manifestPath, Text.Encoding.UTF8.GetBytes(f (Text.Encoding.UTF8.GetString files[manifestPath])))
+
+    [<Fact>]
+    let ``EXT-DATA-013 a catalog case loads after its files verify and the manifest at the same commit records its state`` () =
+        let running = catalogFake id
+        match openCatalog running (catalogRef "fc3f71a9-4c14-5a31-8196-7ce17a7041c1") with
+        | LoadInput.LoadVerified v, sent ->
+            Assert.Equal(WorkspaceRole.Catalog, v.Address.Role)
+            Assert.Equal(Some(ReadFileAt(RepoPath manifestPath, v.ReadAt)), GitHubRequests.operationOf (List.last sent))
+        | other, _ -> failwithf "%A" other
+
+    [<Fact>]
+    let ``EXT-DATA-013 an investigation the catalog manifest does not list is refused, however valid its files`` () =
+        // A valid synthetic investigation placed in the catalog workspace is never presented as a catalog case.
+        let synthetic = "6fd2ddc9-bedd-5fff-9093-5506c4d68cb3"
+        let fs = FixtureData.frozenFiles synthetic
+        let dir = sprintf "workspaces/demo/demonstration-v1/investigations/%s" synthetic
+        let running = catalogFake (fun m -> m.Add(dir + "/manifest.json", fs.Manifest).Add(dir + "/events.ndjson", fs.Events).Add(dir + "/snapshot.json", fs.Snapshot))
+        match openCatalog running (catalogRef synthetic) with
+        | LoadInput.LoadRejected(Unverifiable [ ContractValueMismatch("investigationId", _, actual) ]), _ -> Assert.Equal(synthetic, actual)
+        | other, _ -> failwithf "%A" other
+
+    [<Fact>]
+    let ``EXT-DATA-013 a catalog case whose replayed state or version is not the one the manifest records is refused`` () =
+        let lightbulb = "fc3f71a9-4c14-5a31-8196-7ce17a7041c1"
+        let digest = "40d11a632a97c1f94ff4fa48af94a373e5a2c7e9feadfc42bca9d891532a36bc"
+        let wrongDigest = catalogFake (editManifest (fun t -> t.Replace(digest, String('0', 64))))
+        match openCatalog wrongDigest (catalogRef lightbulb) with
+        | LoadInput.LoadRejected(Unverifiable [ ContractValueMismatch("expectedStateSha256", expected, actual) ]), _ ->
+            Assert.Equal(String('0', 64), expected)
+            Assert.Equal(digest, actual)
+        | other, _ -> failwithf "%A" other
+        let wrongVersion = catalogFake (editManifest (fun t -> t.Replace("\"expectedVersion\":48,", "\"expectedVersion\":47,")))
+        match openCatalog wrongVersion (catalogRef lightbulb) with
+        | LoadInput.LoadRejected(Unverifiable [ ContractValueMismatch("expectedVersion", "47", "48") ]), _ -> ()
+        | other, _ -> failwithf "%A" other
+        let missing = catalogFake (fun m -> m.Remove manifestPath)
+        match openCatalog missing (catalogRef lightbulb) with
+        | LoadInput.LoadRejected(ProviderFailed(NotFound _)), _ -> ()
+        | other, _ -> failwithf "%A" other

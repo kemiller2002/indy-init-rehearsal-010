@@ -1234,6 +1234,47 @@ module SaveMachines =
             | UnavailableOffline, LoadInput.WentOnline -> Ok(NotLoaded, [])
             | _ -> refuse (sprintf "SM-LOAD/%s/%s is not a transition of the machine" (loadStateName state) (loadInputName input))
 
+        /// EXT-DATA-013: a catalog investigation is loaded only as a case of its catalog: after its files verify, the
+        /// catalog manifest is read at the same commit, and the investigation must be one of its cases, at the version
+        /// and the state digest the manifest records. Verified catalog reads awaiting that manifest, by request.
+        let catalogChecks = Dictionary<RequestId, VerifiedInvestigation>()
+
+        let catalogManifestPath (Workspace w) = RepoPath(sprintf "catalog/%s/manifest.json" (w.Split('/') |> Array.last))
+
+        let catalogCase (v: VerifiedInvestigation) (answer: ProviderAnswer) : LoadInput =
+            let mismatch field expected actual = LoadInput.LoadRejected(Unverifiable [ ContractValueMismatch(field, expected, actual) ])
+            let parsed =
+                Classify.fileBytes answer
+                |> Option.bind (fun b -> Canonical.parse (Text.Encoding.UTF8.GetString(b).TrimEnd('\n')) |> Result.toOption)
+            match parsed with
+            | None -> LoadInput.LoadRejected(ProviderFailed(Malformed "the catalog manifest does not decode"))
+            | Some manifest ->
+                let (Workspace w) = v.Address.Workspace
+                let (InvestigationId g) = v.Investigation.Id
+                let id = g.ToString "D"
+                let cases =
+                    match Canonical.field "cases" manifest with
+                    | Some(Canonical.JArray xs) -> xs
+                    | _ -> []
+                match Canonical.str "workspace" manifest, cases |> List.tryFind (fun c -> Canonical.str "investigationId" c = Some id) with
+                | ws, _ when ws <> Some w -> mismatch "workspace" w (ws |> Option.defaultValue "")
+                | _, None -> mismatch "investigationId" "a case of the catalog manifest" id
+                | _, Some case ->
+                    let state =
+                        try
+                            Text.Encoding.UTF8.GetString(v.Bytes.Events).TrimEnd('\n').Split('\n')
+                            |> Array.map (Canonical.parse >> Result.defaultWith failwith)
+                            |> List.ofArray
+                            |> Projection.state
+                        with e -> Error e.Message
+                    let (AggregateVersion version) = v.Investigation.Version
+                    match Canonical.str "expectedStateSha256" case, state, Canonical.integer "expectedVersion" case with
+                    | None, _, _ -> mismatch "expectedStateSha256" "a recorded state digest" ""
+                    | _, Error e, _ -> mismatch "state" "a projected state" e
+                    | Some expected, Ok st, _ when Canonical.digest st <> expected -> mismatch "expectedStateSha256" expected (Canonical.digest st)
+                    | _, _, Some n when n <> version -> mismatch "expectedVersion" (string n) (string version)
+                    | _ -> LoadInput.LoadVerified v
+
         let interpretLoad (ctx: RequestContext) (state: LoadState) (outcome: HttpOutcome) : LoadInterpretation =
             let id =
                 match outcome with
@@ -1241,6 +1282,13 @@ module SaveMachines =
                 | NotAnswered(id, _) -> id
             match state with
             | Loading(current, _) when current = id ->
+                let pendingCase = lock gate (fun () -> match catalogChecks.TryGetValue id with | true, v -> catalogChecks.Remove id |> ignore; Some v | _ -> None)
+                match pendingCase with
+                | Some v ->
+                    match Classify.answer (ReadFileAt(catalogManifestPath v.Address.Workspace, v.ReadAt)) outcome with
+                    | Ok answer -> LoadEvent(catalogCase v answer)
+                    | Error e -> LoadEvent(LoadInput.LoadRejected(ProviderFailed e))
+                | None ->
                 match readFiles ctx outcome with
                 | Ok(Choice2Of2 request) -> LoadNextRequest(Loading(ctx.NextId, LoadHead), request)
                 | Ok(Choice1Of2 files) when InvestigationFiles.absent files -> LoadEvent(LoadInput.LoadRejected(ProviderFailed(NotFound "investigation")))
@@ -1249,6 +1297,10 @@ module SaveMachines =
                     | None -> LoadEvent(LoadInput.SupersededReply id)
                     | Some r ->
                         match verify r files with
+                        | Ok v when v.Address.Role = WorkspaceRole.Catalog ->
+                            lock gate (fun () -> catalogChecks[ctx.NextId] <- v)
+                            readFor ctx.NextId r
+                            LoadNextRequest(Loading(ctx.NextId, LoadFilesAt v.ReadAt), GitHubRequests.fileAt ctx.NextId ctx.Connection v.ReadAt (catalogManifestPath v.Address.Workspace))
                         | Ok v -> LoadEvent(LoadInput.LoadVerified v)
                         | Error None -> LoadEvent(LoadInput.LoadRejected(Unverifiable [ VerificationFailure.ReaderStage("CAUSA.PATH_INVALID", "investigation", None, "the directory does not hold exactly manifest.json, events.ndjson and snapshot.json") ]))
                         | Error(Some failures) -> LoadEvent(LoadInput.LoadRejected(Unverifiable failures))

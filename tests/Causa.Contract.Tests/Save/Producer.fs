@@ -191,7 +191,13 @@ module Producer =
             { Address = WorkspaceAddress.catalog (Workspace "workspaces/demo/demonstration-v1")
               Id = InvestigationId(Guid "fc3f71a9-4c14-5a31-8196-7ce17a7041c1") }
         let loading, effects = (match (m ()).StepLoad ctx NotLoaded (LoadInput.OpenRequested r) with Ok x -> x | Error f -> failwithf "%A" f)
-        match (m ()).InterpretLoad ctx loading (running.Execute (sends effects).Head) with
+        // EXT-DATA-013: once the files verify, the catalog manifest is read at the same commit to check the case.
+        let caseCheck, manifestRead =
+            match (m ()).InterpretLoad ctx loading (running.Execute (sends effects).Head) with
+            | LoadNextRequest(next, request) -> next, request
+            | other -> failwithf "a catalog read is checked against its manifest: %A" other
+        Assert.Equal(Some(ReadFileAt(RepoPath "catalog/demonstration-v1/manifest.json", CommitOid((running.Current()).Branches["main"]))), GitHubRequests.operationOf manifestRead)
+        match (m ()).InterpretLoad ctx caseCheck (running.Execute manifestRead) with
         | LoadEvent(LoadInput.LoadVerified v) ->
             Assert.Equal(WorkspaceRole.Catalog, v.Address.Role)
             Assert.Equal(None, Persistence.sessionOf v)
