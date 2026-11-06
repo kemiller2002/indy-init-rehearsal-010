@@ -33,6 +33,17 @@
       ]
     },
     {
+      "id": "WI-0002",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:19:11Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171912199Z-f6eebfae"
+      ]
+    },
+    {
       "id": "WI-0003",
       "type": "task",
       "state": "active",

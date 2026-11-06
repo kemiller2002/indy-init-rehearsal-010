@@ -25,6 +25,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # `npm run build` is `dotnet fsi build.fsx`: it needs the .NET SDK global.json pins (rollForward disable).
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
