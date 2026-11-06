@@ -770,14 +770,30 @@
     },
     {
       "metricId": "agent.interruptions",
-      "status": "unknown",
-      "reason": "runtime capability not reported or mapped",
-      "discoveredAt": "2026-11-06T21:47:27.969Z",
+      "status": "derived",
+      "reason": "normalized measurement recorded",
+      "discoveredAt": "2026-11-06T22:02:39.000Z",
       "source": {
-        "type": "environment",
-        "name": "runtime-identity",
-        "mechanism": "whitelisted-claude-environment"
-      }
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "lastAssessedAt": "2026-11-06T22:02:39.000Z",
+      "recordedAt": "2026-11-06T22:02:39.000Z",
+      "history": [
+        {
+          "status": "unknown",
+          "reason": "runtime capability not reported or mapped",
+          "source": {
+            "type": "environment",
+            "name": "runtime-identity",
+            "mechanism": "whitelisted-claude-environment"
+          },
+          "discoveredAt": "2026-11-06T21:47:27.969Z",
+          "lastAssessedAt": "2026-11-06T21:47:27.969Z",
+          "recordedAt": "2026-11-06T21:47:27.969Z"
+        }
+      ]
     },
     {
       "metricId": "agent.resumes",
@@ -1619,6 +1635,26 @@
       },
       "collectedAt": "2026-11-06T21:47:27.969Z",
       "schemaVersion": "1.0.0"
+    },
+    {
+      "measurementId": "MEAS-626838b2c119951ef7a001c2",
+      "id": "agent.interruptions",
+      "value": 1,
+      "unit": "count",
+      "currency": null,
+      "quality": "derived",
+      "confidence": null,
+      "scope": "execution",
+      "aggregation": "sum",
+      "dimensions": {},
+      "pricing": null,
+      "source": {
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "collectedAt": "2026-11-06T22:02:39.000Z",
+      "schemaVersion": "1.0.0"
     }
   ],
   "rawTelemetry": [],
@@ -1631,6 +1667,17 @@
         "name": "ros",
         "mechanism": "work-lifecycle"
       }
+    },
+    {
+      "type": "work.blocked",
+      "occurredAt": "2026-11-06T22:02:39.000Z",
+      "reason": "Held until the owner records ODR-R10-36 (and ODR-COMP-P13): the change amends EXT-DATA-004-O1 and DF-CON-2026-A002",
+      "source": {
+        "type": "ros-clock",
+        "name": "ros",
+        "mechanism": "work-lifecycle"
+      },
+      "eventId": "TEVT-0225fdb280cca2920df0bbae"
     }
   ],
   "repository": {

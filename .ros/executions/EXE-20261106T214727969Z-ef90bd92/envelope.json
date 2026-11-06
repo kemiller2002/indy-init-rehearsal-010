@@ -50,8 +50,8 @@
   "humanOnlyTransitions": [],
   "parentExecution": null,
   "startedAt": "2026-11-06T21:47:28.145Z",
-  "state": "active",
-  "stateReason": null,
+  "state": "blocked",
+  "stateReason": "Held until the owner records ODR-R10-36 (and ODR-COMP-P13): the change amends EXT-DATA-004-O1 and DF-CON-2026-A002",
   "origin": {
     "kind": "work-transition",
     "reference": "work.begin"

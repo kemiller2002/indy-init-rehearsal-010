@@ -1,1 +1,2 @@
 {"entry":"transition","transition":"execution.start","state":"active","origin":"work-transition","originReference":"work.begin","actor":"claude","actorKind":"agent","at":"2026-11-06T21:47:28.158Z"}
+{"entry":"transition","transition":"work.block","state":"blocked","reason":"Held until the owner records ODR-R10-36 (and ODR-COMP-P13): the change amends EXT-DATA-004-O1 and DF-CON-2026-A002","actor":"claude","actorKind":"agent","at":"2026-11-06T22:02:40.493Z"}
