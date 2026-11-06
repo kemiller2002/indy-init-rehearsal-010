@@ -338,6 +338,10 @@ copyDir (at "node_modules/@echelon-foundry/limen/dist") (Path.Combine(dist, "lim
 // a theme file).
 Directory.CreateDirectory(Path.Combine(dist, "forma")) |> ignore
 File.Copy(at "node_modules/@echelon-foundry/design-system/dist/all.css", Path.Combine(dist, "forma", "all.css"), true)
+// WDL-001 (T24): the identified workflow layout capability, @echelon-foundry/forma-workflow (the <forma-workflow>
+// element and its own .NET WebAssembly engine, Forma.Workflow). Shipped as published; precompressed copies are not
+// needed by the static host.
+copyDir (at "node_modules/@echelon-foundry/forma-workflow/dist") (Path.Combine(dist, "forma-workflow")) (fun f -> not (f.EndsWith ".br" || f.EndsWith ".gz"))
 File.WriteAllText(Path.Combine(dist, ".nojekyll"), "")
 
 // ---- the build record (AR-011) --------------------------------------------------------------------------------------

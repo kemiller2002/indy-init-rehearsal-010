@@ -25,6 +25,29 @@ const transport = new DotnetWasmTransport({
   exportPath: ["Causa", "Host", "Host", "Dispatch"],
 });
 
+// WDL-001 (T24): Limen binds a workflow document (Forma portable workflow format) to <forma-workflow data-workflow>;
+// the element takes documents only through its host API (forma-workflow-host/1), so the boundary hands each new
+// document to load(). Mechanism only: the engine lays the graph out; nothing here reads or changes its meaning.
+const workflowsLoaded = new WeakMap();
+const syncWorkflow = (element) => {
+  const text = element.getAttribute("data-workflow");
+  if (!text || workflowsLoaded.get(element) === text) return;
+  workflowsLoaded.set(element, text);
+  customElements.whenDefined("forma-workflow")
+    .then(() => element.load(text))
+    .catch((error) => console.error(`The causal graph could not be drawn: ${error instanceof Error ? error.message : String(error)}`));
+};
+new MutationObserver((records) => {
+  for (const record of records) {
+    if (record.type === "attributes" && record.target.localName === "forma-workflow") syncWorkflow(record.target);
+    for (const node of record.addedNodes) {
+      if (node.nodeType !== Node.ELEMENT_NODE) continue;
+      if (node.matches("forma-workflow[data-workflow]")) syncWorkflow(node);
+      node.querySelectorAll("forma-workflow[data-workflow]").forEach(syncWorkflow);
+    }
+  }
+}).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-workflow"] });
+
 const kernel = new BrowserKernel(transport, document, diagnostics);
 try {
   await kernel.start();
