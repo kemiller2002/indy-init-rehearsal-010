@@ -1,0 +1,543 @@
+{
+  "repository": "https://github.com/kemiller2002/causa-data",
+  "commit": "e8259df74add723765c57a5b1a5888d9c3f707af",
+  "tag": "causa-storage-v1.0.0",
+  "retrievedAt": "2026-11-06T17:28:07Z",
+  "retrievedBy": "anonymous git clone (domain lane, CR-T15-FIXTURES)",
+  "files": [
+    {
+      "path": "catalog/active.json",
+      "sha256": "a7df15caa040f04b96fd797895263e7a0e515b4352e4f8310cb12809e8261e6f"
+    },
+    {
+      "path": "catalog/demonstration-v1/manifest.json",
+      "sha256": "32badb6df8ce8b9ada765bf3d62ab3d107075c3f139361917a91f094e87af4fd"
+    },
+    {
+      "path": "catalog/historical-v1/manifest.json",
+      "sha256": "8c361929cfb429c31c059c92d6148036bf2b5861f81dace635a1f7de18dbf87c"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/6fd2ddc9-bedd-5fff-9093-5506c4d68cb3/events.ndjson",
+      "sha256": "a34c241e4eb637c1554744b381fbada8c08f536d77b4bc4148efc4fbb0811960"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/6fd2ddc9-bedd-5fff-9093-5506c4d68cb3/manifest.json",
+      "sha256": "074d828ba36a6413c60893c03a26208b6012f03952d1104746c384ff8b2e8033"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/6fd2ddc9-bedd-5fff-9093-5506c4d68cb3/snapshot.json",
+      "sha256": "45b803bd1666c3846324b4a469ef8550ae4d531946294908a13b5fdb9d3b6232"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e/events.ndjson",
+      "sha256": "8c47a0b8d248d773eb1d13ead13676c406dedb5f10e6d981a6584b9454060780"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e/manifest.json",
+      "sha256": "f8b2c68b7fb8398e1fc312b1e95361436c44393bb7d79dde376900c72c7c64fb"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e/snapshot.json",
+      "sha256": "b03d487c9d47621fdda5d75f019b3c8c45d373f96981b32e9e340ceaa01f6ec2"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/abd5f9b5-e335-5245-b951-802f01d5a2e5/events.ndjson",
+      "sha256": "deffe3cec616f22a0660ba20f3cee74c3d58ab3f38a298b3d4ea0d9606fa975d"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/abd5f9b5-e335-5245-b951-802f01d5a2e5/manifest.json",
+      "sha256": "2e5e844c8683612363aabed5256a045c0bdc88dae33bb98593ef3a0990a7b4d9"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/abd5f9b5-e335-5245-b951-802f01d5a2e5/snapshot.json",
+      "sha256": "8dbd5884c9bc52b11c6568152e24fe711a0822dcba890f3939b8ec6606403e16"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/c57e4407-dd43-5d63-8dbe-9d6ceac6c31a/events.ndjson",
+      "sha256": "90ed91e1dc3d50c94416e56eaaf4c479de69f51e57a2a0abe22fc84b4767b091"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/c57e4407-dd43-5d63-8dbe-9d6ceac6c31a/manifest.json",
+      "sha256": "f73de5e5fa1284c51b80572fe68d1f57ab24aaf3061321c824153f58165d80d3"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/c57e4407-dd43-5d63-8dbe-9d6ceac6c31a/snapshot.json",
+      "sha256": "352581b21a603b6673b9cefcd687ef12e881b09a175a12c63aba2818e0897538"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/d588748e-8df9-5f27-859e-5d36d9a2b53d/events.ndjson",
+      "sha256": "a85cec5ef9e8c03ec1dde9b32723472a8d4a4de941222347f8c39a9aab87a035"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/d588748e-8df9-5f27-859e-5d36d9a2b53d/manifest.json",
+      "sha256": "7eb6784612138250cf01983cb31e456d9119e5625a3e0a995cdb8cd82f7dbf34"
+    },
+    {
+      "path": "fixtures/v1.0.0/investigations/d588748e-8df9-5f27-859e-5d36d9a2b53d/snapshot.json",
+      "sha256": "e2d16b05948877c7b86ef5bc72e0d69598e7c27a2bdee932486b472c752c7ccf"
+    },
+    {
+      "path": "fixtures/v1.0.0/manifest.json",
+      "sha256": "f650a2e509a420872b46177b21f57ef6ebd7625ae4c69dd92198d3ca472c2b86"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/agent-authored-hypothesis.json",
+      "sha256": "44e8d3ecd285733ef16fa67d6d70177a8c6fb7e324cfbe8eed22e90c97d489c0"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/altered-event-without-rehash.json",
+      "sha256": "c1f97546b988b15435e651a82fa2f5147e692e14c46ddf795738db0fb9553f5f"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/artifact-not-http.json",
+      "sha256": "d55ed405d5f4d1d398b649af4a2af96c0636c4bb324024d24d667786d7010f11"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/blank-text.json",
+      "sha256": "c6c5106b0eaa2a8865e6e76ddfc5a5134865a586e7e921f98ebc32e408d85906"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/bom-in-events.json",
+      "sha256": "c00b4adbd148ef22ea31f663d64d7712369d218162d49e6748a5f20975154b86"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/broken-snapshot-hash.json",
+      "sha256": "e09ff60132785ac1ad0c35dc1896a4df6fb5faa9e45ecd58b2d5f7d3da3fe7cf"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/calendar-invalid-manifest-created-at.json",
+      "sha256": "4eb59b6d389dedd883a7b8cb2edc174d8f4c7f5260defd41ff42a8c8095b3370"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/calendar-invalid-occurred-at.json",
+      "sha256": "8182eac2b17d8edfafd876e66d97145c6f370168e6ea4ca522f1ed95e905d074"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/correlation-reused.json",
+      "sha256": "82c90685aebc623e43c5c1e4da7f6a11f55e7675a16967fac802ed0046b4a33d"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/duplicate-aggregate-version.json",
+      "sha256": "66d98aa55090264828c3ce2a7b2f8c51342a0f069921335765c027e891c85f5f"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/duplicate-event-id.json",
+      "sha256": "ec23f0d8b98c3a97cef4d69a637b31745fdf6fce70dfafc450eb54190b31d7b5"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/duplicate-json-key.json",
+      "sha256": "683a59dc5d52b236fbe1e911af8afa63446c857468c5e0845425849b94b2c6c3"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-agent-repeats-falsified.json",
+      "sha256": "9c6503c05c4863853be02d60f66ab7e2ebbb77ebdaf1fc922b6b30cf61a278a2"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-awaiting-verification-without-work.json",
+      "sha256": "e1f1bb17af46a4ecbe97bf59012cee013bd4ee6f4010f3d337816956f18f8a37"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-already-confirmed.json",
+      "sha256": "9022a4724905e1803c2cd71e3d299f9c7ba366479ec4cba1e09183dad47c5878"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-alternative-not-addressed.json",
+      "sha256": "51f9afe5e000a11f33a76f63d59d6500c19518146cf2ea6b80bf5a41091850d8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-no-root.json",
+      "sha256": "b100f714326999cb3574c39f286770c4a906365459861ea3b48d82b9e4693f83"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-open-contradiction.json",
+      "sha256": "901fe71c692b2a191f68ba9b30d3492184550ea4390b8eded87242169b4bbef2"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-open-unknown.json",
+      "sha256": "c42dc7f6da035885121a6ebda04ebcee6369d1200c1da9cacd5efc9fd434e1d2"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-unverified-assumption.json",
+      "sha256": "b2f3a96a6aa0ab3bfa00f8072ed49dc3b1c4d64c87051d83876c75a7039c2127"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-cause-without-mechanism.json",
+      "sha256": "b0494f82e2925bcc6db277e0fcb174c4f4120af50856dc573afac95b63825d9f"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-conclusion-without-residual.json",
+      "sha256": "14014b6376a923e3b92b428bc1f234a28f1b24459de3dc0b4f2c4be7a0a6c652"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-confirmed-conclusion-unconfirmed-cause.json",
+      "sha256": "2cf15bc1a33817a667e65445477454ed70944af1fef40cc86f06efd1438023f1"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-content-after-resolution.json",
+      "sha256": "95ddf6e4ee64e39379a1df93b32dc963a5789abdba741dac34e56d4f46d45776"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-dangling-reference.json",
+      "sha256": "3b6b4152066979d4f9f8d811141956113e2c640c8c44acb1664fa61be2d4d77b"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-duplicate-entity-id.json",
+      "sha256": "34c45a786a1fe8c0f7e0975b15c20c4cc92941f8da9da7242169ff71cfdfb9ab"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-evidence-already-superseded.json",
+      "sha256": "712e4ccb54c4de8b809b7c1ebbbd62985f12be2d94079a66520628cb88b13d4c"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-evidence-supersedes-itself.json",
+      "sha256": "586d5c80151e6f5a0e246770c34b566cab7c56e58ee0e250f6909822d242c1a3"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-finding-for-rejected-action.json",
+      "sha256": "b09ea12f6245ee0b2632084a50c00392d8abc53638f89ffb1c603fbd25fdfa3a"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-group-time-disagreement.json",
+      "sha256": "a911015a67eb20bc97bce789a6419ead847319514e2619f7241f7ec2d8570642"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-malformed-artifact-url.json",
+      "sha256": "7a24cc493eed4da9d8f2ed6b76fb48d98bec94761167067e2fab13f265174ec9"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-prediction-timing-forged.json",
+      "sha256": "89829be50412b7111f64736b488515e0ede5f5f9a26a5df10438d530fbb58975"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-proposal-not-active.json",
+      "sha256": "e69b9ad0f4bffce667d6da1ae38e92ab4215ade376e26971ebefb53d727ef3ca"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-reopen-without-new-evidence.json",
+      "sha256": "9a58a298b8ce958431b46742ba297420937d212e502ed5192edbc2be745699b8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-cause-no-longer-holds.json",
+      "sha256": "56962be85e542314055f0e818ae83d69b217c77afc648b92494494cb029530b8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-correction-not-verified.json",
+      "sha256": "0bd5a049318dca3ab0d891e3dbcd4b2eb03faf0b627027767a85bc50730f12c3"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-criterion-unsatisfied.json",
+      "sha256": "6d1cc90b56bd7cb91f307ea46887e33b4bc7ccd5d5de6f05ed9cc7bd6f271eef"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-no-conclusion.json",
+      "sha256": "1cebcb05ee1a0ca39636615163865a0bdbf8f9b9347f999210384c77a0edd2f5"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-no-correction.json",
+      "sha256": "9da31c10a5a60f2184d05a0de461da95be9240fd31ac27d19e34337de3891c00"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-resolve-residual-not-stated.json",
+      "sha256": "74fa6dc9c4ae683bf427015b5adb9a29de6e803d199d458876a44aba66208555"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-verification-evidence-predates-round.json",
+      "sha256": "46ef43d8ffecf8abf0961dfa9d359a455a5d96ecf0bf962291ae3cc4205c1bf5"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/engine-verification-without-criteria.json",
+      "sha256": "59a088537a07e983bd38100b41fe190cb0b5d9a31e3f34ea5feb436ec97e4af8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/event-line-non-canonical.json",
+      "sha256": "d5ea08e2a7ae8f355fc6b31bc246c563b3384cf533fb5be71a986b2eced58ad3"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/events-blank-line.json",
+      "sha256": "eb1e1ed90c447ca0f2f0cf2584fce6d3ccfd4a9fb5d34e70892e59244387d7da"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/events-crlf.json",
+      "sha256": "47b7deb866dcf8ff5709a122f84940f439c2add4560545235c04414251263837"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/events-empty.json",
+      "sha256": "c927f3bbeb527e8effbc92bd30a9759678029d7356de2a39b40d3a3a606f1344"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/events-invalid-utf8.json",
+      "sha256": "1cc4b3771399902b5f0a76a8369c3acb41f869f627e5cb78246166346c576db0"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/events-missing-final-lf.json",
+      "sha256": "865d30df0af243a776997ac840eca0e9fd14c34300db3ab630a8750d9641f5b6"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/extra-file-in-directory.json",
+      "sha256": "30dcd6c517ac9cd72fc59ef8f7aa57d56ac6153b6eb777c1a6b835d763891fc2"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/feff-inside-string.json",
+      "sha256": "ba8feaf71f2fe8a3ecd3cacbdd96b9389ac4924245641a776939e9deed785385"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/float-number.json",
+      "sha256": "ba92778adfe679e37d89f00f9d4bfdec8a855c8ddcf5289e1357f4a21b48838c"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/forged-cause-confirmation.json",
+      "sha256": "2da2789034dee7d986142e75aca200b7401709fe3104d05b9e328368661b907d"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/forged-event-id.json",
+      "sha256": "d62c6495a0f27b0cbe3111b412b8978f1605bae6d92b4d1c188638ac869dbcd7"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/forged-resolution.json",
+      "sha256": "90b4535fd8e89f866b6f0898fb3aa1edd7fa4f0e0e5ff8df6e025f9afc425c91"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/forged-snapshot.json",
+      "sha256": "5d8f491aee30f0d4606a2c880a32c4adb3ffb0932dc3c85b6f253fd0c64cb9e5"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/identifier-trailing-newline.json",
+      "sha256": "e5af928d0bdb0f549cba3253da006860b29b5ad8216384dedb4298054a528691"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/ideographic-space-text.json",
+      "sha256": "90613f1163b57781c6871ab992e1df36aa24ff0356aec5ebcb79677b1c0250e1"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/illegal-hypothesis-transition.json",
+      "sha256": "59f03fa5e9e35c4ada5f3962c8303182d044f3bd97049863e6dbf6120e949947"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/integer-out-of-range.json",
+      "sha256": "e3144c42b69737e422ba2cedf5a7bf97041d2a97b5294ea49763cd552ce5b1cf"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/invalid-enum-value.json",
+      "sha256": "37f292969a26f19bc97d4279d88a8ff3095bd4b8d04fd12245c6dd0fbe6e4b9a"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/invalid-field-type.json",
+      "sha256": "0631dacbb4e0bd682d6b2684236707e327fa0c80459375e907d71865f2d9ff2b"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/lone-surrogate.json",
+      "sha256": "43711277653a296c3c43fa519e0f343b21eb481d20245bb6a11ffe6ddf9f18ed"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-created-at-mismatch.json",
+      "sha256": "f5ed8c77bf84e4e292a28735b582311ef0c522090d01e304ef794fc4ce806291"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-event-count-mismatch.json",
+      "sha256": "f922a97f6fcfc737b51dd4c0051c2e8113a207ca71bd8a029c61ad360d885dfe"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-interior-newline.json",
+      "sha256": "cc5d41bbeb32746e338fe16633321e7a48bf807c20ed12069c67ed40a13c26a7"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-updated-at-mismatch.json",
+      "sha256": "3c94108263b8e79c13b4b20b2f70fafce262b78482a2ec23cc3468bed4196594"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-version-mismatch.json",
+      "sha256": "b1751fb0dfdef28f0576a2fcd3530614090130f74dedb9a43df2dfa23f7c96c8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/manifest-wrong-investigation-id.json",
+      "sha256": "6dbaf4bd2c9afeab0b82beed4484756c87a4190d0d004d9188c71c1a294d5447"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/missing-snapshot-file.json",
+      "sha256": "4a5c9f7219d53b5284b79adcd38b9a77ea8a3d1515c2b84a3be3cd5b293c5fc7"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/missing-start.json",
+      "sha256": "52ebf332a0a871f25d450c28904734780ecda74104fd274f053ccca93c037b8f"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/negative-zero.json",
+      "sha256": "70c2ccd63e4c5483063a3ce1d368b37f06bc2e6e99762738f7244dab1fc23a04"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/nesting-depth-128.json",
+      "sha256": "240448c2c8771dbc16eea4e098ee7a5bb449f39f7ab414d89236d20d9883f607"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/nesting-depth-129.json",
+      "sha256": "e74458e5d3b4916b864951d2edb1f5a4ea6c167075797078de6c5e853fbe6a02"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/nesting-too-deep.json",
+      "sha256": "f7125572af1b49a0f652f5d5fe6031e914f6c1912fd67dc9c1cc39d52d0be254"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/nil-uuid.json",
+      "sha256": "1c0b0084e556816e6126fe2dcc1e27a995b426bdd0ba4c58d31f8d96e3798d2b"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/non-canonical-manifest.json",
+      "sha256": "38c1c16c2404c266b45472df6c01c70bf070d5a4aa8f79594642391bbcb818a7"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/non-string-format-version.json",
+      "sha256": "daa8925af3ee876d91cfb43b42d178eabdc9465a0add7f790b5058277333809f"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/path-traversal-directory.json",
+      "sha256": "6d63f7d28a601d193fa103de3c71468fbf44ac59bf812e9ffb63c8d008bbd8af"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/rewritten-history.json",
+      "sha256": "ac1ed79488c58bb9051c20245b6666ca373b21ca400439acbd64a8ff9f7462f6"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/sequence-gap.json",
+      "sha256": "bb50fbeed3fd142958071e1defec50f1f2312d15f3b542423bfd8fea43777440"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/snapshot-missing-final-lf.json",
+      "sha256": "42327f736a6906d5c5fdd0f1f019d4ebdf39d2f5d8c09385d0101218f7abf5f0"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/snapshot-non-canonical.json",
+      "sha256": "b96ff68044128b409d967fdb7246da1623161328a5762cb3e0e9d0cd8a1b5e59"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/stale-expected-version.json",
+      "sha256": "297cd2027b77d7166565a37871e8bbfb89452fc794d39a991ab13d6b7e98fe8d"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/timestamp-without-milliseconds.json",
+      "sha256": "74a7d60d5f0c3489fdf14bc86c77c2990206f49c08a5083e2e7f176f918b5af3"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/truncated-event-line.json",
+      "sha256": "f4753a981a2c2a435c9148db55fda981c3990a6e0ccaf108499b90b829514d30"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/unexpected-payload-field.json",
+      "sha256": "2b29eee425767a1e40c64e8eea20bafc525396a77cde196f262a65254983a512"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/unknown-event-type.json",
+      "sha256": "557fcfb48c359ac83d48f6eeb0f4f96f140b16ab50b5b40528d4de5724b91c92"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/unsupported-format-version.json",
+      "sha256": "ddaddd992262c9ee785d9e82b3c39442b58d72058a6724a3d3869d4485a700f9"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/uppercase-uuid.json",
+      "sha256": "9c11d6ef6552bfc74e81b7e6516e8e5a7b3649936e7cf856f6ed8917f586f5d8"
+    },
+    {
+      "path": "fixtures/v1.0.0/negative/wrong-investigation-id.json",
+      "sha256": "2764abd971209958c5908e7709411ad4e64dc955d07dcd0d89ec86532d69514c"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/events.ndjson",
+      "sha256": "e3b442f0ff3ea178c4d81d4964cef5deda4d104cc426785f7da5a78e9bed9c25"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/manifest.json",
+      "sha256": "c5f41e8a8c110f99e5a4eba0bfdde44bce334609922d27e04b8b368ca4c48fb4"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/snapshot.json",
+      "sha256": "c5b1cf65bbe4bb63d040a5b42409ffa368c5274fd15cf8d6daf483015e364398"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/events.ndjson",
+      "sha256": "c97bc96c4c48ad9ca53268b4fe66637e211c3627ebb3cbe667a1a6f1066ab3a6"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/manifest.json",
+      "sha256": "ff6b95264a9c99020ed5f40e8322b7e0d37d77d76714552eecec9dd07c1e4427"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/snapshot.json",
+      "sha256": "2e6c94f0bdf208589f874b7154eee80cd9a0bd7b37503ec94113d18e41ead34d"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/events.ndjson",
+      "sha256": "e533fe7fc251a4d0d7f520838735f14373da5b9783682715dae12a7a2dff04c9"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/manifest.json",
+      "sha256": "2a4ad664d429bd2d041dff7791a33f6379cdad4e89f6dcfd72f1322378ff8ed5"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/snapshot.json",
+      "sha256": "1d0093e98af761e234b737f5faa69d7f120b6748bece02bce5433ddbb1d5de59"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/events.ndjson",
+      "sha256": "2de5e17b1f870cbcb8f6de032af455c5aed3d18be0a1c1fee85b198b92e02a1b"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/manifest.json",
+      "sha256": "1bec1da4821e5eaacb0ce50844ea97c59a8434101da5e75beb69a878edee8680"
+    },
+    {
+      "path": "workspaces/demo/demonstration-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/snapshot.json",
+      "sha256": "69ef12e8904e405dee4f1ed7698028d31edb742d2509237ccafdda35a609c4e7"
+    },
+    {
+      "path": "workspaces/demo/everyday-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/events.ndjson",
+      "sha256": "2de5e17b1f870cbcb8f6de032af455c5aed3d18be0a1c1fee85b198b92e02a1b"
+    },
+    {
+      "path": "workspaces/demo/everyday-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/manifest.json",
+      "sha256": "1bec1da4821e5eaacb0ce50844ea97c59a8434101da5e75beb69a878edee8680"
+    },
+    {
+      "path": "workspaces/demo/everyday-v1/investigations/fc3f71a9-4c14-5a31-8196-7ce17a7041c1/snapshot.json",
+      "sha256": "69ef12e8904e405dee4f1ed7698028d31edb742d2509237ccafdda35a609c4e7"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/events.ndjson",
+      "sha256": "e3b442f0ff3ea178c4d81d4964cef5deda4d104cc426785f7da5a78e9bed9c25"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/manifest.json",
+      "sha256": "c5f41e8a8c110f99e5a4eba0bfdde44bce334609922d27e04b8b368ca4c48fb4"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/1784da3c-7141-59ee-a495-1d5d44bf2284/snapshot.json",
+      "sha256": "c5b1cf65bbe4bb63d040a5b42409ffa368c5274fd15cf8d6daf483015e364398"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/events.ndjson",
+      "sha256": "c97bc96c4c48ad9ca53268b4fe66637e211c3627ebb3cbe667a1a6f1066ab3a6"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/manifest.json",
+      "sha256": "ff6b95264a9c99020ed5f40e8322b7e0d37d77d76714552eecec9dd07c1e4427"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/c6b26614-fc43-5013-a15c-cf95942ee07b/snapshot.json",
+      "sha256": "2e6c94f0bdf208589f874b7154eee80cd9a0bd7b37503ec94113d18e41ead34d"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/events.ndjson",
+      "sha256": "e533fe7fc251a4d0d7f520838735f14373da5b9783682715dae12a7a2dff04c9"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/manifest.json",
+      "sha256": "2a4ad664d429bd2d041dff7791a33f6379cdad4e89f6dcfd72f1322378ff8ed5"
+    },
+    {
+      "path": "workspaces/demo/historical-v1/investigations/e3adbee5-5096-5a10-bbfb-cecda86a154b/snapshot.json",
+      "sha256": "1d0093e98af761e234b737f5faa69d7f120b6748bece02bce5433ddbb1d5de59"
+    }
+  ],
+  "tagCommit": "c947c7e354be80766573a782546c8186336774cc",
+  "note": "Files are copied verbatim at commit e8259df (the commit HISTORICAL-DATA-INVENTORY.json pins); fixtures/v1.0.0 and contract/ are identical at the tag commit c947c7e."
+}
