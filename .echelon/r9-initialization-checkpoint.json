@@ -1,0 +1,76 @@
+{
+  "schema": "indy-init.r9-initialization-checkpoint/1",
+  "authorizedAt": "2026-11-06T16:56:11Z",
+  "authorizedAtCommit": "33fd3726b79d3cb2916c6c0887ef45e25aff92b4",
+  "meaning": "Implementation is authorized from the commit that adds this file. Every commit before it that changes implementation paths (src/, web/, tests/, build files), other than the T0 bootstrap, is a process violation (r9.fsx check-sequencing). Verification evidence is produced after implementation and is not part of this checkpoint.",
+  "workItems": [
+    "T10",
+    "T11",
+    "T12",
+    "T13",
+    "T14",
+    "T15",
+    "T16",
+    "T17",
+    "T18",
+    "T19",
+    "T20",
+    "T21",
+    "T22",
+    "T23",
+    "T24",
+    "T25",
+    "T26",
+    "T27",
+    "T28",
+    "T29",
+    "T30",
+    "T31",
+    "T32",
+    "T33",
+    "T34",
+    "T35",
+    "T36",
+    "WI-GEN-AR",
+    "WI-GEN-EXT-DATA",
+    "WI-GEN-PF",
+    "WI-GEN-RECORDS",
+    "WI-GEN-UI",
+    "WI-GEN-VER",
+    "WI-GEN-WDL",
+    "WI-INV-LIST",
+    "WI-INV-START",
+    "WI-INV-WORKSPACE"
+  ],
+  "inScopeObligations": 890,
+  "inputs": [
+    {
+      "path": "requirements/verification/verification-manifest.json",
+      "sha256": "2c87b96438d4ddd2b62181e19492ec3b318ef6557cbca8b36b1e5b51bab1b333"
+    },
+    {
+      "path": ".echelon/r9-work-plan.json",
+      "sha256": "7cf8fab1aec66d6f0fc8a07b391338c241eebee312e1c94ca68158a1d281af19"
+    },
+    {
+      "path": ".echelon/obligations.json",
+      "sha256": "c557130af23bf230c84736c7c5c1df74a25e4dd5f9273128cf9847959c1d84d6"
+    },
+    {
+      "path": ".echelon/scope-checkpoint.json",
+      "sha256": "5d3a3e3ae27df2d095ea703de753a53be553a9ac85b4aacc16f63cf98fa7a1ed"
+    },
+    {
+      "path": "evidence/t0/suite-preflight.json",
+      "sha256": "741598f3557c407b94dd7aacb136d0636909ec96b37c80c568a1eb9d133fd09d"
+    },
+    {
+      "path": "evidence/t0/spec-preflight.json",
+      "sha256": "0890c1b17f7ff9e4e3556747d2d3abc5704580ef5abc455c544c46767620b1f0"
+    },
+    {
+      "path": "evidence/t0/acceptance.log",
+      "sha256": "76ecfde697f2d7544f446287ec80fea78ca1d508e08726febb00f15266686758"
+    }
+  ]
+}
