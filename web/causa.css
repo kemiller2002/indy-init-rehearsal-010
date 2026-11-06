@@ -72,6 +72,21 @@ body.causa { margin: 0; background: var(--causa-ivory); color: var(--causa-ink);
 @media (max-width: 48rem) {
   .causa-shell { min-block-size: 0; }
 }
+/* PERSIST-030-O7: at phone width the save state is on the first screen. The compact menu is not an open disclosure:
+   its summary is dropped and the three destinations sit on one row (still the visible Primary navigation, UI-020);
+   on an investigation the record header (with the save lozenge) comes before the current-investigation context and
+   its section navigation. */
+@media (max-width: 24.375rem) {
+  .causa-compact { padding: 0 0.25rem; }
+  .causa-compact > summary { display: none; }
+  .causa-compact nav.causa-primary { display: flex; flex-wrap: wrap; padding: 0; }
+  .causa-compact .causa-primary a { padding: 0 0.5rem; border-inline-start: 0; border-block-end: 3px solid transparent; }
+  .causa-compact .causa-primary a[aria-current="page"] { border-block-end-color: var(--causa-teal); }
+  .causa-main { display: flex; flex-direction: column; }
+  .causa-main > * { order: 2; }
+  .causa-main > .causa-loading, .causa-main > .causa-load-failed, .causa-main > .causa-offline, .causa-main > .causa-frame { order: 0; }
+  .causa-main > .causa-context { order: 1; }
+}
 @media print {
   .causa-masthead, .ef-navigation-shell__persistent, .causa-compact, .causa-skip { display: none; }
   body.causa { background: var(--causa-surface); }
