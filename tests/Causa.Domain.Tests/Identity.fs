@@ -258,7 +258,7 @@ module Identity =
     [<Fact>]
     let ``The cause-confirmation gate lists every blocker and then allows confirmation`` () =
         let proposed =
-            match submit core (Some investigation) 70 (RecordCausalAssertion { CauseId = cause; Outcome = t "checkout failures"; Members = [ { HypothesisId = h1; Role = CauseRole.RootCause } ]; Mechanism = None }) with
+            match submit core (Some investigation) 70 (RecordCausalAssertion { CauseId = cause; Outcome = t "checkout failures"; Members = [ { HypothesisId = h1; Role = CauseRole.RootCause } ]; Mechanism = Some(t "an expired certificate fails the TLS handshake") }) with
             | Allowed _, Some s -> s
             | other -> failwithf "%A" other
         let withUnknown =
@@ -282,9 +282,9 @@ module Identity =
         match submit core (Some ready) 90 confirm with
         | Allowed [ CoreEvent(CauseConfirmed _) ], Some s -> Assert.Equal(CauseState.Confirmed, s.Causes[cause].State)
         | other -> failwithf "%A" other
-        // Composed policy: requiring a mechanism adds its blocker; an unknown component is unsupported, never ignored.
-        let strict = { Id = "causa.core/1+causa.mechanism-required/1" }
-        Assert.Equal<string list>([ "cause.mechanism-missing" ], submit strict (Some ready) 91 confirm |> fst |> blockersOf)
+        // Composed policy: requiring verified support adds its blocker; an unknown component is unsupported, never ignored.
+        let strict = { Id = "causa.core/1+causa.verified-support/1" }
+        Assert.Equal<string list>([ "cause.support-unverified" ], submit strict (Some ready) 91 confirm |> fst |> blockersOf)
         match submit { Id = "causa.core/1+edf.unknown/9" } (Some ready) 92 confirm |> fst with
         | UnsupportedSemantics [ "policy edf.unknown/9" ] -> ()
         | other -> failwithf "%A" other
@@ -296,7 +296,9 @@ module Identity =
                   MarkHypothesisPlausible { HypothesisId = h1; Reason = t "r"; EvidenceIds = [] }
                   MarkHypothesisSupported { HypothesisId = h1; Reason = t "r"; EvidenceIds = [] }
                   RecordCausalAssertion { CauseId = cause; Outcome = t "o"; Members = [ { HypothesisId = h1; Role = CauseRole.Trigger } ]; Mechanism = None } ]
-        Assert.Equal<string list>([ "cause.no-supporting-evidence" ], submit core (Some unsupported) 93 confirm |> fst |> blockersOf)
+        Assert.Equal<string list>(
+            [ "cause.no-mechanism"; "cause.no-root"; "cause.no-supporting-evidence" ],
+            submit core (Some unsupported) 93 confirm |> fst |> blockersOf)
 
     [<Fact>]
     let ``The resolution gate requires a conclusion and satisfied verification`` () =
