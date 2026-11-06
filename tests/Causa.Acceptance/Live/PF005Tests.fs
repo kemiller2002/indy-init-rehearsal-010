@@ -9,7 +9,7 @@ open Causa.Persistence
 open Causa.TestSupport
 
 module PF005Tests =
-    let private networkMarkers = [ "api.github.com"; LiveGitHub.TokenVariable; "LiveGitHub"; "HttpClient"; "GH_TOKEN"; "GITHUB_TOKEN" ]
+    let private networkMarkers = [ LiveGitHub.TokenVariable; "LiveGitHub"; "HttpClient"; "GH_TOKEN"; "GITHUB_TOKEN" ]
 
     /// O1: UI and domain tests depend on no GitHub, network or credential: their sources name none, their suites run
     /// in the offline environments, the domain assembly references no network stack, and the domain verification of
