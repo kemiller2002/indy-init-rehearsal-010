@@ -1,0 +1,35 @@
+<!-- Owner: ui-3. Causal Analysis section (Views/Graph.fs): the accessible text relationship list (UI-026 P0 floor). -->
+<template data-if="screen.investigation.causal-analysis">
+  <section class="ef-section causa-analysis" aria-labelledby="causa-causal-heading" data-requirement-id="UI-026">
+    <h2 class="ef-section-heading" id="causa-causal-heading">Causal Analysis</h2>
+    <template data-if="investigation.causal.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <section class="ef-stack" aria-labelledby="causa-relationships-heading">
+          <h3 id="causa-relationships-heading">Evidence and hypothesis relationships</h3>
+          <template data-if="investigation.causal.relationships.empty">
+            <p class="causa-analysis__empty">No evidence has been related to a hypothesis yet.</p>
+          </template>
+          <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-relationships-heading">
+            <template data-each="investigation.causal.relationships" data-key="id">
+              <li class="causa-relationship"><span data-text="evidence"></span> <strong data-text="kind"></strong> <span data-text="hypothesis"></span> (<span data-text="status"></span>). Rationale: <span data-text="rationale"></span></li>
+            </template>
+          </ul>
+        </section>
+        <section class="ef-stack" aria-labelledby="causa-causes-heading">
+          <h3 id="causa-causes-heading">Causal assertions</h3>
+          <template data-if="investigation.causal.causes.empty">
+            <p class="causa-analysis__empty">No causal assertions recorded.</p>
+          </template>
+          <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-causes-heading">
+            <template data-each="investigation.causal.causes" data-key="id">
+              <li class="causa-relationship"><span data-text="outcome"></span> (<span data-text="state"></span>): <span data-text="members"></span></li>
+            </template>
+          </ul>
+        </section>
+      </div>
+    </template>
+    <template data-if="investigation.causal.missing">
+      <p class="causa-analysis__empty" data-text="investigation.causal.notLoaded"></p>
+    </template>
+  </section>
+</template>
