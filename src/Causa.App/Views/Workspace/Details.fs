@@ -24,7 +24,7 @@ module Details =
                   "problem", "Original problem statement", Frame.problemStatement i |> Option.defaultValue ""
                   "question", "Primary investigative question", Frame.question i |> Option.defaultValue "None recorded"
                   "state", "Investigation state", Frame.lifecycle i.Lifecycle
-                  "created", "Creation timestamp", Frame.createdAt located |> Option.map Frame.formatTime |> Option.defaultValue "Not yet saved" ]
+                  "created", "Creation timestamp", Frame.createdAt located |> Option.map Frame.formatTime |> Option.defaultValue "Not on GitHub until the first commit" ]
 
     /// The details keys: a data-each list (key, label, value) and whether there is anything to show.
     let view (state: AppState) : (string * ViewValue) list =

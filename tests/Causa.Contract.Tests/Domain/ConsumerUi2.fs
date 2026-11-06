@@ -104,7 +104,7 @@ let KernelSignaturesAndFixtures () =
     Assert.Equal("Pump P-101 tripped", text "investigation.problem" frame)
     Assert.Equal("Why did it trip?", text "investigation.question" frame)
     Assert.Equal("Draft", text "investigation.state" frame) // the kernel's lifecycle after InvestigationStarted
-    Assert.Equal("Not yet saved", text "investigation.created" frame) // INV-007 is never fabricated before a save
+    Assert.Equal("Not on GitHub until the first commit", text "investigation.created" frame) // INV-007 is never fabricated before a save
     Assert.Equal("2", text "investigation.version" frame)
     // UI-029: the five section links, each the canonical route, the current one marked aria-current="page".
     for section in Frame.sections do
