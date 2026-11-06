@@ -68,9 +68,15 @@ module Shell =
               "shell.sections"
               [ match target with
                 | Some t ->
+                    let report = UiRoutes.isReport (Routes.hashOf state.Model.Route)
                     for s in sections do
                         [ Cell.text "key" (UiRoutes.sectionSlug s)
                           Cell.text "label" (UiRoutes.sectionLabel s)
                           Cell.text "href" (UiRoutes.href (WorkspaceRoute(t, s)))
-                          Cell.text "current" (if current = Some s then "page" else "false") ]
+                          Cell.text "current" (if current = Some s && not report then "page" else "false") ]
+                    // The investigation's report page (integration, CR of ui-3), after Timeline.
+                    [ Cell.text "key" "report"
+                      Cell.text "label" "Report"
+                      Cell.text "href" (UiRoutes.reportHref t)
+                      Cell.text "current" (if report then "page" else "false") ]
                 | None -> () ] ]

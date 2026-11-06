@@ -29,6 +29,8 @@ type AppEffect =
     | HostEffect of HostEffect
     /// Push this hash onto the history (Limen Navigation effect).
     | PushLocation of hash: string
+    /// Subscribe to the browser's connectivity (limen.lifecycle), once after Initialize.
+    | SubscribeConnectivity
 
 [<RequireQualifiedAccess>]
 module Events =

@@ -114,17 +114,21 @@ module UiAdapter =
         |> List.map (fun (d, label, r) ->
             { Destination = d; Label = label; Href = UiRoutes.href r; Current = (destinationOf route = Some d) })
 
-    /// The page title for a route ("<screen> · Causa").
-    let title (route: UiRoute) : string =
+    /// The page title for a route ("<screen> · Causa"), for the report page when `report`.
+    let titleAt (route: UiRoute) (report: bool) : string =
         let screen =
             match route with
             | InvestigationsRoute -> "Investigations"
             | StartRoute -> "New investigation"
+            | WorkspaceRoute _ when report -> "Report · Investigation"
             | WorkspaceRoute(_, section) -> UiRoutes.sectionLabel section + " · Investigation"
             | AdministrationRoute -> "Administration"
             | SettingsRoute -> "Settings"
             | NotFoundRoute _ -> "Page not found"
         screen + " · Causa"
+
+    /// The page title for a route ("<screen> · Causa").
+    let title (route: UiRoute) : string = titleAt route false
 
     /// The current state of the investigation the route names (verified, with this tab's unsaved commands applied),
     /// or None when the engine holds none for it.

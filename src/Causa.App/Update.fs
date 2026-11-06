@@ -141,7 +141,8 @@ module Update =
                 // views show is the saved one (SM-LOAD OpenRequested, or RefreshRequested from Loaded: T-L07).
                 let model3, reload =
                     match session'.State with
-                    | SaveState.Saved(Confirmed _) when not wasSaved -> openRef now r model2
+                    | SaveState.Saved _ when not wasSaved -> openRef now r model2
+                    | _ when session'.BaseHead <> session.BaseHead -> openRef now r model2
                     | _ -> model2, []
                 model3, hostEffects @ more @ reload
             | Error fault -> model, [ announceFault fault ]
@@ -169,13 +170,79 @@ module Update =
 
     // ---- SM-CONFLICT --------------------------------------------------------------------------------------------------
 
-    let private conflictStep (now: DateTimeOffset) (r: InvestigationRef) (input: ConflictInput) (model: Model) =
+    /// The re-decision of this tab's unsaved commands on GitHub's version (T-C07, PERSIST-012): each in order, at the
+    /// version the previous ones reached; a command the kernel refuses is kept aside with the kernel's reason.
+    let reapply (remote: VerifiedInvestigation) (commands: CommandEnvelope list) : CommandEnvelope list * RefusedCommand list =
+        commands
+        |> List.fold
+            (fun (state: Investigation option, accepted, refused) (c: CommandEnvelope) ->
+                let c = { c with ExpectedVersion = state |> Option.map (fun s -> s.Version) }
+                match Kernel.domain.Decide Policy.core Working.actor state c with
+                | Allowed _ -> Working.apply remote.Investigation.UpdatedAt state c, accepted @ [ c ], refused
+                | Blocked blockers -> state, accepted, refused @ [ { Command = c; Reason = blockers |> List.map (fun b -> b.Message) |> String.concat " " } ]
+                | RequiresReview reasons
+                | UnsupportedSemantics reasons -> state, accepted, refused @ [ { Command = c; Reason = String.concat " " reasons } ]
+                | Conflict _ -> state, accepted, refused @ [ { Command = c; Reason = "decided at another version" } ]
+                | Duplicate _ -> state, accepted, refused @ [ { Command = c; Reason = "already applied on GitHub" } ])
+            (Some remote.Investigation, [], [])
+        |> fun (_, accepted, refused) -> accepted, refused
+
+    /// The export of a session's unsaved commands (one JSON object per command, the CommandEnvelope's fields).
+    let exportOf (session: InvestigationSession) : string * string =
+        let (InvestigationId g) = session.Id
+        let lines =
+            Working.pending (Some session)
+            |> List.map (fun c ->
+                let (InvestigationId inv) = c.Investigation
+                let kind =
+                    match c.Command with
+                    | Core core -> (sprintf "%A" core).Split([| ' '; '\n' |], 2).[0]
+                    | Extension(id, _) -> string id
+                System.Text.Json.JsonSerializer.Serialize(
+                    dict [ "commandId", box (c.CommandId.ToString("D"))
+                           "investigationId", box (inv.ToString("D"))
+                           "expectedVersion", box (c.ExpectedVersion |> Option.map (fun (AggregateVersion v) -> string v) |> Option.defaultValue "")
+                           "command", box kind
+                           "detail", box (sprintf "%A" c.Command) ]
+                ))
+        sprintf "causa-unsaved-%s.json" (g.ToString("D")), "[\n" + String.concat ",\n" lines + "\n]\n"
+
+    let rec private conflictStep (now: DateTimeOffset) (r: InvestigationRef) (input: ConflictInput) (model: Model) =
         match contextFor now model (Some r), Map.tryFind r model.Sessions with
         | Some ctx, Some({ State = SaveState.Conflict view } as session) ->
             match saveMachine.StepConflict ctx view input with
             | Ok(view', effects) ->
-                effectsOf { model with Sessions = Map.add r { session with State = SaveState.Conflict view' } model.Sessions } effects
+                // The machine asks for the export; the engine fills it with the session's unsaved commands.
+                let effects =
+                    effects |> List.filter (function ExportCommands _ -> false | _ -> true)
+                let model, hostEffects =
+                    effectsOf { model with Sessions = Map.add r { session with State = SaveState.Conflict view' } model.Sessions } effects
+                match input, view' with
+                // Reapplying: the engine re-decides and reports ReapplyDone.
+                | ConflictInput.ReapplyChosen, Reapplying remote ->
+                    let accepted, refused = reapply remote (Working.pending (Some session))
+                    let model, more = conflictStep now r (ConflictInput.ReapplyDone(accepted, refused)) model
+                    model, hostEffects @ more
+                | ConflictInput.ReapplyDone(accepted, _), Reapplied _ ->
+                    let model, more = saveStep now r (SaveInput.ConflictResolvedReapplied accepted) model
+                    model, hostEffects @ more
+                | ConflictInput.DiscardConfirmed, Discarded remote ->
+                    let model, more = saveStep now r (SaveInput.ConflictResolvedDiscarded remote) model
+                    model, hostEffects @ more
+                | _ -> model, hostEffects
             | Error fault -> model, [ announceFault fault ]
+        | _ -> model, []
+
+    /// Export of the unsaved commands during a conflict: a download, and in Unresolvable also ExportChosen.
+    let private export (now: DateTimeOffset) (r: InvestigationRef) (model: Model) =
+        match Map.tryFind r model.Sessions with
+        | Some({ State = SaveState.Conflict view } as session) ->
+            let download = Download(exportOf session)
+            match view with
+            | Unresolvable _ ->
+                let model, effects = conflictStep now r ConflictInput.ExportChosen model
+                model, download :: effects
+            | _ -> model, [ download ]
         | _ -> model, []
 
     // ---- listing ------------------------------------------------------------------------------------------------------
@@ -402,6 +469,8 @@ module Update =
             // T-L07 and the machine's network flag: a save while known offline is the Offline transition instead.
             | SaveInput.SaveRequested when model.Network = NetworkState.Offline -> saveStep now r SaveInput.WentOffline model
             | _ -> saveStep now r input model
+        // Export: the download of the unsaved commands (and ExportChosen in Unresolvable; no change in Reviewable).
+        | ConflictStep(r, ConflictInput.ExportChosen) -> export now r model
         | ConflictStep(r, input) -> conflictStep now r input model
         | LoadStep(r, input) -> loadStep now r input model
         | ListRequested target -> list now target model
