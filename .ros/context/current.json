@@ -41,7 +41,27 @@
       "updatedAt": "2026-11-06T19:01:00Z",
       "telemetryExecutionIds": [
         "EXE-20261106T190100422Z-36df4ad6"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "a11c0177133d8ca14e204d85",
+        "recordedAt": "2026-11-06T19:01:22Z",
+        "executionId": "EXE-20261106T190100422Z-36df4ad6",
+        "repository": "indy-init-rehearsal-010",
+        "branch": "slice/SL-WI-GEN-RECORDS",
+        "commit": "d08cd3c7426decf47ebb80cac34adc8951bd11cb",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/indy-init-rehearsal-010"
+        },
+        "remoteBranch": "slice/SL-WI-GEN-RECORDS",
+        "remoteCommit": "d08cd3c7426decf47ebb80cac34adc8951bd11cb",
+        "summary": "Started WI-GEN-RECORDS and recorded its assignment (commit d08cd3c, pushed); every remaining record of AR-001..AR-031 in scope is an independent-review, owner-approval or CI acceptance-reference that this agent must not produce",
+        "nextAction": "Coordinator: route the independent review of the candidate to anthropic/claude-code-reviewer and DEC-R10-KICKOFF attestation to the owner",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }
