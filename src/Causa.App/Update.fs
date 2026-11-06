@@ -55,6 +55,8 @@ module Update =
 
     /// The state a page load starts from, at the location hash the browser reported.
     let init (hash: string) : AppState * AppEffect list =
+        // A page loaded at an in-page anchor (e.g. "#main" after the skip link) starts at the root route.
+        let hash = if hash.Length > 1 && not (hash.StartsWith "#/") then "" else hash
         let route = Routes.route hash
         let model, effects = engine.Init route
         withModel

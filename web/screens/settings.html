@@ -1,0 +1,23 @@
+<!-- Owner: ui. Settings (UI-019, UI-020-O2): preferences only, each with its scope; the connection is shown apart,
+     as a verified fact, never as a preference. -->
+<template data-if="screen.settings">
+  <section class="causa-screen causa-settings" aria-labelledby="settings-heading">
+    <h1 id="settings-heading" data-text="settings.heading">Settings</h1>
+    <p class="causa-intro" data-text="settings.intro"></p>
+    <form class="ef-form causa-preferences" aria-label="Preferences">
+      <fieldset class="ef-choice-group causa-choice">
+        <legend class="ef-choice-group__legend">Motion</legend>
+        <label class="ef-choice"><input type="radio" name="motion" value="system" data-event="settings.motion" data-bind-checked="settings.motion.system"><span class="ef-choice__content">Follow the device setting</span></label>
+        <label class="ef-choice"><input type="radio" name="motion" value="reduce" data-event="settings.motion" data-bind-checked="settings.motion.reduce"><span class="ef-choice__content">Reduce motion</span></label>
+      </fieldset>
+      <fieldset class="ef-choice-group causa-choice">
+        <legend class="ef-choice-group__legend">Text size</legend>
+        <label class="ef-choice"><input type="radio" name="text-size" value="default" data-event="settings.text-size" data-bind-checked="settings.text-size.default"><span class="ef-choice__content">Default</span></label>
+        <label class="ef-choice"><input type="radio" name="text-size" value="large" data-event="settings.text-size" data-bind-checked="settings.text-size.large"><span class="ef-choice__content">Larger</span></label>
+      </fieldset>
+      <p class="causa-note" data-text="settings.scope"></p>
+    </form>
+    <h2>Data repository</h2>
+    <p data-text="settings.connection"></p>
+  </section>
+</template>
