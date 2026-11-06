@@ -54,9 +54,11 @@ module InvestigationList =
         let created = model.Sessions |> Map.toList |> List.map fst |> List.filter (known.Contains >> not) |> List.map (fun r -> r, None)
         created @ listed |> List.map (fun (r, t) -> row model r t)
 
+    /// The New investigation action is offered whenever connected: the Start screen states why a start is not possible
+    /// (read-only access, the working copy not listed) rather than the action silently missing.
     let canStart (model: Model) =
         match model.Connection with
-        | Connected true -> model.Listings |> Map.exists (fun a _ -> a.Role = WorkspaceRole.WorkingCopy)
+        | Connected _ -> true
         | _ -> false
 
     let view (state: AppState) : (string * ViewValue) list =

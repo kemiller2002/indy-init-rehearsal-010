@@ -20,7 +20,8 @@
         </div>
         <div class="ef-field">
           <label class="ef-field__label" for="causa-connection-branch">Branch</label>
-          <input type="text" id="causa-connection-branch" autocomplete="off" spellcheck="false" placeholder="main"
+          <span class="ef-field__description" id="causa-connection-branch-description">Leave empty for main.</span>
+          <input type="text" id="causa-connection-branch" autocomplete="off" spellcheck="false" aria-describedby="causa-connection-branch-description"
             data-event="connection.branch" data-on="input" data-bind-value="connection.branch">
         </div>
         <div class="ef-field" data-requirement-id="EXT-DATA-004">
