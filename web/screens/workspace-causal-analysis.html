@@ -1,0 +1,57 @@
+<!-- Owner: ui-3. Causal Analysis section (Views/Graph.fs): the accessible text relationship list (UI-026 P0 floor). -->
+<template data-if="screen.investigation.causal-analysis">
+  <section class="ef-section causa-analysis" aria-labelledby="causa-causal-heading" data-requirement-id="UI-026">
+    <h2 class="ef-section-heading" id="causa-causal-heading">Causal Analysis</h2>
+    <template data-if="investigation.causal.loaded">
+      <div class="ef-stack causa-analysis__body">
+        <p class="causa-analysis__version" data-requirement-id="UI-013" data-text="investigation.causal.version"></p>
+        <template data-if="investigation.inspector.open">
+          <aside class="ef-card causa-inspector" aria-labelledby="causa-inspector-title-causal" data-requirement-id="UI-034">
+            <p class="ef-eyebrow" data-text="investigation.inspector.kind"></p>
+            <h3 class="ef-card__title" id="causa-inspector-title-causal" data-text="investigation.inspector.title"></h3>
+            <p class="causa-record__lines" data-text="investigation.inspector.body"></p>
+            <p class="causa-record__meta" data-text="investigation.inspector.provenance"></p>
+            <template data-if="investigation.inspector.related.empty"><p class="causa-record__meta">No linked records.</p></template>
+            <ul class="causa-analysis__list" aria-label="Linked records">
+              <template data-each="investigation.inspector.related" data-key="id"><li><a data-bind-href="href" data-text="label"></a></li></template>
+            </ul>
+            <a class="ef-button" data-bind-href="investigation.inspector.close">Close details</a>
+          </aside>
+        </template>
+        <template data-if="investigation.inspector.absent">
+          <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
+        </template>
+
+        <section class="ef-stack" aria-labelledby="causa-relationships-heading">
+          <h3 id="causa-relationships-heading">Evidence and hypothesis relationships</h3>
+          <template data-if="investigation.causal.relationships.empty">
+            <p class="causa-analysis__empty">No evidence has been related to a hypothesis yet.</p>
+          </template>
+          <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-relationships-heading">
+            <template data-each="investigation.causal.relationships" data-key="id">
+              <li class="causa-relationship"><a data-bind-href="evidenceHref" data-text="evidence"></a> <strong data-text="kind"></strong> <a data-bind-href="hypothesisHref" data-text="hypothesis"></a> (<span data-text="status"></span>). Rationale: <span data-text="rationale"></span> <a class="causa-record__open" data-bind-href="href" data-bind-aria-current="selected">Details</a></li>
+            </template>
+          </ul>
+        </section>
+        <section class="ef-stack" aria-labelledby="causa-causes-heading">
+          <h3 id="causa-causes-heading">Causal assertions</h3>
+          <template data-if="investigation.causal.causes.empty">
+            <p class="causa-analysis__empty">No causal assertions recorded.</p>
+          </template>
+          <ul class="ef-stack causa-analysis__list" aria-labelledby="causa-causes-heading">
+            <template data-each="investigation.causal.causes" data-key="id">
+              <li class="causa-relationship"><span data-text="outcome"></span> (<span data-text="state"></span>): <span data-text="members"></span></li>
+            </template>
+          </ul>
+        </section>
+      </div>
+    </template>
+    <template data-if="investigation.causal.missing">
+      <div class="causa-unavailable" role="status">
+        <p data-text="investigation.causal.notLoaded"></p>
+        <p data-text="investigation.causal.preserved"></p>
+        <p data-text="investigation.causal.next"></p>
+      </div>
+    </template>
+  </section>
+</template>

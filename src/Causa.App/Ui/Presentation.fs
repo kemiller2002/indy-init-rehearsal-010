@@ -27,7 +27,10 @@ type AppState =
       /// The credential the user entered, opaque (IF41-WIRE Credential.T). Never a draft, never rendered or logged.
       Credential: Credential.T option
       /// Live-region announcements of the last update (frozen Politeness).
-      Announcements: (Politeness * string) list }
+      Announcements: (Politeness * string) list
+      /// The build record (dist/build-info.json) as this page read it from its own origin: not read yet, its text, or
+      /// why it could not be read (UI-018). Never part of the GitHub machines.
+      Build: Result<string, string> option }
 
 /// Builds one binding: `Bind.text "investigations.heading" "Investigations"`. A screen's whole output is a list of
 /// these (`view : AppState -> (string * ViewValue) list`).
@@ -110,6 +113,9 @@ module UiRoutes =
             let section =
                 match rest with
                 | [] -> Some Overview
+                // The report is an investigation page outside the frozen Section set: its route stands on the
+                // investigation (Overview) and View.shell shows the report instead (isReport).
+                | [ "report" ] -> Some Overview
                 | [ slug ] -> sectionOfSlug slug
                 | _ -> None
             match Guid.TryParse id, section with
@@ -137,6 +143,17 @@ module UiRoutes =
         | AdministrationRoute -> "administration"
         | SettingsRoute -> "settings"
         | NotFoundRoute _ -> "not-found"
+
+    /// Whether a hash is an investigation's report page (`#/investigation/<workspace>/<id>/report`).
+    let isReport (hash: string) : bool =
+        match Routes.segments hash with
+        | [ "investigation"; _; _; "report" ] -> true
+        | _ -> false
+
+    /// The report page of an investigation.
+    let reportHref (target: RouteTarget) : string =
+        let (InvestigationId id) = target.Id
+        Routes.ofSegments [ "investigation"; target.Workspace; id.ToString("D"); "report" ]
 
     /// Every screen name, in navigation order.
     let screenNames = [ "investigations"; "new"; "investigation"; "administration"; "settings"; "not-found" ]
