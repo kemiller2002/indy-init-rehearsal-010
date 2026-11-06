@@ -141,3 +141,79 @@ module AnalysisScenarios =
                   { FindingId = FindingId(g 82); ActionId = InvestigationActionId(g 81); OriginalResult = t "The certificate expired at 08:59"
                     Interpretation = Some(t "matches the onset") } ]
         |> withStoredConclusion
+
+/// WDL-011: the deterministic causal-graph fixtures, each built through the kernel's commands (the same projection the
+/// real provider's histories go through, WDL-011-O2): empty, single node, the four cause roles, dense evidence, long
+/// labels, a disconnected graph, and the cycle the domain permits (two outcomes sharing two hypotheses: a cycle in the
+/// undirected graph; a directed cycle cannot exist because every edge runs from a hypothesis to an outcome).
+[<RequireQualifiedAccess>]
+module GraphFixtures =
+    module A = AnalysisScenarios
+    let private g, t, run = A.g, A.t, A.run
+    let private start, admit, relate = A.start, A.admit, A.relate
+
+    let private hyp n statement : CoreCommand =
+        RecordHypothesis { HypothesisId = HypothesisId(g n); Statement = t statement; Mechanism = None }
+
+    let private cause n outcome (members: (int * CauseRole) list) : CoreCommand =
+        RecordCausalAssertion
+            { CauseId = CausalAssertionId(g n); Outcome = t outcome
+              Members = members |> List.map (fun (h, role) -> { HypothesisId = HypothesisId(g h); Role = role }); Mechanism = None }
+
+    let private started = [ StartInvestigation start; ActivateInvestigation ]
+
+    let empty () = run started
+
+    let singleNode () = run (started @ [ hyp 100 "The pump seal failed" ])
+
+    let fourRoles () =
+        run (
+            started
+            @ [ hyp 100 "The pump seal failed"
+                hyp 101 "A pressure spike occurred at start-up"
+                hyp 102 "Maintenance was deferred twice"
+                hyp 103 "The relief valve was set too high"
+                cause 200 "Coolant leak in loop B"
+                    [ 100, CauseRole.RootCause; 101, CauseRole.Trigger; 102, CauseRole.ContributingFactor; 103, CauseRole.EnablingCondition ] ])
+
+    let denseEvidence () =
+        run (
+            started
+            @ [ hyp 100 "The pump seal failed" ]
+            @ [ for i in 0..11 -> admit (EvidenceId(g (300 + i))) $"Inspection note {i + 1}" "plant log" ]
+            @ [ for i in 0..11 ->
+                    relate (400 + i) (EvidenceId(g (300 + i))) (HypothesisId(g 100))
+                        (if i % 3 = 2 then RelationshipKind.Contradicts else RelationshipKind.Supports) $"note {i + 1} bears on the seal" ]
+            @ [ cause 200 "Coolant leak in loop B" [ 100, CauseRole.RootCause ] ])
+
+    let longLabels () =
+        run (
+            started
+            @ [ hyp 100 (String.replicate 120 "The seal degraded slowly. ")
+                cause 200 (String.replicate 12 "A long outcome description. ") [ 100, CauseRole.RootCause ] ])
+
+    let disconnected () =
+        run (
+            started
+            @ [ hyp 100 "The pump seal failed"
+                hyp 101 "The sensor drifted"
+                hyp 102 "An operator misread the gauge"
+                cause 200 "Coolant leak in loop B" [ 100, CauseRole.RootCause ]
+                cause 201 "False low-level alarm" [ 101, CauseRole.RootCause ] ])
+
+    let sharedMembers () =
+        run (
+            started
+            @ [ hyp 100 "The pump seal failed"
+                hyp 101 "A pressure spike occurred at start-up"
+                cause 200 "Coolant leak in loop B" [ 100, CauseRole.RootCause; 101, CauseRole.Trigger ]
+                cause 201 "Loop B pressure alarm" [ 101, CauseRole.RootCause; 100, CauseRole.ContributingFactor ] ])
+
+    let all =
+        [ "empty", empty
+          "single-node", singleNode
+          "four-roles", fourRoles
+          "dense-evidence", denseEvidence
+          "long-labels", longLabels
+          "disconnected", disconnected
+          "shared-members", sharedMembers ]

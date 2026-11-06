@@ -22,6 +22,15 @@
           <p class="causa-analysis__empty" role="status" data-text="investigation.inspector.absentText"></p>
         </template>
 
+        <template data-if="investigation.causal.graph.shown">
+          <figure class="causa-graph" aria-labelledby="causa-graph-caption" data-requirement-id="WDL-003">
+            <figcaption id="causa-graph-caption"><span data-text="investigation.causal.graph.title"></span> (<span data-text="investigation.causal.graph.summary"></span>). The lists below give the same content as text.</figcaption>
+            <template data-if="investigation.causal.graph.empty">
+              <p class="causa-analysis__empty">No hypothesis or causal assertion is recorded yet, so the graph is empty.</p>
+            </template>
+            <forma-workflow class="causa-graph__canvas" mode="inspect" data-wdl-layout="forma-workflow" data-bind-data-workflow="investigation.causal.graph.workflow"></forma-workflow>
+          </figure>
+        </template>
         <section class="ef-stack" aria-labelledby="causa-relationships-heading">
           <h3 id="causa-relationships-heading">Evidence and hypothesis relationships</h3>
           <template data-if="investigation.causal.relationships.empty">

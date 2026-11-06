@@ -88,6 +88,8 @@ const projection = {
     { id: "r1", evidence: e1, evidenceHref: "#/x/evidence?record=e1", kind: "supports", hypothesis: h1, hypothesisHref: "#/x/hypotheses?record=h1", rationale: r1, current: true, status: "current", href: "#/x/causal-analysis?record=r1", selected: false },
     { id: "r2", evidence: e2, evidenceHref: "#/x/evidence?record=e2", kind: "contradicts", hypothesis: h1, hypothesisHref: "#/x/hypotheses?record=h1", rationale: r2, current: true, status: "current", href: "#/x/causal-analysis?record=r2", selected: false }],
   "investigation.causal.causes.empty": true, "investigation.causal.causes": [],
+  "investigation.causal.graph.shown": false, "investigation.causal.graph.empty": false, "investigation.causal.graph.title": "",
+  "investigation.causal.graph.summary": "", "investigation.causal.graph.workflow": "",
   // Report.fs
   "screen.investigation.report": true,
   "investigation.report.loaded": true, "investigation.report.missing": false, "investigation.report.notLoaded": "",

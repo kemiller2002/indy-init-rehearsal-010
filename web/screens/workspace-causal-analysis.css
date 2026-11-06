@@ -1,2 +1,9 @@
 /* Owner: ui-3. Causal Analysis: the accessible text relationship list. */
 .causa-relationship { overflow-wrap: anywhere; }
+/* The drawn causal graph: the Forma workflow element owns placement and its own canvas overflow (WDL-007). */
+.causa-graph { margin: 0; display: grid; gap: var(--ef-primitive-spacing-2, 0.5rem); max-width: 100%; }
+.causa-graph__canvas { display: block; max-width: 100%; overflow: auto; }
+/* At phone width the engine's Objects summary is a few pixels wider than the viewport: let it show, inside the
+   figure's own named scroll region, rather than clip it (WDL-007 reflow). */
+.causa-graph { overflow-x: auto; }
+.causa-graph summary { overflow: visible; }

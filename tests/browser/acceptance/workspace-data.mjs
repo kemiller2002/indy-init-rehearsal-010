@@ -115,3 +115,58 @@ export const seedStoredHistory = async (fixtureId, run = 'ui-acceptance') => {
   }
   return `#/investigation/${encodeURIComponent(workspace)}/${fixtureId}/overview`;
 };
+
+// ---- WDL: the causal graph fixtures rendered by the Forma workflow engine ---------------------------------------
+
+/// The deterministic graph fixtures (WDL-011), written by the CausalGraph adapter and checked against it by
+/// Causa.Contract.Tests.Report.CausalGraphTests: the browser renders exactly the projection's output.
+export const graphFixtures = ['empty', 'single-node', 'four-roles', 'dense-evidence', 'long-labels', 'disconnected', 'shared-members'];
+export const graphFixture = async (name) => (await import('node:fs')).readFileSync(new URL(`./wdl-fixtures/${name}.forma-workflow.json`, import.meta.url), 'utf8');
+
+/// Renders a fixture with the real `<forma-workflow>` element (the @echelon-foundry/forma-workflow dependency, run from
+/// this checkout's node_modules) on a Forma page, and returns the element once the engine has laid it out.
+export const renderGraph = async (page, name, { mode = 'inspect' } = {}) => {
+  const { readFileSync } = await import('node:fs');
+  const root = new URL('../../../', import.meta.url);
+  await page.route('**/node_modules/**', (route) => route.fulfill({ path: new URL(new URL(route.request().url()).pathname.slice(1), root).pathname }));
+  await page.route('**/__wdl__.html', (route) => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Causal graph</title>
+<link rel="stylesheet" href="/node_modules/@echelon-foundry/design-system/dist/all.css">
+<link rel="stylesheet" href="/node_modules/@echelon-foundry/forma-workflow/dist/forma-workflow.css">
+<style>${readFileSync(new URL('web/screens/workspace-causal-analysis.css', root), 'utf8')}</style>
+<script type="module" src="/node_modules/@echelon-foundry/forma-workflow/dist/forma-workflow.js"></script></head>
+<body><main class="ef-container"><figure class="causa-graph"><forma-workflow id="graph" class="causa-graph__canvas" mode="${mode}"></forma-workflow></figure></main></body></html>` }));
+  await page.goto('/__wdl__.html');
+  const workflow = await graphFixture(name);
+  const report = await page.evaluate(async (text) => {
+    await customElements.whenDefined('forma-workflow');
+    const el = document.getElementById('graph');
+    const v = await el.validate(text);
+    await el.load(text);
+    return { valid: v.valid, class: v.class };
+  }, workflow);
+  const el = page.locator('forma-workflow#graph');
+  await expect(el.locator('.ef-diagram')).toBeVisible({ timeout: 30000 });
+  return { el, report, workflow: JSON.parse(workflow) };
+};
+
+/// Every rendered node's box, in page pixels.
+export const nodeBoxes = (el) => el.locator('.ef-diagram-node').evaluateAll((ns) => ns.map((n) => { const r = n.getBoundingClientRect(); return { id: n.id, x: r.x, y: r.y, w: r.width, h: r.height }; }));
+export const overlaps = (boxes) => {
+  const found = [];
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i], b = boxes[j];
+    if (a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5) found.push(`${a.id} overlaps ${b.id}`);
+  }
+  return found;
+};
+
+/// The live graph: the concluded SSO-outage history (contract fixture a6747bd3) written to the provider and opened in
+/// the application's Causal Analysis section.
+export const openSeededGraph = async (page) => {
+  const route = (await seedStoredHistory('a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e')).replace(/\/overview$/, '/causal-analysis');
+  await connect(page);
+  await page.goto(page.url().replace(/#.*$/, '') + route);
+  const el = page.locator('forma-workflow');
+  await expect(el.locator('.ef-diagram')).toBeVisible({ timeout: 30000 });
+  return el;
+};

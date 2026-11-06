@@ -396,3 +396,90 @@ module WorkspaceViews =
                 match value views list with
                 | BindingValue.Items(first :: _) -> Assert.True(first.ContainsKey k, $"row field {k} of {list} is not emitted")
                 | other -> failwithf "%s has no rows to check: %A" list other
+
+/// WDL-003..WDL-005, WDL-009, WDL-011, WDL-012: the domain-to-graph adapter (Views/Graph.fs CausalGraph) checked on
+/// kernel-built fixtures, and the committed browser fixtures proven to be exactly its output.
+module CausalGraphTests =
+    module F = GraphFixtures
+
+    let private graphOf (s: Investigation) = CausalGraph.project (SectionContext.ofInvestigation (Some s)).Href s
+    let private workflowOf (s: Investigation) = CausalGraph.toWorkflow (graphOf s)
+
+    let private fixtureDir () =
+        let rec up (d: string) =
+            if Directory.Exists(Path.Combine(d, "web", "screens")) then Path.Combine(d, "tests", "browser", "acceptance", "wdl-fixtures")
+            else
+                match Path.GetDirectoryName d with
+                | null -> failwith "repository root not found"
+                | parent when parent = d -> failwith "repository root not found"
+                | parent -> up parent
+        up (Path.GetFullPath AppContext.BaseDirectory)
+
+    [<Fact>]
+    let ``WDL-003 the graph has the hypotheses, outcomes, cause roles and evidence counts the domain records`` () =
+        let g = graphOf (F.fourRoles ())
+        Assert.Equal(5, g.Nodes.Length)
+        Assert.Equal(4, g.Nodes |> List.filter (fun n -> n.Kind = CausalGraph.HypothesisNode) |> List.length)
+        Assert.Equal<string list>([ "Coolant leak in loop B" ], g.Nodes |> List.filter (fun n -> n.Kind = CausalGraph.OutcomeNode) |> List.map (fun n -> n.Label))
+        Assert.Equal<string list>([ "root cause"; "trigger"; "contributing factor"; "enabling condition" ], g.Edges |> List.map (fun e -> e.RoleLabel))
+        Assert.All(g.Edges, fun e -> Assert.Equal("c-" + Ids.text (AnalysisScenarios.g 200), e.Target))
+        let dense = graphOf (F.denseEvidence ())
+        let h = dense.Nodes |> List.find (fun n -> n.Kind = CausalGraph.HypothesisNode)
+        Assert.Equal((8, 4), (h.Supporting, h.Contradicting))
+        Assert.Equal("Evidence: 8 supporting, 4 contradicting", h.Description)
+        Assert.Equal("proposed", h.State)
+
+    [<Fact>]
+    let ``WDL-003 the projection invents no causal claim and changes no state`` () =
+        let s = F.disconnected ()
+        let before = s
+        let g = graphOf s
+        Assert.Equal(before, s)
+        // The operator hypothesis is in no causal assertion: it is a node with no edge, never linked by inference.
+        let isolated = g.Nodes |> List.find (fun n -> n.Label = "An operator misread the gauge")
+        Assert.DoesNotContain(g.Edges, fun e -> e.Source = isolated.Id)
+        Assert.Equal(s.Causes |> Map.toList |> List.sumBy (fun (_, c) -> c.Cause.Members.Length), g.Edges.Length)
+        // A started investigation with no hypothesis has an empty graph, not a placeholder node.
+        Assert.Empty((graphOf (F.empty ())).Nodes)
+
+    [<Fact>]
+    let ``WDL-005 no coordinates are written for any fixture; placement is left to the workflow engine`` () =
+        for name, build in F.all do
+            let json = workflowOf (build ())
+            Assert.DoesNotContain("\"x\"", json)
+            Assert.DoesNotContain("\"y\"", json)
+            Assert.Contains("\"mode\":\"auto\"", json)
+            use doc = System.Text.Json.JsonDocument.Parse json
+            Assert.Equal("forma-workflow", doc.RootElement.GetProperty("format").GetString())
+
+    [<Fact>]
+    let ``WDL-009 identical input gives identical output with stable node ids and order`` () =
+        for name, build in F.all do
+            let a, b = workflowOf (build ()), workflowOf (build ())
+            Assert.Equal(a, b)
+        let ids (s: Investigation) = (graphOf s).Nodes |> List.map (fun n -> n.Id)
+        let s = F.fourRoles ()
+        let more = AnalysisScenarios.continueWith s [ RecordHypothesis { HypothesisId = HypothesisId(AnalysisScenarios.g 104); Statement = AnalysisScenarios.t "Late addition"; Mechanism = None } ]
+        // Adding a record keeps every existing node's id and relative order.
+        Assert.Equal<string list>(ids s, ids more |> List.filter (fun i -> List.contains i (ids s)))
+
+    [<Fact>]
+    let ``WDL-011 the committed browser fixtures are exactly the projection's output`` () =
+        let dir = fixtureDir ()
+        for name, build in F.all do
+            let path = Path.Combine(dir, name + ".forma-workflow.json")
+            let json = workflowOf (build ())
+            if Environment.GetEnvironmentVariable "WDL_FIXTURES_WRITE" = "1" then
+                Directory.CreateDirectory dir |> ignore
+                File.WriteAllText(path, json)
+            Assert.True(File.Exists path, $"{path} is missing (run with WDL_FIXTURES_WRITE=1)")
+            Assert.Equal(json, File.ReadAllText path)
+
+    [<Fact>]
+    let ``WDL-012 the section binds the same workflow document the adapter produces`` () =
+        let s = F.fourRoles ()
+        let keys = Graph.keys (Some s)
+        Assert.True(match keys |> List.find (fst >> (=) "investigation.causal.graph.shown") |> snd with BindingValue.Flag b -> b | _ -> false)
+        match keys |> List.find (fst >> (=) "investigation.causal.graph.workflow") |> snd with
+        | BindingValue.Text json -> Assert.Equal(workflowOf s, json)
+        | other -> failwithf "not text: %A" other
