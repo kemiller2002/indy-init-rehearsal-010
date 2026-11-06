@@ -174,3 +174,59 @@ module SMCONNECTION =
             Assert.Equal(s, next.Connection)
             Assert.Equal(model.Context, next.Context)
             Assert.Empty(https effects)
+
+    // ---- T-N04 reached through a save (PERSIST-031, INV-25) --------------------------------------------------------
+    // The AuthFailed event must come from somewhere: a save whose credential GitHub refuses (401) while connected. The
+    // tab runs against the stateful fake; every request the engine asks for is answered until nothing is in flight.
+
+    let rec private pump (execute: Execute) (model: Model) (pending: HttpRequest list) : Model =
+        match pending with
+        | [] -> model
+        | request :: rest ->
+            let model, effects = step (Browser(HttpCompleted(execute request))) model
+            pump execute model (rest @ https effects)
+
+    let private run (execute: Execute) (msg: Msg) (model: Model) : Model =
+        let model, effects = step msg model
+        pump execute model (https effects)
+
+    let private started (execute: Execute) =
+        let model = run execute (Connection(ConnectionInput.ConnectSubmitted(repo, credential))) fresh
+        let w = model.Listings |> Map.toList |> List.pick (fun (a, _) -> Writable.ofAddress a)
+        let id = Causa.Domain.InvestigationId(Guid.NewGuid())
+        let text s = (Causa.Domain.NonEmptyText.tryCreate s).Value
+        let command: Causa.Domain.CommandEnvelope =
+            { CommandId = Guid.NewGuid()
+              Investigation = id
+              ExpectedVersion = None
+              Command =
+                Causa.Domain.Core(
+                    Causa.Domain.StartInvestigation
+                        { Title = text "Refused credential"; ObservationId = Causa.Domain.ObservationId(Guid.NewGuid()); Original = text "kept" }) }
+        let model = run execute (CreateRequested(w, command)) model
+        model, ({ Address = Writable.address w; Id = id }: InvestigationRef)
+
+    [<Fact>]
+    let ``T-N04 a save refused for its credential leaves the connection CredentialRefused`` () =
+        let fake =
+            Causa.TestSupport.StatefulFake.start (
+                Causa.TestSupport.StatefulFake.initial repo.Owner repo.Name repo.Branch [ "README.md", "r"B ] [ secret, Causa.TestSupport.ReadWrite ])
+        let model, r = started fake.Execute
+        Assert.Equal(Connected true, model.Connection)
+        let unsaved = model.Sessions[r]
+        fake.Update(
+            Causa.TestSupport.StatefulFake.injectFault
+                Causa.TestSupport.NextMutation
+                (Causa.TestSupport.AnswerWith(401, [ "content-type", "application/json; charset=utf-8" ], Causa.TestSupport.Recordings.badCredentials)))
+        let refused = run fake.Execute (SessionInput(r, SaveInput.SaveRequested)) model
+        Assert.Equal(SaveState.SaveFailed CredentialNotAccepted, refused.Sessions[r].State)
+        Assert.Equal(CredentialRefused, refused.Connection)
+        // Everything in the tab is kept: the unsaved change and the repository.
+        Assert.Equal<Causa.Domain.CommandEnvelope list>(unsaved.Unsaved, refused.Sessions[r].Unsaved)
+        Assert.NotEmpty(refused.Sessions[r].Unsaved)
+        Assert.Equal(repo, refused.Context.Value.Repository)
+        // T-N05, T-N06: a new token reconnects to the same repository and the change can be saved.
+        let back = run fake.Execute (Connection(ConnectionInput.ReconnectSubmitted(Credential.create secret))) refused
+        Assert.Equal(Connected true, back.Connection)
+        let saved = run fake.Execute (SessionInput(r, SaveInput.SaveRequested)) back
+        Assert.True((match saved.Sessions[r].State with SaveState.Saved _ -> true | _ -> false), sprintf "%A" saved.Sessions[r].State)

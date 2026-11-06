@@ -449,6 +449,16 @@ module Update =
                         [ Http request ]
                 | _ ->
                     match saveMachine.Interpret ctx session outcome with
+                    // T-N04 (SM-CONNECTION, PERSIST-031, INV-25): GitHub refused the credential of a save while
+                    // connected: the save goes to Save failed with Reconnect and the connection to CredentialRefused,
+                    // whose Connect form takes the new token (T-N05). Everything in the tab is kept.
+                    | MachineEvent SaveInput.CredentialRefused ->
+                        let model, effects = saveStep now r SaveInput.CredentialRefused model
+                        match model.Connection with
+                        | Connected _ ->
+                            let model, more = connection now ConnectionInput.AuthFailed model
+                            model, effects @ more
+                        | _ -> model, effects
                     | MachineEvent input -> saveStep now r input model
                     | NextRequest(session', request) ->
                         { model with Sessions = Map.add r session' model.Sessions; NextRequestId = next request.Id }, [ Http request ]

@@ -151,9 +151,16 @@ let seed (state: FakeState) (owner: string, repo: string, path: string) (r: Inbo
                         next, Reply((if current.IsSome then 200 else 201), json, answer)
             with :? JsonException | :? FormatException -> fail 400 "Problems parsing JSON"
 
-let private ofOutcome (outcome: HttpOutcome) : Reply =
+let private committedDate = Text.RegularExpressions.Regex("\"committedDate\":\"[^\"]*\"")
+
+/// A commit the fake creates now is dated now, as GitHub dates it: the recorded createCommitOnBranch answer carries the
+/// recording's fixed committedDate, which the application shows as the last confirmed save (PERSIST-031 freshness).
+let stamp (now: DateTimeOffset) (body: string) =
+    committedDate.Replace(body, sprintf "\"committedDate\":\"%s\"" (now.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+
+let private ofOutcome (now: DateTimeOffset) (outcome: HttpOutcome) : Reply =
     match outcome with
-    | Answered(_, status, headers, body) -> Reply(status, headers, body)
+    | Answered(_, status, headers, body) -> Reply(status, headers, stamp now body)
     | NotAnswered _ -> Dropped
 
 /// The cross-origin headers api.github.com sends, so the browser accepts the answer wherever it is fulfilled.
@@ -168,7 +175,7 @@ let answer (running: StatefulFake.Running) (id: RequestId) (r: Inbound) : Reply 
     match route id r with
     | Preflight -> Reply(204, [], "")
     | Unsupported m -> Reply(405, json, JsonSerializer.Serialize {| message = sprintf "%s is not supported by the fake" m |})
-    | Fake request -> running.Execute request |> ofOutcome
+    | Fake request -> running.Execute request |> ofOutcome DateTimeOffset.UtcNow
     | Seed(owner, repo, path) ->
         let result = ref Dropped
         running.Update(fun state ->

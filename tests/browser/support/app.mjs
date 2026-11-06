@@ -153,3 +153,7 @@ export const submitConnection = async (page, env = providerEnv) => {
   await exact('Token').fill(env.token);
   await page.getByRole('button', { name: 'Connect data repository', exact: true }).click();
 };
+
+/// In-page navigation to a route: the application, its connection and this tab's work stay (a reload would start a new,
+/// disconnected tab: the credential lives only in the tab's memory, EXT-DATA-004). Use it after Connect.
+export const navigate = (page, route) => page.evaluate((h) => { location.hash = h; }, route);

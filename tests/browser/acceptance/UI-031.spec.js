@@ -1,6 +1,6 @@
 // Owner: ui. UI-031: moving detail out of investigation views keeps it in Administration; Settings holds preferences.
 import { test, expect } from '@playwright/test';
-import { open, routes } from '../support/app.mjs';
+import { open, routes, navigate } from '../support/app.mjs';
 import { connect, env, investigationWithContent, section } from './workspace-data.mjs';
 
 const fact = (page, label) => page.locator('.causa-fact').filter({ hasText: label }).first();
@@ -15,7 +15,7 @@ test('UI-031-O1', async ({ page }) => {
 test('UI-031-O2', async ({ page }) => {
   // Provider, repository, catalog, storage contract, versions, data validation and connection health are retained.
   await connect(page);
-  await open(page, routes.Administration);
+  await navigate(page, routes.Administration);
   for (const label of ['Provider', 'Repository', 'Connection', 'Catalog', 'Storage contract', 'Application version', 'Deployed commit', 'Data validation']) await expect(fact(page, label), label).toBeVisible();
   await expect(fact(page, 'Repository')).toContainText(env.repo);
 });
@@ -41,7 +41,7 @@ test('UI-031-O5', async ({ page }) => {
   // Single-user scope: no role management; the credential is never shown.
   await connect(page);
   for (const route of [routes.Administration, routes.Settings, routes.Investigations]) {
-    await open(page, route);
+    await navigate(page, route);
     await expect(page.getByRole('heading', { level: 1 }), route).toBeVisible();
     await expect(page.locator('main'), route).not.toContainText(/\brole(s)?\b.*(admin|member)|Manage users/i);
     expect(await page.content(), route).not.toContain(env.token);

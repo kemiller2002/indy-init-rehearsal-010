@@ -1,6 +1,6 @@
 // Owner: ui. UI-010: specific recoverable states that say what happened, what was kept and the next step.
 import { test, expect } from '@playwright/test';
-import { open, load } from '../support/app.mjs';
+import { open, load, navigate } from '../support/app.mjs';
 import { connect, env } from './workspace-data.mjs';
 
 const unopened = '#/investigation/workspaces%2Fdemo%2Fcausa-app-r10/6f1b3c1e-8d7a-4c55-9a51-2f0b1d7e9c11/evidence';
@@ -49,7 +49,7 @@ test('UI-010-O5', async ({ page }) => {
   page.on('console', (m) => logged.push(m.text()));
   await connect(page);
   for (const route of ['#/investigations', '#/administration', '#/settings']) {
-    await open(page, route);
+    await navigate(page, route);
     expect(await page.content(), route).not.toContain(env.token);
   }
   expect(logged.join('\n')).not.toContain(env.token);

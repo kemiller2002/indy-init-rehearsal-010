@@ -1,6 +1,6 @@
 // Owner: ui. UI-023: technical validation is never an investigation-level "Verified".
 import { test, expect } from '@playwright/test';
-import { open, routes } from '../support/app.mjs';
+import { open, routes, navigate } from '../support/app.mjs';
 import { investigationWithContent, section } from './workspace-data.mjs';
 
 test('UI-023-O1', async ({ page }) => {
@@ -18,7 +18,7 @@ test('UI-023-O2', async ({ page }) => {
   await investigationWithContent(page);
   await section(page, 'Overview');
   await expect(page.locator('[data-requirement-id="INV-018"] .ef-status-lozenge')).toHaveText(/^(draft|active|awaiting evidence|awaiting verification|resolved|closed|archived)$/);
-  await open(page, routes.Administration);
+  await navigate(page, routes.Administration);
   await expect(page.locator('.causa-fact').filter({ hasText: 'Data validation' })).toBeVisible();
 });
 
@@ -27,7 +27,7 @@ test('UI-023-O3', async ({ page }) => {
   const v = await investigationWithContent(page);
   await section(page, 'Evidence');
   await expect(page.getByRole('article').filter({ hasText: v.e1 }).first()).toContainText('Verification: unverified');
-  await open(page, routes.Administration);
+  await navigate(page, routes.Administration);
   await expect(page.locator('.causa-fact').filter({ hasText: 'Data validation' })).not.toContainText(/^Verified$/);
 });
 

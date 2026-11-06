@@ -6,7 +6,9 @@
 import { expect } from '@playwright/test';
 import { open, providerEnv, requireProvider, useProvider, submitConnection } from '../support/app.mjs';
 
-export const env = providerEnv;
+/// The provider these specs use: process.env.CAUSA_PROVIDER || 'harness-double' (the stateful fake), never presented as
+/// live write verification (UI-015-O3); the repository and credential are support/app.mjs providerEnv's.
+export const env = Object.freeze({ ...providerEnv, provider: (process.env.CAUSA_PROVIDER || 'harness-double') === 'github' ? 'github' : 'harness-double' });
 export const marker = (label) => `${label}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 export const field = (page, name) => page.getByLabel(name, { exact: true });
