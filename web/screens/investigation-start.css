@@ -1,0 +1,5 @@
+/* Owner: ui-2. investigation-start form (Forma form, field, validation message and summary). */
+.causa-start { max-inline-size: 48rem; min-inline-size: 0; }
+.causa-start__form textarea, .causa-start__form input[type="text"] { box-sizing: border-box; inline-size: 100%; }
+.causa-start__form [aria-invalid="true"] { border-color: var(--ef-color-status-danger, currentColor); }
+.causa-start__destination dd { overflow-wrap: anywhere; }

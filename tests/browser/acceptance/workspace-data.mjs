@@ -21,6 +21,12 @@ export const button = (page, name) => page.getByRole('button', { name, exact: tr
 export const sections = (page) => page.getByRole('navigation', { name: 'Investigation sections' });
 export const section = async (page, name) => { await sections(page).getByRole('link', { name, exact: true }).click(); };
 
+/// The first candidate with a visible match, else the first candidate (verification/journeys/support.mjs).
+const firstVisible = async (candidates) => {
+  for (const l of candidates) if ((await l.count()) && (await l.first().isVisible())) return l.first();
+  return candidates[0].first();
+};
+
 /// Routes the browser's GitHub requests to the double (harness mode) and connects through the application's own form.
 export const connect = async (page) => {
   if (env.provider !== 'github') {
@@ -33,12 +39,14 @@ export const connect = async (page) => {
     });
   }
   await open(page, '#/investigations');
-  const owner = page.getByLabel('Repository owner', { exact: true }).or(page.getByLabel(/owner/i)).first();
+  // As verification/journeys/support.mjs connect: the exact label first, then the first visible pattern match (a
+  // bare /^repo/i would also match "Repository owner", which comes first in the DOM).
+  const owner = await firstVisible([page.getByLabel('Repository owner', { exact: true }), page.getByLabel(/owner/i)]);
   if (!(await owner.isVisible().catch(() => false))) await page.getByRole('button', { name: /connect/i }).first().click();
-  await owner.fill(env.owner);
-  await page.getByLabel('Repository', { exact: true }).or(page.getByLabel(/repository name|^repo/i)).first().fill(env.repo);
-  await page.getByLabel(/branch/i).first().fill(env.branch);
-  await page.getByLabel(/token|credential/i).first().fill(env.token);
+  await (await firstVisible([page.getByLabel('Repository owner', { exact: true }), page.getByLabel(/owner/i)])).fill(env.owner);
+  await (await firstVisible([page.getByLabel('Repository', { exact: true }), page.getByLabel(/repository name|^repo/i)])).fill(env.repo);
+  await (await firstVisible([page.getByLabel(/branch/i)])).fill(env.branch);
+  await (await firstVisible([page.getByLabel(/token|credential/i)])).fill(env.token);
   await page.getByRole('button', { name: /connect/i }).first().click();
   await expect(page.locator('.causa-connection')).toContainText(/Connected/, { timeout: 20000 });
 };
@@ -97,10 +105,12 @@ export const contentText = (page) => page.locator('main').evaluate((m) => {
 /// Where the provider's REST API is: the double in harness mode, api.github.com otherwise.
 export const providerBase = env.provider === 'github' ? 'https://api.github.com' : env.double;
 
+/// The application's own working copy is `workspaces/demo/causa-app-r10` (Update.WorkingCopyRun): it lists that
+/// workspace on connect, and opens an investigation only once a listing names it.
 /// Writes a stored causa-storage v1.0.0 history from the vendored contract fixtures into a working copy of the test
 /// repository through the provider's contents API (never through the app), and returns the route that opens it. Used
 /// where only a stored history can hold the content (a conclusion: the frozen contract has no command for it).
-export const seedStoredHistory = async (fixtureId, run = 'ui-acceptance') => {
+export const seedStoredHistory = async (fixtureId, run = 'r10') => {
   const { readFileSync } = await import('node:fs');
   const workspace = `workspaces/demo/causa-app-${run}`;
   const source = new URL(`../../fixtures/causa-data/e8259df74add723765c57a5b1a5888d9c3f707af/fixtures/v1.0.0/investigations/${fixtureId}/`, import.meta.url);
@@ -160,12 +170,19 @@ export const overlaps = (boxes) => {
   return found;
 };
 
+/// Opens a seeded investigation as a person does: once the list names it, follow its route.
+export const openListed = async (page, route) => {
+  const id = route.split('/')[3];
+  await expect(page.locator(`a[href*="${id}"]`).first()).toBeVisible({ timeout: 30000 });
+  await page.goto(page.url().replace(/#.*$/, '') + route);
+};
+
 /// The live graph: the concluded SSO-outage history (contract fixture a6747bd3) written to the provider and opened in
 /// the application's Causal Analysis section.
 export const openSeededGraph = async (page) => {
   const route = (await seedStoredHistory('a6747bd3-2794-5ac7-83b8-5ea2a0c50f5e')).replace(/\/overview$/, '/causal-analysis');
   await connect(page);
-  await page.goto(page.url().replace(/#.*$/, '') + route);
+  await openListed(page, route);
   const el = page.locator('forma-workflow');
   await expect(el.locator('.ef-diagram')).toBeVisible({ timeout: 30000 });
   return el;

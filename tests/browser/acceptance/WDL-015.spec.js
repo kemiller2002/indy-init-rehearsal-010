@@ -16,22 +16,47 @@ test('WDL-015-O1', async () => {
   }
 });
 
+/// The governing scope manifest (Indy-init docs/rehearsal-010-readiness/scope-manifest.json), from the governed Indy-init
+/// checkout: INDY_INIT_ROOT, else the verification gate's $RUNNER_TEMP/indy-init, else a sibling ../Indy-init. It must be
+/// the scope this repository pinned: its content hash (the requirements compiler's rule: SHA-256 of the manifest without
+/// scopeSha256 and source, two-space JSON, ASCII-escaped, trailing newline) equals .echelon/scope-checkpoint.json.
+const governedScope = async () => {
+  const { createHash } = await import('node:crypto');
+  const candidates = [process.env.INDY_INIT_ROOT, process.env.RUNNER_TEMP && `${process.env.RUNNER_TEMP}/indy-init`, new URL('../../../../Indy-init', import.meta.url).pathname].filter(Boolean);
+  const found = candidates.map((root) => `${root}/docs/rehearsal-010-readiness/scope-manifest.json`).find((path) => existsSync(path));
+  expect(found, `the governing scope manifest is not available (set INDY_INIT_ROOT); looked in ${candidates.join(', ')}`).toBeTruthy();
+  const manifest = JSON.parse(readFileSync(found, 'utf8'));
+  const { scopeSha256, source, ...content } = manifest;
+  const canonical = JSON.stringify(content, null, 2).replace(/[\u007f-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')) + '\n';
+  const pinned = JSON.parse(readFileSync(new URL('../../../.echelon/scope-checkpoint.json', import.meta.url), 'utf8')).scopeSha256;
+  expect(createHash('sha256').update(canonical, 'utf8').digest('hex'), 'the scope manifest is the pinned scope').toBe(pinned);
+  expect(scopeSha256).toBe(pinned);
+  return manifest;
+};
+
 test('WDL-015-O2', async () => {
-  // Nothing is silently omitted: every WDL obligation the plan derives (.echelon/obligations.json) has a bound test
-  // identity, and every one of this slice's is one of the tests above.
+  // Criterion: no WDL obligation is silently omitted during derivation. Every WDL-001..WDL-015 is accounted for in the
+  // pinned scope and the compiled plan: a requirement with obligations in the plan has each one bound to a test, and
+  // the manifest's own obligations for it are all present (none dropped); a requirement without plan obligations must
+  // be held in scope at gate level by the approved rule (gateLevelScope, ODR-V4-10 option A: "not excluded") until its
+  // obligations are derived (WDL-013: owner decision, successor package v4.1.6). No WDL requirement may be excluded.
+  const manifest = await governedScope();
   const plan = JSON.parse(readFileSync(new URL('../../../.echelon/obligations.json', import.meta.url), 'utf8'));
-  const obligations = plan.obligations.filter((o) => o.requirement.startsWith('WDL-')).map((o) => o.id);
-  const derived = new Set(obligations.map((o) => o.replace(/-O\d+$/, '')));
-  // A requirement without obligations needs a recorded, approved scope exclusion (the scope checkpoint); WDL-013
-  // (the P1 comparative experiment) has neither today, so this fails until one is recorded.
-  const scope = readFileSync(new URL('../../../.echelon/scope-checkpoint.json', import.meta.url), 'utf8');
+  expect(manifest.gateLevelScope.rule).toMatch(/stay in scope .* They are not excluded\./);
   for (let n = 1; n <= 15; n++) {
     const id = `WDL-${String(n).padStart(3, '0')}`;
-    expect(derived.has(id) || scope.includes(id), `${id} is neither derived nor an approved exclusion`).toBe(true);
+    expect(manifest.exclusions.requirements.map((r) => r.id ?? r.requirement ?? r), id).not.toContain(id);
+    const derived = plan.obligations.filter((o) => o.requirement === id).map((o) => o.id);
+    const scoped = manifest.requirements.find((r) => r.id === id);
+    for (const o of scoped ? scoped.obligations.map((x) => x.id) : []) expect(derived, `${o} is in the scope but not in the compiled plan`).toContain(o);
+    if (derived.length > 0) {
+      for (const o of derived) expect(plan.tests.some((t) => (t.obligations || []).includes(o)), `${o} has no bound test`).toBe(true);
+    } else {
+      expect(manifest.gateLevelScope.requirements, `${id} has no obligations and is not held at gate level`).toContain(id);
+    }
   }
-  for (const o of obligations) expect(plan.tests.some((t) => (t.obligations || []).includes(o)), o).toBe(true);
-  for (const id of slice) for (const o of obligations.filter((x) => x.startsWith(id + '-'))) {
-    const text = readFileSync(new URL(`./${id}.spec.js`, import.meta.url), 'utf8');
-    expect(text, o).toContain(`test('${o}'`);
+  // This slice's obligations are each a test above.
+  for (const id of slice) for (const o of plan.obligations.filter((x) => x.requirement === id).map((x) => x.id)) {
+    expect(readFileSync(new URL(`./${id}.spec.js`, import.meta.url), 'utf8'), o).toContain(`test('${o}'`);
   }
 });
