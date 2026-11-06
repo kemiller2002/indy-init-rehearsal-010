@@ -1,0 +1,12 @@
+{
+  "schema": "praxis.instance/1",
+  "instanceId": "pxi-3b4cbe6ebfc34045861e88a7b6b68fc1",
+  "createdAt": "2026-11-06T16:40:14.005Z",
+  "createdWith": "3.25.0",
+  "repository": {
+    "provider": "github",
+    "repositoryId": null,
+    "repository": "kemiller2002/indy-init-rehearsal-010"
+  },
+  "predecessors": []
+}

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Engine.fs" />
+    <Compile Include="Routes.fs" />
+    <Compile Include="Projections.fs" />
+    <Compile Include="Ui/Presentation.fs" />
+    <Compile Include="Connection.fs" />
+    <Compile Include="Ui/UiAdapter.fs" />
+    <Compile Include="Ui/Events.fs" />
+    <Compile Include="Reporting.fs" />
+    <Compile Include="Update.fs" />
+    <Compile Include="Views/Shell.fs" />
+    <Compile Include="Views/Connection.fs" />
+    <Compile Include="Views/InvestigationList.fs" />
+    <Compile Include="Views/States.fs" />
+    <Compile Include="Views/Language.fs" />
+    <Compile Include="Views/Workspace/Frame.fs" />
+    <Compile Include="Views/Workspace/StoredRecord.fs" />
+    <Compile Include="Views/Administration.fs" />
+    <Compile Include="Views/Settings.fs" />
+    <Compile Include="Views/Start.fs" />
+    <Compile Include="Views/Workspace/Details.fs" />
+    <Compile Include="Views/SaveIndicator.fs" />
+    <Compile Include="Views/ConflictReview.fs" />
+    <Compile Include="Views/History.fs" />
+    <Compile Include="Views/Workspace/Overview.fs" />
+    <Compile Include="Views/Workspace/Hypotheses.fs" />
+    <Compile Include="Views/Workspace/Evidence.fs" />
+    <Compile Include="Views/Workspace/Links.fs" />
+    <Compile Include="Views/Workspace/Conclusions.fs" />
+    <Compile Include="Views/Workspace/Timeline.fs" />
+    <Compile Include="Views/Workspace/Inspector.fs" />
+    <Compile Include="Views/Graph.fs" />
+    <Compile Include="Views/Report.fs" />
+    <Compile Include="View.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../Causa.Persistence/Causa.Persistence.fsproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "screen": "S02-investigation-workspace",
+  "purpose": "Operate the investigation from structured state.",
+  "primaryQuestion": "What do we know, what explains it, and what should we do next?",
+  "regions": [
+    {
+      "id": "observation",
+      "purpose": "Expose observation needed to answer the screen's primary question.",
+      "hierarchy": "primary",
+      "visibility": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "hypotheses",
+      "purpose": "Expose hypotheses needed to answer the screen's primary question.",
+      "hierarchy": "primary",
+      "visibility": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "blockers",
+      "purpose": "Expose blockers needed to answer the screen's primary question.",
+      "hierarchy": "secondary",
+      "visibility": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "next-actions",
+      "purpose": "Expose next actions needed to answer the screen's primary question.",
+      "hierarchy": "secondary",
+      "visibility": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "persistence-state",
+      "purpose": "Expose persistence state needed to answer the screen's primary question.",
+      "hierarchy": "tertiary",
+      "visibility": {
+        "kind": "always"
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "kind": "expose",
+      "capability": "RecordObservation"
+    },
+    {
+      "kind": "explain-when-unavailable",
+      "capability": "RecordObservation"
+    },
+    {
+      "kind": "expose",
+      "capability": "RecordHypothesis"
+    },
+    {
+      "kind": "explain-when-unavailable",
+      "capability": "RecordHypothesis"
+    },
+    {
+      "kind": "expose",
+      "capability": "ConfirmCause"
+    },
+    {
+      "kind": "explain-when-unavailable",
+      "capability": "ConfirmCause"
+    }
+  ],
+  "stateProjections": [
+    {
+      "when": "material-blocker-exists",
+      "observations": [
+        {
+          "id": "blocker-visible",
+          "description": "Any material blocker relevant to this screen remains perceivable and inspectable."
+        },
+        {
+          "id": "no-false-authority",
+          "description": "The UI does not imply an unavailable or unverified state is authoritative."
+        }
+      ]
+    }
+  ],
+  "forbiddenPatterns": [
+    "chat-only-primary-interface",
+    "named:hide-material-blocker"
+  ],
+  "breakpoints": [
+    {
+      "name": "ipad-portrait",
+      "width": 820,
+      "height": 1180,
+      "requiredRegionsVisible": [
+        "observation",
+        "hypotheses"
+      ],
+      "observations": [
+        {
+          "id": "ipad-portrait-semantic-priority",
+          "description": "Primary semantic meaning remains directly reachable without hover."
+        },
+        {
+          "id": "ipad-portrait-blocked-state",
+          "description": "Material blockers remain discoverable in the primary task flow."
+        }
+      ]
+    },
+    {
+      "name": "ipad-landscape",
+      "width": 1180,
+      "height": 820,
+      "requiredRegionsVisible": [
+        "observation",
+        "hypotheses"
+      ],
+      "observations": [
+        {
+          "id": "ipad-landscape-semantic-priority",
+          "description": "Primary semantic meaning remains directly reachable without hover."
+        },
+        {
+          "id": "ipad-landscape-blocked-state",
+          "description": "Material blockers remain discoverable in the primary task flow."
+        }
+      ]
+    },
+    {
+      "name": "narrow-phone",
+      "width": 390,
+      "height": 844,
+      "requiredRegionsVisible": [
+        "observation",
+        "hypotheses"
+      ],
+      "observations": [
+        {
+          "id": "narrow-phone-semantic-priority",
+          "description": "Primary semantic meaning remains directly reachable without hover."
+        },
+        {
+          "id": "narrow-phone-blocked-state",
+          "description": "Material blockers remain discoverable in the primary task flow."
+        }
+      ]
+    },
+    {
+      "name": "desktop-reference",
+      "width": 1440,
+      "height": 900,
+      "requiredRegionsVisible": [
+        "observation",
+        "hypotheses"
+      ],
+      "observations": [
+        {
+          "id": "desktop-reference-semantic-priority",
+          "description": "Primary semantic meaning remains directly reachable without hover."
+        },
+        {
+          "id": "desktop-reference-blocked-state",
+          "description": "Material blockers remain discoverable in the primary task flow."
+        }
+      ]
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "contract",
+      "kind": "contract-validation",
+      "description": "Contract validates against Percepta schema.",
+      "required": true
+    },
+    {
+      "id": "structural",
+      "kind": "structural",
+      "description": "Required semantic regions are present.",
+      "required": true
+    },
+    {
+      "id": "state",
+      "kind": "state-projection",
+      "description": "Material state projects to the required UI meaning.",
+      "required": true
+    },
+    {
+      "id": "interaction",
+      "kind": "interaction",
+      "description": "Required actions and blocked-action explanations behave correctly.",
+      "required": true
+    },
+    {
+      "id": "accessibility",
+      "kind": "accessibility",
+      "description": "Keyboard, focus, labels, and semantic state are accessible.",
+      "required": true
+    },
+    {
+      "id": "responsive",
+      "kind": "responsive",
+      "description": "Critical meaning survives iPad, phone, desktop, and high-density layouts.",
+      "required": true
+    }
+  ]
+}

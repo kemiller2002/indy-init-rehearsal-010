@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "application": "indy-init-root-cause-investigator",
+  "capabilities": {
+    "aegis": {
+      "required": true,
+      "version": "1.0.0",
+      "boundaryManifest": "aegis-boundaries.json"
+    },
+    "forma": {
+      "required": true,
+      "version": "0.13.0"
+    },
+    "folio": {
+      "required": true,
+      "version": "0.4.1"
+    },
+    "limen": {
+      "required": true,
+      "version": "0.9.1"
+    },
+    "ordo": {
+      "required": true,
+      "version": "1.20.0"
+    },
+    "praxis": {
+      "required": true,
+      "version": "3.25.0"
+    },
+    "routing": {
+      "required": true,
+      "hosting": "static",
+      "inventory": ".echelon/routes.json"
+    }
+  }
+}

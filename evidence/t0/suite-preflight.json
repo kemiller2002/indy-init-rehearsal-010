@@ -1,0 +1,72 @@
+{
+  "schema": "indy-init.r9-suite-preflight/1",
+  "plan": "VP-1e3c66bcc958",
+  "root": "/home/user/indy-init-rehearsal-010",
+  "requireTests": false,
+  "suites": [
+    {
+      "id": "SU-OWN-DOTNET",
+      "command": "dotnet test Causa.slnx --filter \u0022FullyQualifiedName~Causa.Contract.Tests.|FullyQualifiedName~Causa.Domain.Tests.|FullyQualifiedName~Causa.Persistence.Tests.|FullyQualifiedName~Causa.App.Tests.\u0022 --list-tests -m:1",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-OWN-BROWSER",
+      "command": "npx playwright test --config playwright.config.ts --project=chromium tests/browser/contract --list --pass-with-no-tests",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-DOTNET-DETERMINISTIC",
+      "command": "dotnet test tests/Causa.Acceptance --filter FullyQualifiedName~Causa.Acceptance.Deterministic. --list-tests -m:1",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-DOTNET-INVARIANTS",
+      "command": "dotnet test tests/Causa.Invariants --filter \u0022FullyQualifiedName~Causa.Invariants.\u0026FullyQualifiedName!~Causa.Invariants.Live.\u0022 --list-tests -m:1",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-BROWSER-CHROMIUM",
+      "command": "npx playwright test --config playwright.config.ts --project=chromium tests/browser/acceptance tests/browser/invariants --list --pass-with-no-tests",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-BROWSER-WEBKIT",
+      "command": "npx playwright test --config playwright.config.ts --project=webkit tests/browser/acceptance tests/browser/invariants --list --pass-with-no-tests",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-DOTNET-LIVE",
+      "command": "dotnet test Causa.slnx --filter \u0022FullyQualifiedName~Causa.Acceptance.Live.|FullyQualifiedName~Causa.Invariants.Live.\u0022 --list-tests -m:1",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    },
+    {
+      "id": "SU-BROWSER-LIVE",
+      "command": "npx playwright test --config playwright.config.ts --project=chromium tests/browser/live --list --pass-with-no-tests",
+      "exit": 0,
+      "listedTests": 0,
+      "executable": true,
+      "cause": ""
+    }
+  ]
+}

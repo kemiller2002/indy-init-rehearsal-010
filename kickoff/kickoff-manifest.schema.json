@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echelonfoundry.com/schemas/indy-init-kickoff/v1",
+  "title": "Indy Init Kickoff Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "project",
+    "planningBaseline",
+    "components",
+    "normativeDocuments",
+    "prioritySlices",
+    "screenContracts",
+    "stopTheLine",
+    "successGates",
+    "agentProtocol"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "product", "competitionProfile"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "product": { "type": "string", "minLength": 1 },
+        "competitionProfile": { "type": "string", "minLength": 1 }
+      }
+    },
+    "planningBaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "refPolicy", "boundaryDocument"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "refPolicy": { "enum": ["pin-exact-commit-at-kickoff", "pin-exact-commit-at-rehearsal"] },
+        "boundaryDocument": { "type": "string", "minLength": 1 }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "purpose", "required"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "purpose": { "type": "string", "minLength": 1 },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "normativeDocuments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path", "role"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "requiredBeforeCoding": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "prioritySlices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["order", "id", "goal", "cutPolicy"],
+        "properties": {
+          "order": { "type": "integer", "minimum": 1 },
+          "id": { "type": "string", "minLength": 1 },
+          "goal": { "type": "string", "minLength": 1 },
+          "cutPolicy": { "enum": ["never-cut", "cut-last", "stretch"] }
+        }
+      }
+    },
+    "screenContracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "stopTheLine": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "successGates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "evidence"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "agentProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryDocument", "decisionRule", "completionRule"],
+      "properties": {
+        "entryDocument": { "type": "string", "minLength": 1 },
+        "decisionRule": { "type": "string", "minLength": 1 },
+        "completionRule": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

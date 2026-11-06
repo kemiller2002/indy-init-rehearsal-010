@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="StateMachines/SMCONFLICT.fs" />
+    <Compile Include="StateMachines/SMLOAD.fs" />
+    <Compile Include="StateMachines/SMSAVE.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+    <ProjectReference Include="../Causa.TestSupport/Causa.TestSupport.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+</Project>

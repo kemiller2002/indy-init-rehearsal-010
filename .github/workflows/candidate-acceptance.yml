@@ -1,0 +1,181 @@
+name: Candidate acceptance
+
+# Tier 3 of the CI (Indy-init R7-REM-004). Verifies one release candidate,
+# pinned by its full SHA on main. It runs only when dispatched, never on a
+# push, and its concurrency group is the candidate itself: development
+# commits cannot cancel or starve it, and two candidates never cancel each
+# other. Tier 1 (build-and-test) gives fast feedback on every pull request
+# and push to main, cancelling superseded runs; this workflow repeats it on
+# exactly the candidate's tree and records which SHA it verified.
+# `conditor ci-policy check` enforces these shapes (CIP-001..CIP-007).
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: Full 40-character SHA of the release candidate on main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-acceptance-${{ inputs.candidate }}
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.pin.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refuse anything but a full SHA on main
+        id: pin
+        env:
+          CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          if ! [[ "$CANDIDATE" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::candidate must be a full 40-character commit SHA, got '$CANDIDATE'"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$CANDIDATE" origin/main; then
+            echo "::error::$CANDIDATE is not on main"
+            exit 1
+          fi
+          echo "sha=$CANDIDATE" >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs: pin
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.pin.outputs.sha }}
+      - name: Prove the checkout is the candidate
+        env:
+          CANDIDATE: ${{ needs.pin.outputs.sha }}
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build
+        run: dotnet build App.slnx -c Release
+      - name: Test
+        shell: bash
+        run: |
+          set -uo pipefail
+          output=$(dotnet test App.slnx -c Release --no-build 2>&1)
+          status=$?
+          echo "$output"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if ! echo "$output" | grep -qE 'Passed:[[:space:]]*[1-9]'; then
+            echo "::error::No test passed. An empty test run is not a pass."; exit 1
+          fi
+          if echo "$output" | grep -qE 'Skipped:[[:space:]]*[1-9]'; then
+            echo "::error::Tests were skipped. A run that skips tests is not a pass."; exit 1
+          fi
+      - name: Install npm dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::package-lock.json is not committed; installing without a lockfile. Commit it so every run installs the same tree."
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Type-check the browser kernel
+        run: npm run check
+
+      # Chromium is never installed with `--with-deps`: that runs `sudo
+      # apt-get update` on every run, and apt has no overall deadline, so an
+      # unanswered mirror hung browser suites until the six-hour job limit
+      # (signal#21, signal#22, summa#21; fixed in signal#24). The browser is
+      # cached under the installed Playwright version (which fixes the
+      # browser build), and the OS libraries are proved present offline.
+      - name: Resolve the installed Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./node_modules/playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # A stalled cache download falls back to a fresh browser download
+      # after two minutes instead of the default ten.
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Download Chromium for the browser suite
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # `ldd` proves offline that every shared library the Chromium binaries
+      # link against is on the runner. Only when a future runner image drops
+      # one does apt run at all, with per-request timeouts, retries and an
+      # overall deadline, and the result is checked again. A missing library
+      # fails the step by name; it can no longer hang.
+      - name: Verify Chromium's OS libraries
+        timeout-minutes: 8
+        run: |
+          missing_libraries() {
+            find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell \) -print0 \
+              | xargs -0 --no-run-if-empty ldd \
+              | awk '/not found/ { print $1 }' \
+              | sort -u
+          }
+
+          missing="$(missing_libraries)"
+          if [ -n "$missing" ]; then
+            echo "::warning::Runner image lacks Chromium libraries: $(echo $missing). Installing Chromium's OS dependencies."
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+              | sudo tee /etc/apt/apt.conf.d/99-bounded-network > /dev/null
+            timeout 300 npx playwright install-deps chromium \
+              || echo "::error::Installing Chromium's OS dependencies failed or took longer than five minutes."
+          fi
+
+          still_missing="$(missing_libraries)"
+          if [ -n "$still_missing" ]; then
+            echo "::error::Chromium cannot start; missing shared libraries: $(echo $still_missing)"
+            exit 1
+          fi
+          echo "Every shared library Chromium links against is present."
+
+      - name: Verify the pages in a real browser
+        run: npx playwright test
+
+      - name: Record the verified candidate
+        env:
+          CANDIDATE: ${{ needs.pin.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '{"schema":"conditor.candidate-verification/1","candidate":"%s","run":"%s","attempt":%s}\n' \
+            "$CANDIDATE" "$RUN_URL" "${{ github.run_attempt }}" > candidate-verification.json
+          cat candidate-verification.json
+
+      - name: Upload the verification record
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-verification-${{ needs.pin.outputs.sha }}
+          path: candidate-verification.json
+          retention-days: 90
+
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-playwright-traces
+          path: test-results/
+          retention-days: 7

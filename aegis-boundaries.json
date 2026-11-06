@@ -1,0 +1,24 @@
+{
+  "schema": "aegis/boundaries/v1",
+  "application": "indy-init-root-cause-investigator",
+  "boundaries": [
+    {
+      "name": "Configuration and startup",
+      "kind": "startup",
+      "owner": "application",
+      "codes": [
+        "AEGIS.CONFIG.INVALID_CONFIGURATION"
+      ],
+      "guarded": true
+    },
+    {
+      "name": "Limen interop",
+      "kind": "ui-interop",
+      "owner": "application",
+      "codes": [
+        "AEGIS.LIMEN.INTEROP_FAILED"
+      ],
+      "guarded": false
+    }
+  ]
+}

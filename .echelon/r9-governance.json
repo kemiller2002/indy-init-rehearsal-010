@@ -1,0 +1,10 @@
+{
+  "schema": "indy-init.r9-governance-record/1",
+  "indyInitCommit": "89f5840523b9e1185a5dbcd2a29d0799fe728598",
+  "toolchainLock": "kickoff/rehearsal-010/toolchain.lock.json",
+  "policySha256": "98d427d974f4ef7f9c9ae79b52b386d15d17cfef88908b4c0037dcd9bdcd7e2c",
+  "workflowSha256": "3688553e9a03f6aad81b846624f6a5b822ca2fc77da57055ccdd13db5cc8b547",
+  "completedBeforeGovernance": [
+    "ROS-INSTALL-3-25-0"
+  ]
+}

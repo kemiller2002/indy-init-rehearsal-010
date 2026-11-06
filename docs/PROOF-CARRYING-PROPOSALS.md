@@ -1,0 +1,233 @@
+# Proof-Carrying AI Proposals
+
+Status: ambitious reusable AI contract.
+
+The system should not accept "because the model said so" as sufficient proposal structure.
+
+Every material AI proposal should carry the information needed to inspect, challenge, and revalidate it.
+
+## 1. Proposal proof envelope
+
+A material proposal should be able to include:
+
+- ProposalId
+- ProposalKind
+- SemanticId/version
+- source InvestigationId/AggregateVersion
+- target entities
+- statement/payload
+- evidence references
+- source observations/findings
+- assumptions
+- scope
+- rationale
+- contradictions considered
+- negative knowledge considered
+- expected state impact
+- falsifier/challenge condition
+- proposed next validation step
+- model/provider/prompt version
+- tool/source provenance
+- context manifest
+- limitations
+
+Not every field is required for every proposal kind, but omission rules should be explicit.
+
+## 2. Hypothesis proposal
+
+Must include:
+
+- what it explains
+- mechanism or explicit mechanism-unknown
+- relevant evidence
+- assumptions
+- prospective prediction
+- strongest plausible falsifier
+- materially different alternatives considered where available
+
+## 3. Evidence relationship proposal
+
+Must include:
+
+- EvidenceId
+- target entity
+- relationship kind
+- rationale
+- scope compatibility
+- dependency/common-source consideration
+
+## 4. Contradiction proposal
+
+Must include:
+
+- participating entities
+- apparent incompatibility
+- material scope
+- possible reconciliation explanation
+- whether conflict may be temporal/version/scope rather than true contradiction
+
+## 5. Unknown proposal
+
+Must include:
+
+- question/proposition
+- why it matters
+- affected hypotheses/transition
+- likely resolution action
+- proposed materiality
+
+Materiality remains policy/human controlled.
+
+## 6. Assumption proposal
+
+Must include:
+
+- implicit premise
+- reasoning path that depends on it
+- what happens if false
+- possible verification path
+
+## 7. Investigation action proposal
+
+Must include:
+
+- target uncertainty
+- hypotheses/claims distinguished
+- prospective predictions
+- expected information gain qualitatively
+- cost/risk/reversibility
+- execution requirements
+- interpretation rules
+
+## 8. Causal assertion proposal
+
+Must include:
+
+- outcome
+- causal members
+- roles
+- mechanism
+- causal-support dimensions
+- evidence
+- alternatives
+- confounders
+- contradictions
+- unresolved unknowns
+- what remains before confirmation
+
+## 9. Corrective action proposal
+
+Must include:
+
+- target cause/mechanism
+- mitigation/workaround/correction/prevention classification
+- expected effect
+- risks
+- verification criterion proposal
+
+## 10. Proposal self-challenge
+
+Before presenting a high-value proposal, the AI may generate a private structured self-check artifact containing:
+
+- strongest reason proposal may be wrong
+- missing evidence
+- hidden assumption
+- source-dependency risk
+- alternative interpretation
+
+The product need not expose hidden chain-of-thought. It should expose the resulting structured challenge facts/proposals that are safe and useful.
+
+## 11. Acceptance gate
+
+A proposal can be accepted only if:
+
+- semantic version still compatible
+- target entities still current
+- evidence refs resolve
+- required assumptions are visible
+- target command validates
+- current policy allows acceptance
+
+## 12. Staleness fingerprint
+
+Compute proposal staleness from dependencies:
+
+- source aggregate version
+- referenced entity effective versions
+- semantic/domain/policy versions
+- source artifact integrity
+- prompt/model version as provenance
+
+If irrelevant investigation state changes, proposal need not become stale.
+
+## 13. Dependency-aware invalidation
+
+Example:
+
+P1 depends on E4 and A2.
+
+If unrelated E20 arrives:
+P1 may remain current.
+
+If E4 is superseded:
+P1 becomes stale.
+
+If A2 is rejected:
+P1 becomes stale.
+
+This is better than invalidating every proposal on every aggregate version change.
+
+## 14. Proposal diff
+
+When regenerated, show:
+
+- changed statement
+- changed evidence
+- new/removed assumption
+- changed falsifier
+- changed expected state impact
+
+This helps users understand model instability.
+
+## 15. Proposal confidence
+
+Do not require numeric confidence.
+
+Expose:
+
+- evidence basis
+- contradiction burden
+- assumption burden
+- unresolved unknowns
+- source quality/dependency
+- model limitations
+
+## 16. Proposal cache
+
+Research/product runs may cache proposal artifacts keyed by:
+
+- frozen source state
+- semantic/policy version
+- model/provider
+- prompt version
+- role
+- tool configuration
+
+Cache reuse must be visible in provenance.
+
+## 17. Competition use
+
+A judge can click a hypothesis proposal and see:
+
+```text
+Why this hypothesis?
+Evidence: E4, E7
+Assumption: A2
+Prediction: P3
+Strongest falsifier: Test T4
+Would change: H1 Proposed -> Plausible if accepted
+Generated by: Skeptic/GPT...
+Source: Investigation v18
+```
+
+This turns "AI output" into an inspectable engineering artifact.

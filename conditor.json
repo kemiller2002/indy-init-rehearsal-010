@@ -1,0 +1,1163 @@
+{
+  "$schema": "../schemas/conditor.schema.json",
+  "schemaVersion": 1,
+  "name": "indy-init-root-cause-investigator",
+  "components": [
+    {
+      "id": "praxis",
+      "version": "3.25.0"
+    },
+    {
+      "id": "ordo",
+      "version": "1.20.0"
+    },
+    {
+      "id": "percepta",
+      "version": "0.1.0"
+    },
+    {
+      "id": "aegis",
+      "version": "1.0.0"
+    },
+    {
+      "id": "limen",
+      "version": "0.9.1"
+    },
+    {
+      "id": "forma",
+      "version": "0.13.0"
+    },
+    {
+      "id": "folio",
+      "version": "0.4.1"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "kickoff",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "kickoff/indy-init.kickoff.json"
+      },
+      "targetPath": "kickoff/indy-init.kickoff.json"
+    },
+    {
+      "id": "kickoff-schema",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "kickoff/kickoff-manifest.schema.json"
+      },
+      "targetPath": "kickoff/kickoff-manifest.schema.json"
+    },
+    {
+      "id": "boundary",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/HACKATHON-BOUNDARIES.md"
+      },
+      "targetPath": "docs/HACKATHON-BOUNDARIES.md"
+    },
+    {
+      "id": "product",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/PRODUCT-REQUIREMENTS.md"
+      },
+      "targetPath": "docs/PRODUCT-REQUIREMENTS.md"
+    },
+    {
+      "id": "release",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/REQUIREMENTS.md"
+      },
+      "targetPath": "docs/REQUIREMENTS.md"
+    },
+    {
+      "id": "semantics",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/INVESTIGATION-SEMANTICS.md"
+      },
+      "targetPath": "docs/INVESTIGATION-SEMANTICS.md"
+    },
+    {
+      "id": "evolution",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/SEMANTIC-EVOLUTION.md"
+      },
+      "targetPath": "docs/SEMANTIC-EVOLUTION.md"
+    },
+    {
+      "id": "decisions",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/DESIGN-DECISION-BOUNDARIES.md"
+      },
+      "targetPath": "docs/DESIGN-DECISION-BOUNDARIES.md"
+    },
+    {
+      "id": "core",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/CORE-DOMAIN-MODEL.md"
+      },
+      "targetPath": "docs/CORE-DOMAIN-MODEL.md"
+    },
+    {
+      "id": "commands",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/COMMAND-EVENT-CATALOG.md"
+      },
+      "targetPath": "docs/COMMAND-EVENT-CATALOG.md"
+    },
+    {
+      "id": "transitions",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/STATE-TRANSITION-TABLES.md"
+      },
+      "targetPath": "docs/STATE-TRANSITION-TABLES.md"
+    },
+    {
+      "id": "fsharp",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/FSHARP-TYPE-SHAPES.md"
+      },
+      "targetPath": "docs/FSHARP-TYPE-SHAPES.md"
+    },
+    {
+      "id": "policy",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/POLICY-ENGINE.md"
+      },
+      "targetPath": "docs/POLICY-ENGINE.md"
+    },
+    {
+      "id": "persistence",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/PERSISTENCE-CONTRACT.md"
+      },
+      "targetPath": "docs/PERSISTENCE-CONTRACT.md"
+    },
+    {
+      "id": "ai",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/AI-ORCHESTRATION.md"
+      },
+      "targetPath": "docs/AI-ORCHESTRATION.md"
+    },
+    {
+      "id": "workspace",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/INVESTIGATION-WORKSPACE.md"
+      },
+      "targetPath": "docs/INVESTIGATION-WORKSPACE.md"
+    },
+    {
+      "id": "screens",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/SCREEN-CONTRACTS.md"
+      },
+      "targetPath": "docs/SCREEN-CONTRACTS.md"
+    },
+    {
+      "id": "tests",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/DOMAIN-TEST-MATRIX.md"
+      },
+      "targetPath": "docs/DOMAIN-TEST-MATRIX.md"
+    },
+    {
+      "id": "security",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/SECURITY-THREAT-MODEL.md"
+      },
+      "targetPath": "docs/SECURITY-THREAT-MODEL.md"
+    },
+    {
+      "id": "slices",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/IMPLEMENTATION-SLICES.md"
+      },
+      "targetPath": "docs/IMPLEMENTATION-SLICES.md"
+    },
+    {
+      "id": "competition",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/COMPETITION-ALIGNMENT.md"
+      },
+      "targetPath": "docs/COMPETITION-ALIGNMENT.md"
+    },
+    {
+      "id": "build-day",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/BUILD-DAY-EXECUTION.md"
+      },
+      "targetPath": "docs/BUILD-DAY-EXECUTION.md"
+    },
+    {
+      "id": "kickoff-packet",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/KICKOFF-EXECUTION-PACKET.md"
+      },
+      "targetPath": "docs/KICKOFF-EXECUTION-PACKET.md"
+    },
+    {
+      "id": "fresh-agent-acceptance",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/FRESH-AGENT-FACTORY-ACCEPTANCE.md"
+      },
+      "targetPath": "docs/FRESH-AGENT-FACTORY-ACCEPTANCE.md"
+    },
+    {
+      "id": "factory-rehearsal",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/FACTORY-REHEARSAL.md"
+      },
+      "targetPath": "docs/FACTORY-REHEARSAL.md"
+    },
+    {
+      "id": "acceptance-scenarios",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/INVESTIGATION-ACCEPTANCE-SCENARIOS.md"
+      },
+      "targetPath": "docs/INVESTIGATION-ACCEPTANCE-SCENARIOS.md"
+    },
+    {
+      "id": "open-questions",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/OPEN-QUESTIONS.md"
+      },
+      "targetPath": "docs/OPEN-QUESTIONS.md"
+    },
+    {
+      "id": "semantic-compiler",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/SEMANTIC-COMPILER.md"
+      },
+      "targetPath": "docs/SEMANTIC-COMPILER.md"
+    },
+    {
+      "id": "proof-bundle",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/ENGINEERING-PROOF-BUNDLE.md"
+      },
+      "targetPath": "docs/ENGINEERING-PROOF-BUNDLE.md"
+    },
+    {
+      "id": "formal-validation",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/FORMAL-VALIDATION.md"
+      },
+      "targetPath": "docs/FORMAL-VALIDATION.md"
+    },
+    {
+      "id": "proof-carrying-proposals",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/PROOF-CARRYING-PROPOSALS.md"
+      },
+      "targetPath": "docs/PROOF-CARRYING-PROPOSALS.md"
+    },
+    {
+      "id": "tool-gateway",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/TOOL-EXECUTION-GATEWAY.md"
+      },
+      "targetPath": "docs/TOOL-EXECUTION-GATEWAY.md"
+    },
+    {
+      "id": "planner",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/INVESTIGATION-PLANNER.md"
+      },
+      "targetPath": "docs/INVESTIGATION-PLANNER.md"
+    },
+    {
+      "id": "bounded-autonomy",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/BOUNDED-AUTONOMOUS-INVESTIGATION.md"
+      },
+      "targetPath": "docs/BOUNDED-AUTONOMOUS-INVESTIGATION.md"
+    },
+    {
+      "id": "multi-agent",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/MULTI-AGENT-INVESTIGATION.md"
+      },
+      "targetPath": "docs/MULTI-AGENT-INVESTIGATION.md"
+    },
+    {
+      "id": "cross-investigation",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/CROSS-INVESTIGATION-INTELLIGENCE.md"
+      },
+      "targetPath": "docs/CROSS-INVESTIGATION-INTELLIGENCE.md"
+    },
+    {
+      "id": "research-harness",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/RESEARCH-HARNESS.md"
+      },
+      "targetPath": "docs/RESEARCH-HARNESS.md"
+    },
+    {
+      "id": "local-wasm-analytics",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/LOCAL-WASM-ANALYTICS.md"
+      },
+      "targetPath": "docs/LOCAL-WASM-ANALYTICS.md"
+    },
+    {
+      "id": "evidence-ingestion",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/EVIDENCE-INGESTION-PIPELINE.md"
+      },
+      "targetPath": "docs/EVIDENCE-INGESTION-PIPELINE.md"
+    },
+    {
+      "id": "advanced-visualizations",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/ADVANCED-VISUALIZATIONS.md"
+      },
+      "targetPath": "docs/ADVANCED-VISUALIZATIONS.md"
+    },
+    {
+      "id": "domain-pack-contract",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/DOMAIN-PACK-CONTRACT.md"
+      },
+      "targetPath": "docs/DOMAIN-PACK-CONTRACT.md"
+    },
+    {
+      "id": "competition-ambition",
+      "source": {
+        "repository": "kemiller2002/Indy-init",
+        "commit": "2eee2d52b51173d4e8ec6e0a2d7ec28ea13011b3",
+        "path": "docs/COMPETITION-AMBITION.md"
+      },
+      "targetPath": "docs/COMPETITION-AMBITION.md"
+    },
+    {
+      "id": "percepta-application",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/application.json"
+      },
+      "targetPath": ".percepta/application.json"
+    },
+    {
+      "id": "percepta-s01-investigation-start",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s01-investigation-start.json"
+      },
+      "targetPath": ".percepta/contracts/s01-investigation-start.json"
+    },
+    {
+      "id": "percepta-s02-investigation-workspace",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s02-investigation-workspace.json"
+      },
+      "targetPath": ".percepta/contracts/s02-investigation-workspace.json"
+    },
+    {
+      "id": "percepta-s03-hypothesis-battlefield",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s03-hypothesis-battlefield.json"
+      },
+      "targetPath": ".percepta/contracts/s03-hypothesis-battlefield.json"
+    },
+    {
+      "id": "percepta-s04-hypothesis-detail",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s04-hypothesis-detail.json"
+      },
+      "targetPath": ".percepta/contracts/s04-hypothesis-detail.json"
+    },
+    {
+      "id": "percepta-s05-evidence-capture",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s05-evidence-capture.json"
+      },
+      "targetPath": ".percepta/contracts/s05-evidence-capture.json"
+    },
+    {
+      "id": "percepta-s06-evidence-detail",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s06-evidence-detail.json"
+      },
+      "targetPath": ".percepta/contracts/s06-evidence-detail.json"
+    },
+    {
+      "id": "percepta-s07-evidence-dependency",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s07-evidence-dependency.json"
+      },
+      "targetPath": ".percepta/contracts/s07-evidence-dependency.json"
+    },
+    {
+      "id": "percepta-s08-epistemic-blocker-detail",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s08-epistemic-blocker-detail.json"
+      },
+      "targetPath": ".percepta/contracts/s08-epistemic-blocker-detail.json"
+    },
+    {
+      "id": "percepta-s09-action-experiment-designer",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s09-action-experiment-designer.json"
+      },
+      "targetPath": ".percepta/contracts/s09-action-experiment-designer.json"
+    },
+    {
+      "id": "percepta-s10-finding-result-capture",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s10-finding-result-capture.json"
+      },
+      "targetPath": ".percepta/contracts/s10-finding-result-capture.json"
+    },
+    {
+      "id": "percepta-s11-cause-review",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s11-cause-review.json"
+      },
+      "targetPath": ".percepta/contracts/s11-cause-review.json"
+    },
+    {
+      "id": "percepta-s12-corrective-action",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s12-corrective-action.json"
+      },
+      "targetPath": ".percepta/contracts/s12-corrective-action.json"
+    },
+    {
+      "id": "percepta-s13-verification",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s13-verification.json"
+      },
+      "targetPath": ".percepta/contracts/s13-verification.json"
+    },
+    {
+      "id": "percepta-s14-history-time-travel",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s14-history-time-travel.json"
+      },
+      "targetPath": ".percepta/contracts/s14-history-time-travel.json"
+    },
+    {
+      "id": "percepta-s15-semantic-diff",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s15-semantic-diff.json"
+      },
+      "targetPath": ".percepta/contracts/s15-semantic-diff.json"
+    },
+    {
+      "id": "percepta-s16-counterfactual-sandbox",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s16-counterfactual-sandbox.json"
+      },
+      "targetPath": ".percepta/contracts/s16-counterfactual-sandbox.json"
+    },
+    {
+      "id": "percepta-s17-multi-agent-panel",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s17-multi-agent-panel.json"
+      },
+      "targetPath": ".percepta/contracts/s17-multi-agent-panel.json"
+    },
+    {
+      "id": "percepta-s18-research-tournament",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s18-research-tournament.json"
+      },
+      "targetPath": ".percepta/contracts/s18-research-tournament.json"
+    },
+    {
+      "id": "percepta-s19-replay-spectator",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s19-replay-spectator.json"
+      },
+      "targetPath": ".percepta/contracts/s19-replay-spectator.json"
+    },
+    {
+      "id": "percepta-s20-factory-view",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s20-factory-view.json"
+      },
+      "targetPath": ".percepta/contracts/s20-factory-view.json"
+    },
+    {
+      "id": "percepta-s21-requirements-proof",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s21-requirements-proof.json"
+      },
+      "targetPath": ".percepta/contracts/s21-requirements-proof.json"
+    },
+    {
+      "id": "percepta-s22-report-preview",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s22-report-preview.json"
+      },
+      "targetPath": ".percepta/contracts/s22-report-preview.json"
+    },
+    {
+      "id": "percepta-s23-persistence-conflict-recovery",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s23-persistence-conflict-recovery.json"
+      },
+      "targetPath": ".percepta/contracts/s23-persistence-conflict-recovery.json"
+    },
+    {
+      "id": "percepta-s24-settings-semantic-manifest",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s24-settings-semantic-manifest.json"
+      },
+      "targetPath": ".percepta/contracts/s24-settings-semantic-manifest.json"
+    },
+    {
+      "id": "percepta-s25-demo-health",
+      "source": {
+        "repository": "kemiller2002/percepta",
+        "commit": "9e6307734f5ae03f98155bdd0588fee13d701b50",
+        "path": "examples/indy-init/screens/s25-demo-health.json"
+      },
+      "targetPath": ".percepta/contracts/s25-demo-health.json"
+    }
+  ],
+  "execution": {
+    "enabled": true,
+    "mission": "Build the Indy Init Root-Cause Investigation Platform from the pinned kickoff contract. Follow ROS/Ordo/Aegis/Praxis/Limen/Forma/Folio/Percepta boundaries, prove completion with tests and repository evidence, and do not silently resolve experimental or deferred research questions.",
+    "contractPath": "kickoff/indy-init.kickoff.json",
+    "launcher": "claude",
+    "permissionMode": "auto"
+  },
+  "scaffold": {
+    "kind": "fsharp-limen-web",
+    "name": "indy-init-root-cause-investigator"
+  },
+  "requirementsImport": {
+    "workItemPrefix": "SLICE",
+    "source": "indy-init",
+    "kickoff": "kickoff/indy-init.kickoff.json",
+    "traceAttachment": "requirements-trace.json",
+    "documents": [
+      {
+        "scheme": "R",
+        "path": "docs/REQUIREMENTS.md",
+        "heading": "^### (R[0-9]+\\.[0-9]+) (.+)$",
+        "expected": 82
+      },
+      {
+        "scheme": "P",
+        "path": "docs/PRODUCT-REQUIREMENTS.md",
+        "heading": "^### (P[0-9]+\\.[0-9]+) (.+)$",
+        "expected": 464
+      },
+      {
+        "scheme": "A",
+        "path": "docs/INVESTIGATION-ACCEPTANCE-SCENARIOS.md",
+        "heading": "^## (A[0-9]+)\\. (.+)$",
+        "expected": 250
+      },
+      {
+        "scheme": "D",
+        "path": "docs/DESIGN-DECISION-BOUNDARIES.md",
+        "heading": "^### (D-[0-9]+) (.+)$",
+        "expected": 61
+      },
+      {
+        "scheme": "OQ",
+        "path": "docs/OPEN-QUESTIONS.md",
+        "heading": "^## (OQ-[0-9]+) (.+)$",
+        "expected": 48
+      },
+      {
+        "scheme": "I",
+        "path": "docs/INVESTIGATION-SEMANTICS.md",
+        "heading": "^### (I-[0-9]+) (.+)$",
+        "expected": 20
+      },
+      {
+        "scheme": "S",
+        "path": "docs/SCREEN-CONTRACTS.md",
+        "heading": "^## (S[0-9]+) (.+)$",
+        "expected": 25
+      },
+      {
+        "scheme": "F",
+        "path": "docs/SEMANTIC-EVOLUTION.md",
+        "heading": "^### (F[0-9]+)\\. (.+)$",
+        "expected": 10
+      }
+    ],
+    "kickoffExpected": {
+      "prioritySlices": 12,
+      "successGates": 9,
+      "stopTheLine": 11
+    },
+    "additionalSlices": [
+      {
+        "id": "semantic-compiler",
+        "after": "policy-capabilities",
+        "cutPolicy": "cut-last",
+        "goal": "semantic compiler and exhaustive transition validation: registry, generated checks, state-space and property tests",
+        "basis": "KICKOFF-EXECUTION-PACKET section 3 item 3; IMPLEMENTATION-SLICES Slice 2A"
+      },
+      {
+        "id": "reporting",
+        "after": "investigation-loop",
+        "cutPolicy": "cut-last",
+        "goal": "interim and final Folio reports with snapshot semantics and evidence traceability",
+        "basis": "IMPLEMENTATION-SLICES Slice 9 (Reporting); REQUIREMENTS R12"
+      },
+      {
+        "id": "security-hardening",
+        "after": "factory-proof",
+        "cutPolicy": "cut-last",
+        "goal": "security hardening required for the public demo: trust boundaries, credential exclusion, untrusted evidence, rendering safety",
+        "basis": "IMPLEMENTATION-SLICES Slice 10; KICKOFF-EXECUTION-PACKET checkpoint 4:25"
+      },
+      {
+        "id": "demo-readiness",
+        "after": "security-hardening",
+        "cutPolicy": "never-cut",
+        "goal": "hackathon demonstration: understandable in seconds, demo health, graceful degradation, deployment and performance",
+        "basis": "IMPLEMENTATION-SLICES Slice 11; REQUIREMENTS R16; SCREEN-CONTRACTS S25; never-cut because a working demo is required to compete (DF-CON-2026-A002)"
+      },
+      {
+        "id": "advanced-views",
+        "after": "counterfactual",
+        "cutPolicy": "stretch",
+        "goal": "advanced reasoning views and diagnostics: dependency and causal-set visualizations, uncertainty map, miners, search",
+        "basis": "IMPLEMENTATION-SLICES Slices 9C and 9E; PRODUCT-REQUIREMENTS P38"
+      },
+      {
+        "id": "tool-analytics",
+        "after": "advanced-views",
+        "cutPolicy": "stretch",
+        "goal": "governed tool execution gateway, local WASM analytics and the evidence ingestion pipeline",
+        "basis": "IMPLEMENTATION-SLICES Slice 6A; PRODUCT-REQUIREMENTS P43, P44"
+      },
+      {
+        "id": "bounded-autonomy",
+        "after": "tool-analytics",
+        "cutPolicy": "stretch",
+        "goal": "bounded autonomous investigation sessions with budgets, stop conditions and human checkpoints",
+        "basis": "IMPLEMENTATION-SLICES Slice 6B; PRODUCT-REQUIREMENTS P43"
+      },
+      {
+        "id": "proof-carrying-planner",
+        "after": "bounded-autonomy",
+        "cutPolicy": "stretch",
+        "goal": "proof-carrying proposals and the investigation planner",
+        "basis": "IMPLEMENTATION-SLICES Slice 7A; PRODUCT-REQUIREMENTS P41"
+      },
+      {
+        "id": "cross-investigation",
+        "after": "proof-carrying-planner",
+        "cutPolicy": "stretch",
+        "goal": "cross-investigation intelligence: prior cases, similarity retrieval, reusable experiments",
+        "basis": "IMPLEMENTATION-SLICES Slice 7B; PRODUCT-REQUIREMENTS P42"
+      },
+      {
+        "id": "decision-register",
+        "after": "cross-investigation",
+        "cutPolicy": "cut-last",
+        "goal": "record every open question and reversible or experimental choice as an explicit decision; never settle Deferred or Experimental research silently",
+        "basis": "OPEN-QUESTIONS; DESIGN-DECISION-BOUNDARIES sections 3, 4 and 8; PRODUCT-REQUIREMENTS P30, P36"
+      },
+      {
+        "id": "post-hackathon",
+        "after": "decision-register",
+        "cutPolicy": "deferred",
+        "goal": "post-hackathon product growth: domain packs, templates, portfolio, collaboration, research harness, deferred decisions",
+        "basis": "IMPLEMENTATION-SLICES Slices 12 to 14; DESIGN-DECISION-BOUNDARIES section 5"
+      }
+    ],
+    "assignments": [
+      {
+        "slice": "bootstrap",
+        "match": [
+          "R0.*",
+          "R13.*",
+          "P25.*",
+          "P45.*",
+          "K-SLICE-bootstrap"
+        ]
+      },
+      {
+        "slice": "semantic-kernel",
+        "match": [
+          "R1.*",
+          "R2.*",
+          "R3.*",
+          "R5.*",
+          "P0.*",
+          "P1.*",
+          "P2.*",
+          "P3.*",
+          "P4.*",
+          "P5.*",
+          "P23.*",
+          "P24.*",
+          "P28.*",
+          "P29.*",
+          "P37.*",
+          "I-*",
+          "F*",
+          "D-001..D-015",
+          "D-101..D-110",
+          "A1..A17",
+          "A24",
+          "A28..A30",
+          "A33",
+          "A37",
+          "A38",
+          "A41..A49",
+          "A51..A54",
+          "A56",
+          "A57",
+          "A116..A126",
+          "A130..A135",
+          "K-SLICE-semantic-kernel",
+          "K-GATE-domain",
+          "K-STOP-04",
+          "K-STOP-06",
+          "K-STOP-07",
+          "K-STOP-09"
+        ]
+      },
+      {
+        "slice": "policy-capabilities",
+        "match": [
+          "R8.*",
+          "P31.*",
+          "A27",
+          "A55",
+          "A62",
+          "A63",
+          "A66",
+          "A67",
+          "A127..A129",
+          "K-SLICE-policy-capabilities"
+        ]
+      },
+      {
+        "slice": "semantic-compiler",
+        "match": [
+          "P39.*",
+          "A171..A192"
+        ]
+      },
+      {
+        "slice": "workspace",
+        "match": [
+          "R9.*",
+          "P18.*",
+          "P19.*",
+          "P34.*",
+          "P40.9..P40.11",
+          "S01..S08",
+          "S24",
+          "A61",
+          "A91..A100",
+          "A197",
+          "K-SLICE-workspace",
+          "K-GATE-workspace",
+          "K-STOP-01",
+          "K-STOP-10"
+        ]
+      },
+      {
+        "slice": "local-persistence",
+        "match": [
+          "R10.5..R10.7",
+          "P14.*",
+          "P32.*",
+          "A58",
+          "A64",
+          "A65",
+          "A70..A73",
+          "A75..A80",
+          "K-SLICE-local-persistence",
+          "K-GATE-persistence",
+          "K-STOP-05"
+        ]
+      },
+      {
+        "slice": "github-provider",
+        "match": [
+          "R10.1..R10.4",
+          "R11.1..R11.3",
+          "P15.*",
+          "S23",
+          "A25",
+          "A68",
+          "A69",
+          "A74",
+          "K-SLICE-github-provider",
+          "K-STOP-03"
+        ]
+      },
+      {
+        "slice": "ai-proposals",
+        "match": [
+          "R11.4",
+          "R15.*",
+          "P16.*",
+          "P33.*",
+          "A18",
+          "A19",
+          "A26",
+          "A50",
+          "A81..A90",
+          "K-SLICE-ai-proposals",
+          "K-GATE-ai",
+          "K-STOP-02"
+        ]
+      },
+      {
+        "slice": "investigation-loop",
+        "match": [
+          "R4.*",
+          "R6.*",
+          "R7.*",
+          "P6.*",
+          "P7.*",
+          "P8.*",
+          "P9.*",
+          "S09..S13",
+          "A20..A23",
+          "A32",
+          "A34..A36",
+          "A40",
+          "K-SLICE-investigation-loop",
+          "K-GATE-causality",
+          "K-GATE-verification",
+          "K-STOP-08"
+        ]
+      },
+      {
+        "slice": "reporting",
+        "match": [
+          "R12.*",
+          "P20.*",
+          "S22",
+          "A31"
+        ]
+      },
+      {
+        "slice": "time-travel",
+        "match": [
+          "P38.1..P38.3",
+          "S14",
+          "S15",
+          "A136..A139",
+          "A198",
+          "K-SLICE-time-travel"
+        ]
+      },
+      {
+        "slice": "multi-agent",
+        "match": [
+          "P38.11..P38.17",
+          "S17",
+          "S18",
+          "A144..A149",
+          "K-SLICE-multi-agent"
+        ]
+      },
+      {
+        "slice": "factory-proof",
+        "match": [
+          "R14.*",
+          "P21.*",
+          "P38.26..P38.30",
+          "P40.1..P40.8",
+          "P40.12",
+          "S19..S21",
+          "A162..A167",
+          "A193..A196",
+          "A200",
+          "K-SLICE-factory-proof",
+          "K-GATE-factory"
+        ]
+      },
+      {
+        "slice": "security-hardening",
+        "match": [
+          "P17.*",
+          "P35.*",
+          "A101..A115",
+          "K-GATE-security",
+          "K-STOP-11"
+        ]
+      },
+      {
+        "slice": "demo-readiness",
+        "match": [
+          "R16.*",
+          "P22.*",
+          "P26.*",
+          "P38.37..P38.39",
+          "S25",
+          "A170",
+          "K-GATE-competition"
+        ]
+      },
+      {
+        "slice": "counterfactual",
+        "match": [
+          "P38.4..P38.6",
+          "S16",
+          "A140..A143",
+          "A199",
+          "K-SLICE-counterfactual"
+        ]
+      },
+      {
+        "slice": "advanced-views",
+        "match": [
+          "P38.7..P38.10",
+          "P38.18..P38.25",
+          "P38.31..P38.36",
+          "A150..A161",
+          "A168",
+          "A169"
+        ]
+      },
+      {
+        "slice": "tool-analytics",
+        "match": [
+          "P43.1..P43.8",
+          "P43.17",
+          "P44.*",
+          "A226..A231",
+          "A237..A249"
+        ]
+      },
+      {
+        "slice": "bounded-autonomy",
+        "match": [
+          "P43.9..P43.16",
+          "P43.18",
+          "A232..A236",
+          "A250"
+        ]
+      },
+      {
+        "slice": "proof-carrying-planner",
+        "match": [
+          "P41.*",
+          "A201..A213"
+        ]
+      },
+      {
+        "slice": "cross-investigation",
+        "match": [
+          "P42.1..P42.6",
+          "P42.16",
+          "A39",
+          "A214..A219"
+        ]
+      },
+      {
+        "slice": "decision-register",
+        "match": [
+          "P30.*",
+          "P36.*",
+          "OQ-*",
+          "D-201..D-212",
+          "D-301..D-312",
+          "A59"
+        ]
+      },
+      {
+        "slice": "post-hackathon",
+        "match": [
+          "P10.*",
+          "P11.*",
+          "P12.*",
+          "P13.*",
+          "P42.7..P42.15",
+          "P42.17",
+          "D-401..D-412",
+          "A60",
+          "A220..A225"
+        ]
+      }
+    ],
+    "acceptance": [
+      {
+        "slice": "bootstrap",
+        "criteria": [
+          "Baseline security from the first commit (DF-CON-2026-A002): no credential, token or provider key is committed, bundled into the client, or written to Praxis state, reports or logs (P35.3, R11.3, K-STOP-11). A CI check fails the build when one appears.",
+          "Every page ships a restrictive Content-Security-Policy: no inline script, no eval, and connect-src limited to the GitHub API and the chosen AI provider (P35.9, SECURITY-THREAT-MODEL section 17). A browser test asserts it. GitHub Pages cannot set headers and a meta-tag CSP cannot carry frame-ancestors, so record that gap as a deviation (P40.4).",
+          "Commit package-lock.json so CI installs from the lockfile, and run `npx limen init` (it adopts limen.config.json) so the Limen boundary is verified in CI."
+        ]
+      },
+      {
+        "slice": "workspace",
+        "criteria": [
+          "Baseline input safety (DF-CON-2026-A002): every user and evidence input is validated at the domain boundary through typed commands and refused with an explainable reason, and untrusted text renders inert, never as HTML, script or instructions (P35.7, P35.8, A101, A105)."
+        ]
+      },
+      {
+        "slice": "ai-proposals",
+        "criteria": [
+          "AI transport (RQR-003, OQ-010, D-212 ReversibleChoice; DF-CON-2026-A002): the browser calls the AI provider directly with a key the user enters at runtime. The key is held in memory for the session only: never committed, bundled, stored in localStorage, logged, or sent in prompts or reports (P35.3). Keep it behind a provider interface so a small proxy can replace it without domain changes (P16.1).",
+          "Without a key or a network the investigation stays fully usable by hand, and a clearly labelled recorded proposal is available as the demo fallback (P16.7, P33.13, P38.38). Record the transport choice as a ReversibleChoice decision in this repository."
+        ]
+      },
+      {
+        "slice": "github-provider",
+        "criteria": [
+          "Persistence authentication (RQR-004, OQ-009, D-210; DF-CON-2026-A002): the competition profile uses a fine-grained personal access token scoped to one investigation data repository, contents read and write only, with a short expiry. It is entered at runtime, held in memory for the session only and never stored in localStorage. Document it as the temporary developer-mode deviation SECURITY-THREAT-MODEL sections 4 and 6 permit, and record GitHub App with token exchange as the production target (P35.2, R11.1).",
+          "Investigation data lives in a separate data repository, never in the application repository, so the token cannot change application code (R11.2). The person creates that repository and token; until they exist the app works local-only, and the UI says so honestly (R10.6)."
+        ]
+      },
+      {
+        "slice": "factory-proof",
+        "criteria": [
+          "Publish a generated, read-only requirements trace view in the Factory View (S20, S21; DF-CON-2026-A002). Build it at build time from the requirements-trace.json attachment of COND-MISSION-001 plus Praxis completion state. List every source requirement with its slice, status and evidence, and stamp the view with its build commit. It never edits Praxis state (P38.29, A166, A200)."
+        ]
+      },
+      {
+        "slice": "demo-readiness",
+        "criteria": [
+          "Deploy to GitHub Pages (RQR-005, D-203; DF-CON-2026-A002): add `npm run build` writing the complete site, including dist/index.html, to dist/, so .github/workflows/deploy-pages.yml publishes it; verify the deployed URL before the final freeze (P26.1).",
+          "Demo scenario (RQR-008, OQ-042): the DEMO-PLAN order-delivery case. The order never arrived; the system and the carrier both say delivered; the shipping address may have changed after the order. Seed it as ordinary investigation data through normal commands, with at least one falsified hypothesis, one blocking unknown and one contradiction. The product must not special-case it.",
+          "Demo health (S25) shows the AI key, persistence and deployment state honestly, and the demo still works without the AI key or the data repository."
+        ]
+      },
+      {
+        "slice": "decision-register",
+        "criteria": [
+          "Record the competition defaults of DF-CON-2026-A002 as ReversibleChoice decisions in this repository: AI transport (OQ-010), persistence authentication (OQ-009), deployment (D-203) and demo scenario (OQ-042), each with its rationale and the condition that would change it."
+        ]
+      }
+    ]
+  }
+}

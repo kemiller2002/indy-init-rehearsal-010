@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Storage.fs" />
+    <Compile Include="Canonical.fs" />
+    <Compile Include="Reader.fs" />
+    <Compile Include="Wire.fs" />
+    <Compile Include="GitHubRequests.fs" />
+    <Compile Include="Classify.fs" />
+    <Compile Include="SaveMachine.fs" />
+    <Compile Include="Reconcile.fs" />
+    <Compile Include="Conflict.fs" />
+    <Compile Include="LoadMachine.fs" />
+    <Compile Include="Session.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.Domain/Causa.Domain.fsproj" />
+  </ItemGroup>
+</Project>

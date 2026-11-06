@@ -1,0 +1,381 @@
+# Rehearsal 009 verification gate. Written at T0 by Indy-init `tools/r9/r9.fsx govern`; `check-governance`
+# fails CI if this file differs from Indy-init's tools/r9/verification-gate.yml. Do not edit it here.
+#
+# A green `dotnet test` is not verification: a skipped or missing test still exits 0. This workflow runs the frozen
+# plan's suites and judges each obligation by the evidence type the plan gives it, at the exact candidate: executable
+# identities by Dokimos 0.11.0, record identities (praxis:*) by requirements-compiler verify-process with attestations
+# observed in this run, mixed obligations by both. Development merges re-check the executable obligations of
+# .echelon/verification-scope.json (which may only grow); a work item (inputs work_item, scope) and release (the whole
+# frozen plan) also judge record evidence. A work item's gate writes the Praxis verification matrix to the artifact.
+name: Verification gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: development or release
+        default: release
+      work_item:
+        description: Praxis work item to verify (writes its verification matrix); empty for a merge or release check
+        default: ""
+      scope:
+        description: The work item's requirement ids, comma-separated (with work_item)
+        default: ""
+
+permissions:
+  # read only (ODR-R10-09): this job's own token never writes. Live persistence goes to the isolated test repository
+  # with a GitHub App installation token minted below for that repository alone (contents read/write, nothing else),
+  # revoked when the job ends. That token reaches only the steps that run the live suites, the journeys and the slice
+  # gate, as CAUSA_GITHUB_TOKEN; it is never persisted in the checkout, written to a file or an artifact, or put in
+  # the served application. Candidate code in those steps can read it (the application needs a credential to persist),
+  # so what it can reach is bounded to synthetic data in one repository for one job (LIVE-PROVIDER-PREFLIGHT.md).
+  contents: read
+  pull-requests: read
+
+concurrency:
+  # A pull request's runs share one group: a newer push supersedes its older run. Every other run (a push to main, a
+  # release dispatch) has a group of its own, so it is never cancelled, running or pending: each merge commit's
+  # verification is the post-merge record of that commit, and a later merge must not erase it. (A group holds one
+  # pending run and cancels it for the next, whatever cancel-in-progress says.)
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Candidate is the checked-out commit (never an asserted SHA)
+        id: candidate
+        env:
+          CANDIDATE: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE" || { echo "::error::checkout $(git rev-parse HEAD) is not the candidate $CANDIDATE"; exit 1; }
+          echo "sha=$CANDIDATE" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Indy-init at the governing commit
+        run: |
+          commit=$(jq -r .indyInitCommit .echelon/r9-governance.json)
+          git init -q "$RUNNER_TEMP/indy-init"
+          git -C "$RUNNER_TEMP/indy-init" fetch -q --depth 1 https://github.com/kemiller2002/Indy-init "$commit"
+          git -C "$RUNNER_TEMP/indy-init" checkout -q FETCH_HEAD
+      - name: Governed contracts are the ones the lock pins (catalog, design, deadline policy, journey bindings)
+        run: |
+          src="$RUNNER_TEMP/indy-init"; lock="$src/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          r10=$(jq -r 'has("catalogVerification")' "$lock")
+          check() { pinned=$(jq -r "$2 // empty" "$lock")
+            if [ -z "$pinned" ]; then [ "$r10" = "true" ] && { echo "::error::the lock does not pin $2"; exit 1; }; return 0; fi
+            echo "$pinned  $src/$(jq -r "$1" "$lock")" | sha256sum -c - || { echo "::error::$1 does not match the lock's pin"; exit 1; }; }
+          check '.catalogVerification.contract' '.catalogVerification.contractSha256'
+          check '.designContract.contract' '.designContract.contractSha256'
+          check '.deadlinePolicy.path' '.deadlinePolicy.sha256'
+          check '.journeys.bindings' '.journeys.bindingsSha256'
+          pkg=$(jq -r .requirementsPackage.path "$lock")
+          echo "$(jq -r .requirementsPackage.verificationPlanSha256 "$lock")  $src/$pkg/verification-execution-plan.json" | sha256sum -c - || { echo "::error::the execution plan is not the one the lock pins"; exit 1; }
+      - name: The slice a pull request integrates (branch slice/SL-<work item>)
+        id: slice
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A pull request that changes implementation names its slice by its branch; the gate then judges that work item
+          # at the merged result (this checkout is the merge of the head into the current base).
+          src="$RUNNER_TEMP/indy-init"; slices="$src/docs/rehearsal-010-readiness/slice-execution-manifest.json"
+          # Records, not implementation (r9.fsx isImplementationPath agrees): they reach main through a setup/* pull request.
+          impl=$(git diff --name-only HEAD^1 HEAD | grep -vE '^(docs|evidence|\.ros)/|\.md$|^\.echelon/(verification-scope|scope-checkpoint|r9-work-plan|obligations|r9-initialization-checkpoint)\.json$|^requirements/verification/verification-manifest\.json$' || true)
+          slice=""; case "$HEAD_REF" in slice/SL-*) slice="${HEAD_REF#slice/}";; esac
+          if [ -n "$impl" ] && [ -z "$slice" ]; then echo "::error::this pull request changes implementation but its branch does not name a slice (slice/SL-<work item>)"; exit 1; fi
+          if [ -n "$slice" ]; then
+            jq -e --arg s "$slice" '.slices[] | select(.id == $s)' "$slices" > "$RUNNER_TEMP/slice.json" || { echo "::error::$slice is not in the slice manifest"; exit 1; }
+            echo "id=$slice" >> "$GITHUB_OUTPUT"
+            echo "work_item=$(jq -r .workItem "$RUNNER_TEMP/slice.json")" >> "$GITHUB_OUTPUT"
+            echo "scope=$(jq -r '.requirements | join(",")' "$RUNNER_TEMP/slice.json")" >> "$GITHUB_OUTPUT"
+            echo "live=$(jq -r .realProvider "$RUNNER_TEMP/slice.json")" >> "$GITHUB_OUTPUT"
+            echo "target_base=$(git rev-parse HEAD^1)" >> "$GITHUB_OUTPUT"
+            git fetch -q "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}" "$BASE_REF" && echo "target_head=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Governance is unchanged (policy, this workflow, completed items, scope only grows)
+        run: |
+          base_scope=""
+          if [ -n "${{ github.base_ref }}" ]; then
+            git show "origin/${{ github.base_ref }}:.echelon/verification-scope.json" > "$RUNNER_TEMP/base-scope.json" 2>/dev/null && base_scope="--base-scope $RUNNER_TEMP/base-scope.json"
+          fi
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- check-governance --indy-init "$RUNNER_TEMP/indy-init" --target . $base_scope
+      - name: Pinned toolchain (Conditor 0.10.20, then the echelon-current resolved set)
+        run: |
+          # The lock named at govern time (r9.fsx govern --lock); Rehearsal 009's record names none and reads its own.
+          lock="$RUNNER_TEMP/indy-init/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- install-conditor --lock "$lock" --dir "$RUNNER_TEMP/conditor"
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- workstation --lock "$lock" --conditor "$RUNNER_TEMP/conditor/conditor" --home "$RUNNER_TEMP/echelon" --target-id "ci-${{ github.run_id }}"
+          echo "$RUNNER_TEMP/echelon/.local/bin" >> "$GITHUB_PATH"
+      - name: Compile the frozen verification plan
+        run: |
+          src="$RUNNER_TEMP/indy-init"
+          lock="$RUNNER_TEMP/indy-init/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          pkg=$(jq -r .requirementsPackage.path "$lock")
+          dokimos verification compile --indy-execution-plan "$src/$pkg/verification-execution-plan.json" \
+            --indy-verification-plan "$src/requirements-compiled/v4/verification-plan.json" --out "$RUNNER_TEMP/obligations.json"
+      - name: Implementation was authorized before it was committed (Praxis ordering; docs/release-gate-repair)
+        run: |
+          # A lock that pins a scope manifest (Rehearsal 010 on) also requires the committed scope checkpoint with its
+          # scopeSha256 and complete Praxis work-item coverage before implementation.
+          lock="$RUNNER_TEMP/indy-init/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          manifest=$(jq -r '.scope.manifest // empty' "$lock")
+          scope=""; [ -n "$manifest" ] && scope="--scope-manifest $RUNNER_TEMP/indy-init/$manifest"
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- check-sequencing --target . $scope --out "$RUNNER_TEMP/sequencing.json"
+      - name: Every suite command of the plan can execute (suite-preflight)
+        run: |
+          npm ci
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- suite-preflight --obligations "$RUNNER_TEMP/obligations.json" --root . \
+            --out "$RUNNER_TEMP/suite-preflight.json"
+      - name: The designated test repository (ODR-R10-09)
+        id: testrepo
+        run: |
+          src="$RUNNER_TEMP/indy-init"; lock="$src/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          echo "owner=$(jq -r '.testRepository.owner // ""' "$lock")" >> "$GITHUB_OUTPUT"
+          echo "repo=$(jq -r '.testRepository.repo // ""' "$lock")" >> "$GITHUB_OUTPUT"
+          isolated=$(jq -r '.testRepository.isolated // false' "$lock")
+          echo "isolated=$isolated" >> "$GITHUB_OUTPUT"
+          # A Rehearsal 010 lock (it carries the governed catalog contract) must name an isolated test repository:
+          # live evidence is never produced with another credential.
+          if jq -e '.catalogVerification' "$lock" > /dev/null && [ "$isolated" != true ]; then
+            echo "::error::the lock names no isolated testRepository (ODR-R10-09)"; exit 1
+          fi
+      - name: Test-repository credential, for that repository alone, revoked when this job ends (ODR-R10-09)
+        id: testtoken
+        # Fails, and so refuses the run, when the owner's App credentials are absent: live evidence is never produced
+        # with a broader token.
+        if: steps.testrepo.outputs.isolated == 'true'
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.CAUSA_ACCEPTANCE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CAUSA_ACCEPTANCE_APP_KEY }}
+          owner: ${{ steps.testrepo.outputs.owner }}
+          repositories: ${{ steps.testrepo.outputs.repo }}
+          permission-contents: write
+      - name: Playwright browsers for every project the plan names (Chromium and WebKit)
+        timeout-minutes: 10
+        run: npx playwright install --with-deps chromium webkit
+      - name: Run the plan's suites at the candidate
+        env:
+          MODE: ${{ inputs.mode || 'development' }}
+          CAUSA_GITHUB_TOKEN: ${{ steps.testtoken.outputs.token }}
+        run: |
+          # npm dependencies are installed by the suite-preflight step
+
+          # Release runs every executable suite of the plan (live suites need their provider secrets in this job);
+          # development runs the deterministic ones, and the gate refuses any in-scope suite without evidence.
+          # Release also refuses a suite that executed zero tests: exit 0 with nothing selected is not evidence.
+          suites="--require-tests true"
+          if [ "$MODE" = "development" ]; then suites="--suites SU-OWN-DOTNET,SU-DOTNET-DETERMINISTIC,SU-DOTNET-INVARIANTS,SU-OWN-BROWSER,SU-BROWSER-CHROMIUM"; fi
+          if [ "$MODE" = "development" ] && [ "${{ steps.slice.outputs.live }}" = "true" ]; then suites="$suites,SU-DOTNET-LIVE,SU-BROWSER-LIVE,SU-BROWSER-WEBKIT"; fi
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- run-suites --obligations "$RUNNER_TEMP/obligations.json" --root . \
+            --out "$RUNNER_TEMP/results" $suites
+      - name: Record evidence observed by this run (work-item and release checks only)
+        id: records
+        if: inputs.work_item != '' || inputs.mode == 'release' || steps.slice.outputs.work_item != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Record-bound obligations are judged by requirements-compiler verify-process with the pinned plan and rules
+          # and with attestations this run observes itself; it fails closed while the rules are unpinned.
+          src="$RUNNER_TEMP/indy-init"; lock="$RUNNER_TEMP/indy-init/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          rules_sha=$(jq -r '.processEvidence.rulesSha256 // empty' "$lock")
+          [[ "$rules_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::process-evidence rules are not pinned by the owner (processEvidence.rulesSha256)"; exit 1; }
+          dotnet build "$src/tools/requirements-compiler/src" -c Release
+          gh api --paginate "repos/$REPO/pulls?state=all&per_page=100" --jq '.[].number' |
+            while read -r n; do
+              gh api --paginate "repos/$REPO/pulls/$n/reviews?per_page=100" | jq -s --argjson n "$n" '{number: $n, reviews: add}'
+            done | jq -s . > "$RUNNER_TEMP/pulls.json"
+          rc="$src/tools/requirements-compiler/src/bin/Release/net10.0/requirements-compiler.dll"
+          dotnet "$rc" review-attestations --repository "$REPO" --run-id "${{ github.run_id }}" \
+            --candidate "${{ steps.candidate.outputs.sha }}" --pulls "$RUNNER_TEMP/pulls.json" --out "$RUNNER_TEMP/attestations.json"
+          echo "args=--rc $rc --process-plan $src/$(jq -r .processEvidence.plan "$lock") --process-plan-digest $(jq -r .processEvidence.planDigest "$lock") --process-rules $src/$(jq -r .processEvidence.rules "$lock") --process-rules-sha256 $rules_sha --process-attestations $RUNNER_TEMP/attestations.json --process-trusted-run-id ${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+      - name: Fault probes at the candidate (content round trips must be fault-sensitive)
+        id: probes
+        run: |
+          # Obligations the plan marks content-round-trip need a detected probe; without .echelon/fault-probes.json
+          # they stay unverified (the gate names them), never silently passed.
+          if [ -f .echelon/fault-probes.json ]; then
+            dokimos verification probe --spec .echelon/fault-probes.json --sha "${{ steps.candidate.outputs.sha }}" --root . \
+              --out "$RUNNER_TEMP/probe-results.json" || true
+            echo "args=--probes $RUNNER_TEMP/probe-results.json" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Governed catalog acceptance (the governed gate is the producer; adversarial audit R2)
+        id: catalog
+        env:
+          MODE: ${{ inputs.mode || 'development' }}
+          CAUSA_RUN_ID: ${{ github.run_id }}-governed
+          CAUSA_CANDIDATE: ${{ steps.candidate.outputs.sha }}
+          CAUSA_OBSERVATIONS: ${{ runner.temp }}/catalog/observations
+          CAUSA_PLAYWRIGHT_JSON: ${{ runner.temp }}/catalog/playwright.json
+        run: |
+          # The manifest is compiled here from the approved catalog in the governed checkout and the candidate's mappings;
+          # the candidate's requirement probes run in this job, so this run, not a builder workflow, produces the verdict.
+          src="$RUNNER_TEMP/indy-init"; lock="$src/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          contract="$src/$(jq -r '.catalogVerification.contract // "kickoff/rehearsal-010/catalog-verification-contract.json"' "$lock")"
+          approved=$(jq -r '.catalogVerification.contractSha256 // ""' "$lock")
+          mkdir -p "$RUNNER_TEMP/catalog/observations"
+          dotnet build "$src/tools/requirements-compiler/src" -c Release -v q
+          rc="$src/tools/requirements-compiler/src/bin/Release/net10.0/requirements-compiler.dll"
+          praxis requirements manifest compile --catalog "$src/$(jq -r .catalog.path "$contract")" --source-commit "$(jq -r .indyInitCommit .echelon/r9-governance.json)" \
+            --mappings requirements/requirement-implementation-map.json --output "$RUNNER_TEMP/catalog/manifest.json" || true
+          npx playwright test --config playwright.config.ts --project=chromium "$(jq -r '.requirementTests // "tests/browser/requirements"' "$contract")" || true
+          if [ -f "$RUNNER_TEMP/catalog/manifest.json" ]; then
+            dokimos verification requirements --manifest "$RUNNER_TEMP/catalog/manifest.json" --observations "$CAUSA_OBSERVATIONS" \
+              --results "$CAUSA_PLAYWRIGHT_JSON" --root . --candidate "$CAUSA_CANDIDATE" --out "$RUNNER_TEMP/catalog/requirement-verification.json" || true
+          fi
+          jq -s '[.[] | (.facts // {})] | add // {}' "$CAUSA_OBSERVATIONS"/*.json > "$RUNNER_TEMP/catalog/declared-facts.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/catalog/declared-facts.json"
+          echo "{\"kind\":\"governed-gate\",\"runId\":\"$CAUSA_RUN_ID\"}" > "$RUNNER_TEMP/catalog/producer.json"
+          probes=""; [ -f "$RUNNER_TEMP/probe-results.json" ] && probes="--probe-results $RUNNER_TEMP/probe-results.json"
+          spec=""; [ -f .echelon/fault-probes.json ] && spec="--probe-spec .echelon/fault-probes.json"
+          set +e
+          dotnet "$rc" catalog-acceptance --contract "$contract" --approved-contract-sha256 "$approved" --catalog "$src/$(jq -r .catalog.path "$contract")" \
+            --candidate "$CAUSA_CANDIDATE" --manifest "$RUNNER_TEMP/catalog/manifest.json" --verification "$RUNNER_TEMP/catalog/requirement-verification.json" \
+            --producer "$RUNNER_TEMP/catalog/producer.json" --declared-facts "$RUNNER_TEMP/catalog/declared-facts.json" $probes $spec \
+            --out "$RUNNER_TEMP/catalog/catalog-acceptance.json"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          echo "args=--catalog-acceptance $RUNNER_TEMP/catalog/catalog-acceptance.json" >> "$GITHUB_OUTPUT"
+      - name: Playwright and browsers for the governed journeys and design contract (bounded; ODR-R10-34 B)
+        id: journeys-browsers
+        if: always()
+        # Its own step, so a stalled apt mirror fails here, by name, after 15 minutes instead of consuming the verify job's
+        # 40 (ODR-R10-34 B). Not dropped: the governed journeys pin their own Playwright, which need not equal the candidate's.
+        timeout-minutes: 15
+        run: (cd "$RUNNER_TEMP/indy-init/verification/journeys" && npm install --no-audit --no-fund && npx playwright install --with-deps chromium webkit)
+      - name: Governed journeys J1-J3 and the design contract (Chromium and WebKit; adversarial audit R3, R5)
+        id: journeys
+        if: always()
+        env:
+          CAUSA_PROVIDER: github
+          CAUSA_GITHUB_TOKEN: ${{ steps.testtoken.outputs.token }}
+          CAUSA_CANDIDATE: ${{ steps.candidate.outputs.sha }}
+          CAUSA_APP_URL: http://127.0.0.1:4620/
+        run: |
+          # The journeys and the design contract run from the governed checkout; the candidate cannot edit them. The
+          # candidate is built and served locally at its exact SHA and persists to the designated test repository.
+          src="$RUNNER_TEMP/indy-init"; lock="$src/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          export CAUSA_TEST_OWNER=$(jq -r '.testRepository.owner // "${{ github.repository_owner }}"' "$lock")
+          export CAUSA_TEST_REPO=$(jq -r '.testRepository.repo // "${{ github.event.repository.name }}"' "$lock")
+          export CAUSA_TEST_BRANCH=$(jq -r '.testRepository.branch // "causa-acceptance"' "$lock")
+          design="$src/$(jq -r '.designContract.contract // "kickoff/rehearsal-010/design-contract.json"' "$lock")"
+          mkdir -p "$RUNNER_TEMP/journeys"
+          built=false; npm run build && built=true
+          root=$(jq -r '.servedRoot // "dist"' "$design"); [ -d "$root" ] || root=web
+          node "$src/verification/harness/serve.mjs" "$root" 4620 & sleep 2
+          started=false; curl -sf http://127.0.0.1:4620/ > /dev/null && started=true
+          echo "{\"candidate\":\"$CAUSA_CANDIDATE\",\"built\":$built,\"started\":$started}" > "$RUNNER_TEMP/journeys/build.json"
+          test "${{ steps.journeys-browsers.outcome }}" = success
+          set +e
+          (cd "$src/verification/journeys" && CAUSA_JOURNEY_RESULTS="$RUNNER_TEMP/journeys/journey-results.json" npx playwright test)
+          ln -sfn "$src/verification/journeys/node_modules" "$src/verification/design-contract/node_modules"
+          (cd "$src/verification/design-contract" && CAUSA_DESIGN_CONTRACT="$design" CAUSA_DESIGN_RENDERED="$RUNNER_TEMP/journeys/design-rendered.json" \
+            CAUSA_SCREENSHOTS="$RUNNER_TEMP/journeys/screenshots" npx playwright test)
+          dotnet "${{ steps.catalog.outputs.rc }}" design-contract --contract "$design" --forma-inventory "$src/$(jq -r '.forma.inventories[-1]' "$design")" \
+            --root . --candidate "$CAUSA_CANDIDATE" --rendered "$RUNNER_TEMP/journeys/design-rendered-chromium.json,$RUNNER_TEMP/journeys/design-rendered-webkit.json" --out "$RUNNER_TEMP/journeys/design-contract.json"
+          exit 0
+      - name: Verification gate (executable, record and mixed obligations)
+        env:
+          MODE: ${{ inputs.mode || 'development' }}
+          WORK_ITEM: ${{ inputs.work_item || steps.slice.outputs.work_item }}
+          SCOPE: ${{ inputs.scope || steps.slice.outputs.scope }}
+        run: |
+          scope=""
+          if [ -n "$WORK_ITEM" ]; then scope="--work-item $WORK_ITEM --scope $SCOPE"
+          elif [ "$MODE" = "development" ]; then scope="--scope-file .echelon/verification-scope.json"; fi
+          dotnet fsi "$RUNNER_TEMP/indy-init/tools/r9/r9.fsx" -- gate --mode "$MODE" $scope ${{ steps.records.outputs.args }} \
+            ${{ steps.probes.outputs.args }} ${{ steps.catalog.outputs.args }} \
+            --obligations "$RUNNER_TEMP/obligations.json" --root . --results "$RUNNER_TEMP/results/results.json" \
+            --dokimos "$(command -v dokimos)" --expect-candidate "${{ steps.candidate.outputs.sha }}" --out "$RUNNER_TEMP/gate"
+      - name: Slice integration gate (pull request of a slice; merge only on PASS)
+        if: always() && steps.slice.outputs.id != ''
+        env:
+          CANDIDATE: ${{ steps.candidate.outputs.sha }}
+          CAUSA_GITHUB_TOKEN: ${{ steps.testtoken.outputs.token }}
+        run: |
+          src="$RUNNER_TEMP/indy-init"; rc="${{ steps.catalog.outputs.rc }}"; ev="$RUNNER_TEMP/slice-evidence"; mkdir -p "$ev"
+          base="${{ steps.slice.outputs.target_base }}"
+          # Governed coverage of the whole plan at the merged result and at the target base: regression and dependencies
+          # are judged from this evidence, never from progress events the builder writes.
+          jq '{schema: "indy-init.r9-verification-scope/1", requirements: ([.obligations[].requirement] | unique)}' "$RUNNER_TEMP/obligations.json" > "$ev/all-scope.json"
+          dotnet fsi "$src/tools/r9/r9.fsx" -- gate --mode development --scope-file "$ev/all-scope.json" --obligations "$RUNNER_TEMP/obligations.json" --root . \
+            --results "$RUNNER_TEMP/results/results.json" --dokimos "$(command -v dokimos)" --out "$ev/gate-all-head" || true
+          # Fail closed: without whole-plan coverage, regression and dependencies cannot be judged.
+          test -f "$ev/gate-all-head/coverage.json" || { echo "::error::no whole-plan coverage at the merged result: regression and dependencies cannot be judged"; exit 1; }
+          git worktree add -q "$RUNNER_TEMP/base" "$base"
+          # Whether the target base has any test code at all (wherever it lives): only a base without tests (the first
+          # slice) may lack results and coverage.
+          basetests=$(git -C "$RUNNER_TEMP/base" ls-files | grep -E '(^|/)[Tt]ests?/|\.Tests?/|\.(spec|test)\.[cm]?[jt]sx?$|(^|/)[^/]*Tests?\.(fs|cs)$' | head -1 || true)
+          (cd "$RUNNER_TEMP/base" && npm ci > /dev/null 2>&1; true)
+          dotnet fsi "$src/tools/r9/r9.fsx" -- run-suites --obligations "$RUNNER_TEMP/obligations.json" --root "$RUNNER_TEMP/base" \
+            --out "$RUNNER_TEMP/base-results" --suites SU-OWN-DOTNET,SU-DOTNET-DETERMINISTIC,SU-DOTNET-INVARIANTS,SU-OWN-BROWSER,SU-BROWSER-CHROMIUM || true
+          if [ -n "$basetests" ] && [ ! -f "$RUNNER_TEMP/base-results/results.json" ]; then echo "::error::the target base has tests but its suites produced no results: regression cannot be judged"; exit 1; fi
+          if [ -f "$RUNNER_TEMP/base-results/results.json" ]; then
+            dotnet fsi "$src/tools/r9/r9.fsx" -- gate --mode development --scope-file "$ev/all-scope.json" --obligations "$RUNNER_TEMP/obligations.json" --root "$RUNNER_TEMP/base" \
+              --results "$RUNNER_TEMP/base-results/results.json" --dokimos "$(command -v dokimos)" --out "$ev/gate-all-base" || true
+          fi
+          if [ -n "$basetests" ] && [ ! -f "$ev/gate-all-base/coverage.json" ]; then echo "::error::no whole-plan coverage at the target base: regression cannot be judged"; exit 1; fi
+          # A base without tests (the first slice) has nothing to regress; any other missing file has been refused above.
+          verified() { if [ -f "$1" ]; then jq '[.obligations[] | select(.status == "verified") | .id]' "$1"; else echo '[]'; fi; }
+          catalogPass=$(jq '[.requirements[].obligations[] | select(.status == "PASS") | .id]' "$RUNNER_TEMP/catalog/requirement-verification.json" 2>/dev/null || echo '[]')
+          jq -n --arg c "$CANDIDATE" --argjson head "$(verified "$ev/gate-all-head/coverage.json")" --argjson base "$(verified "$ev/gate-all-base/coverage.json")" \
+            --argjson cat "$catalogPass" '{candidate: $c, passed: ($head + $cat), required: $base}' > "$ev/regression.json"
+          # Real provider: the plan's live suites ran at the merged result against GitHub (their obligations are judged by the gate).
+          # Passed only when both live suites ran tests and none failed (their files existing is not enough).
+          livestatus=failed
+          trx=$(ls "$RUNNER_TEMP"/results/SU-DOTNET-LIVE/*.trx 2>/dev/null || true); pw="$RUNNER_TEMP/results/SU-BROWSER-LIVE/results.json"
+          if [ -n "$trx" ] && [ -f "$pw" ] && cat -- "$RUNNER_TEMP"/results/SU-DOTNET-LIVE/*.trx | grep -q 'outcome="Passed"' && ! cat -- "$RUNNER_TEMP"/results/SU-DOTNET-LIVE/*.trx | grep -qE 'outcome="(Failed|Error|Timeout|Aborted)"' \
+             && [ "$(jq '.stats.unexpected // 1' "$pw")" = 0 ] && [ "$(jq '.stats.expected // 0' "$pw")" -gt 0 ]; then livestatus=passed; fi
+          jq -n --arg c "$CANDIDATE" --arg s "$livestatus" '{candidate: $c, baseUrl: "https://api.github.com", status: $s}' > "$ev/live.json"
+          dotnet "$rc" test-integrity --repo . --base "$base" --head "$CANDIDATE" \
+            --base-results "$RUNNER_TEMP/base-results" --head-results "$RUNNER_TEMP/results" --out "$ev/test-integrity.json" || true
+          dotnet "$rc" slice-gate --manifest "$src/docs/rehearsal-010-readiness/scope-manifest.json" --events evidence/progress/events.json \
+            --slices "$src/docs/rehearsal-010-readiness/slice-execution-manifest.json" --slice "${{ steps.slice.outputs.id }}" --candidate "$CANDIDATE" \
+            --target-base "$base" --target-head "${{ steps.slice.outputs.target_head }}" \
+            --gate "$RUNNER_TEMP/gate/gate.json" --journeys "$RUNNER_TEMP/journeys/journey-results.json" --design "$RUNNER_TEMP/journeys/design-contract.json" \
+            --regression "$ev/regression.json" --build "$RUNNER_TEMP/journeys/build.json" --live "$ev/live.json" --test-integrity "$ev/test-integrity.json" \
+            --catalog "$RUNNER_TEMP/catalog/catalog-acceptance.json" --approvals "$src/kickoff/acceptance/approvals.causa.json" --trusted-operator kemiller2002 \
+            --assertion-needs "$src/docs/rehearsal-010-readiness/assertion-merge-needs.json" \
+            --out "$ev/slice-gate.json"
+      - name: Full-scope completion gate (release; a slice PASS is never a release PASS)
+        if: always() && inputs.mode == 'release'
+        run: |
+          src="$RUNNER_TEMP/indy-init"
+          lock="$src/$(jq -r '.toolchainLock // .lock // "kickoff/rehearsal-009/toolchain.lock.json"' .echelon/r9-governance.json)"
+          bindings="$src/$(jq -r '.journeys.bindings // "verification/journeys/bindings.json"' "$lock")"
+          dotnet "${{ steps.catalog.outputs.rc }}" completion-gate --manifest "$src/docs/rehearsal-010-readiness/scope-manifest.json" \
+            --coverage "$RUNNER_TEMP/gate/coverage.json" --catalog-verification "$RUNNER_TEMP/catalog/requirement-verification.json" \
+            --events evidence/progress/events.json --candidate "${{ steps.candidate.outputs.sha }}" --release-gate "$RUNNER_TEMP/gate/gate.json" \
+            --catalog "$RUNNER_TEMP/catalog/catalog-acceptance.json" --journeys "$RUNNER_TEMP/journeys/journey-results.json" \
+            --design "$RUNNER_TEMP/journeys/design-contract.json" --journey-bindings "$bindings" \
+            --facts "$src/kickoff/rehearsal-010/catalog-verification-contract.json" \
+            --approvals "$src/kickoff/acceptance/approvals.causa.json" --trusted-operator kemiller2002 --out "$RUNNER_TEMP/gate/completion.json"
+      - name: Publish the coverage report, results and verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-${{ steps.candidate.outputs.sha }}
+          path: |
+            ${{ runner.temp }}/gate
+            ${{ runner.temp }}/results
+            ${{ runner.temp }}/obligations.json
+            ${{ runner.temp }}/attestations.json
+            ${{ runner.temp }}/probe-results.json
+            ${{ runner.temp }}/suite-preflight.json
+            ${{ runner.temp }}/sequencing.json
+            ${{ runner.temp }}/catalog
+            ${{ runner.temp }}/journeys
+            ${{ runner.temp }}/slice-evidence

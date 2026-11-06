@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+# The deployment target is not decided yet (Indy-init RQR-005; D-203 prefers
+# GitHub Pages "where practical"). This workflow is wired but inert: it runs
+# only when the repository variable DEPLOY_TARGET is `github-pages` and Pages
+# is enabled with source "GitHub Actions". It deploys what `npm run build`
+# writes to dist/. See DEPLOYMENT.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: vars.DEPLOY_TARGET == 'github-pages'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install npm dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::package-lock.json is not committed; installing without a lockfile. Commit it so every run installs the same tree."
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Build the site
+        run: npm run build
+
+      - name: Require the site bundle
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "::error::npm run build must write the deployable site, including dist/index.html. See DEPLOYMENT.md."
+            exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

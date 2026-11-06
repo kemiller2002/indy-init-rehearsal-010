@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "repository": "indy-init-rehearsal-010",
+  "nextSeq": 1,
+  "items": [
+    {
+      "id": "COND-MISSION-001",
+      "title": "Build indy-init-root-cause-investigator from the Conditor execution contract",
+      "description": "Build the Indy Init Root-Cause Investigation Platform from the pinned kickoff contract. Follow ROS/Ordo/Aegis/Praxis/Limen/Forma/Folio/Percepta boundaries, prove completion with tests and repository evidence, and do not silently resolve experimental or deferred research questions.",
+      "tags": [
+        "conditor",
+        "mission"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-11-06T16:41:52.5798814+00:00",
+      "updatedAt": "2026-11-06T16:41:52.9485463+00:00",
+      "createdBy": "conditor",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "conditor",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "conditor",
+      "sourceReference": "kickoff/indy-init.kickoff.json"
+    }
+  ]
+}

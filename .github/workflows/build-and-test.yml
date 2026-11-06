@@ -1,0 +1,131 @@
+name: Build and test
+
+# Every pull request and every push to main builds the F# engine and runs its
+# tests, type-checks the browser kernel, and drives the pages in a real
+# browser. Branch protection requires this job (.github/branch-protection.json).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    # A normal run takes a few minutes. Anything that stalls fails here
+    # instead of holding a runner for the six-hour default.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Warnings are errors (Directory.Build.props), so this also gates
+      # warning regressions.
+      - name: Build
+        run: dotnet build App.slnx -c Release
+      - name: Test
+        shell: bash
+        run: |
+          set -uo pipefail
+          output=$(dotnet test App.slnx -c Release --no-build 2>&1)
+          status=$?
+          echo "$output"
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          if ! echo "$output" | grep -qE 'Passed:[[:space:]]*[1-9]'; then
+            echo "::error::No test passed. An empty test run is not a pass."; exit 1
+          fi
+          if echo "$output" | grep -qE 'Skipped:[[:space:]]*[1-9]'; then
+            echo "::error::Tests were skipped. A run that skips tests is not a pass."; exit 1
+          fi
+      - name: Install npm dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::package-lock.json is not committed; installing without a lockfile. Commit it so every run installs the same tree."
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Type-check the browser kernel
+        run: npm run check
+
+      # Chromium is never installed with `--with-deps`: that runs `sudo
+      # apt-get update` on every run, and apt has no overall deadline, so an
+      # unanswered mirror hung browser suites until the six-hour job limit
+      # (signal#21, signal#22, summa#21; fixed in signal#24). The browser is
+      # cached under the installed Playwright version (which fixes the
+      # browser build), and the OS libraries are proved present offline.
+      - name: Resolve the installed Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./node_modules/playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # A stalled cache download falls back to a fresh browser download
+      # after two minutes instead of the default ten.
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Download Chromium for the browser suite
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # `ldd` proves offline that every shared library the Chromium binaries
+      # link against is on the runner. Only when a future runner image drops
+      # one does apt run at all, with per-request timeouts, retries and an
+      # overall deadline, and the result is checked again. A missing library
+      # fails the step by name; it can no longer hang.
+      - name: Verify Chromium's OS libraries
+        timeout-minutes: 8
+        run: |
+          missing_libraries() {
+            find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell \) -print0 \
+              | xargs -0 --no-run-if-empty ldd \
+              | awk '/not found/ { print $1 }' \
+              | sort -u
+          }
+
+          missing="$(missing_libraries)"
+          if [ -n "$missing" ]; then
+            echo "::warning::Runner image lacks Chromium libraries: $(echo $missing). Installing Chromium's OS dependencies."
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+              | sudo tee /etc/apt/apt.conf.d/99-bounded-network > /dev/null
+            timeout 300 npx playwright install-deps chromium \
+              || echo "::error::Installing Chromium's OS dependencies failed or took longer than five minutes."
+          fi
+
+          still_missing="$(missing_libraries)"
+          if [ -n "$still_missing" ]; then
+            echo "::error::Chromium cannot start; missing shared libraries: $(echo $still_missing)"
+            exit 1
+          fi
+          echo "Every shared library Chromium links against is present."
+
+      - name: Verify the pages in a real browser
+        run: npx playwright test
+
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

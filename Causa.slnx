@@ -1,0 +1,13 @@
+<Solution>
+  <Project Path="src/Causa.Domain/Causa.Domain.fsproj" />
+  <Project Path="src/Causa.Persistence/Causa.Persistence.fsproj" />
+  <Project Path="src/Causa.App/Causa.App.fsproj" />
+  <Project Path="src/Causa.Host/Causa.Host.csproj" />
+  <Project Path="tests/Causa.TestSupport/Causa.TestSupport.fsproj" />
+  <Project Path="tests/Causa.Acceptance/Causa.Acceptance.fsproj" />
+  <Project Path="tests/Causa.Invariants/Causa.Invariants.fsproj" />
+  <Project Path="tests/Causa.Contract.Tests/Causa.Contract.Tests.fsproj" />
+  <Project Path="tests/Causa.Domain.Tests/Causa.Domain.Tests.fsproj" />
+  <Project Path="tests/Causa.Persistence.Tests/Causa.Persistence.Tests.fsproj" />
+  <Project Path="tests/Causa.App.Tests/Causa.App.Tests.fsproj" />
+</Solution>

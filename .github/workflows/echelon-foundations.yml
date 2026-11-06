@@ -1,0 +1,22 @@
+name: Echelon foundations
+
+# One run per ref: a push to a pull request's branch runs only through
+# `pull_request`, and a newer push cancels the superseded run (Indy-init
+# R7-REM-004; Rehearsal 6 ran this twice per push on every branch).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundations:
+    uses: kemiller2002/praxis/.github/workflows/foundations-verify.yml@aa7c7ca6a6e2cb270bdccfe117ea35ade7b0945c
+    with:
+      praxis_ref: aa7c7ca6a6e2cb270bdccfe117ea35ade7b0945c

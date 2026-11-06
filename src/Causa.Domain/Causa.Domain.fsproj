@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Identity.fs" />
+    <Compile Include="Semantics.fs" />
+    <Compile Include="Entities.fs" />
+    <Compile Include="Commands.fs" />
+    <Compile Include="Events.fs" />
+    <Compile Include="Policies.fs" />
+    <Compile Include="Decide.fs" />
+    <Compile Include="Evolve.fs" />
+    <Compile Include="Capabilities.fs" />
+    <Compile Include="Kernel.fs" />
+  </ItemGroup>
+</Project>

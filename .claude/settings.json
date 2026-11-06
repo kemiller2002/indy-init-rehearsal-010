@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(gh api *)",
+      "Bash(dotnet *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(./praxis *)",
+      "Bash(praxis *)",
+      "Bash(ordo *)",
+      "Bash(percepta-repo *)",
+      "Bash(conditor *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh api -X DELETE *)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Opening pull requests in this repository, pushing their branches, merging the base branch into them, and merging them without separate human review once every required check is green and the branch is conflict-free."
+    ]
+  }
+}

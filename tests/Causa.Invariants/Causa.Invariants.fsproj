@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Live/INV22.fs" />
+    <Compile Include="Model/INV08.fs" />
+    <Compile Include="Mutation/INV01.fs" />
+    <Compile Include="Negative/INV02.fs" />
+    <Compile Include="Negative/INV03.fs" />
+    <Compile Include="Negative/INV07.fs" />
+    <Compile Include="Negative/INV11.fs" />
+    <Compile Include="Negative/INV14.fs" />
+    <Compile Include="Negative/INV21.fs" />
+    <Compile Include="Negative/INV22.fs" />
+    <Compile Include="Negative/INV24.fs" />
+    <Compile Include="Negative/INV25.fs" />
+    <Compile Include="Property/INV01.fs" />
+    <Compile Include="Property/INV02.fs" />
+    <Compile Include="Property/INV03.fs" />
+    <Compile Include="Property/INV04.fs" />
+    <Compile Include="Property/INV05.fs" />
+    <Compile Include="Property/INV07.fs" />
+    <Compile Include="Property/INV09.fs" />
+    <Compile Include="Property/INV11.fs" />
+    <Compile Include="Property/INV12.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+    <ProjectReference Include="../../src/Causa.App/Causa.App.fsproj" />
+    <ProjectReference Include="../Causa.TestSupport/Causa.TestSupport.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+</Project>

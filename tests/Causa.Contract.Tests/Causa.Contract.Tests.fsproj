@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="App/ConsumerIntegration.fs" />
+    <Compile Include="App/Producer.fs" />
+    <Compile Include="Domain/ConsumerIntegration.fs" />
+    <Compile Include="Domain/ConsumerPersistence.fs" />
+    <Compile Include="Domain/ConsumerUi.fs" />
+    <Compile Include="Domain/ConsumerUi2.fs" />
+    <Compile Include="Domain/Producer.fs" />
+    <Compile Include="Errors/ConsumerPersistence.fs" />
+    <Compile Include="Errors/ConsumerUi.fs" />
+    <Compile Include="Errors/Producer.fs" />
+    <Compile Include="Report/Producer.fs" />
+    <Compile Include="Save/ConsumerIntegration.fs" />
+    <Compile Include="Save/ConsumerUi.fs" />
+    <Compile Include="Save/ConsumerUi2.fs" />
+    <Compile Include="Save/Producer.fs" />
+    <Compile Include="Storage/ConsumerPersistence.fs" />
+    <Compile Include="Storage/Producer.fs" />
+    <Compile Include="View/Producer.fs" />
+    <Compile Include="Wire/ConsumerIntegration.fs" />
+    <Compile Include="Wire/ConsumerUi.fs" />
+    <Compile Include="Wire/Producer.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+    <ProjectReference Include="../../src/Causa.App/Causa.App.fsproj" />
+    <ProjectReference Include="../Causa.TestSupport/Causa.TestSupport.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+</Project>

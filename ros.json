@@ -1,0 +1,93 @@
+{
+  "name": "indy-init-rehearsal-010",
+  "project": "Indy Init Rehearsal 010",
+  "rosVersion": "3.25.0",
+  "repSpecificationVersion": "2.0",
+  "profile": "greenfield",
+  "bootstrap": "BOOTSTRAP.md",
+  "canonicalRoots": {
+    "journals": "research/journals",
+    "packages": "research/packages",
+    "theories": "research/theories",
+    "evidence": "research/evidence"
+  },
+  "registries": "registries",
+  "templates": "templates",
+  "generated": "generated",
+  "repository": {
+    "id": "indy-init-rehearsal-010",
+    "type": "application"
+  },
+  "workProtocol": {
+    "version": "1.0.0",
+    "enforceAttribution": true,
+    "semanticMapping": {
+      "ready": "ready",
+      "active": "active",
+      "blocked": "blocked",
+      "complete": "complete"
+    },
+    "completionEvidence": {
+      "default": [
+        "implementation",
+        "tests"
+      ],
+      "research": [
+        "research-record"
+      ],
+      "mechanical": []
+    },
+    "meaningfulPaths": [
+      "**"
+    ],
+    "ignoredPaths": [
+      ".git/**",
+      ".ros/context/**",
+      ".ros/events/**",
+      ".ros/work/**",
+      ".ros/telemetry/**",
+      ".ros/locks/**",
+      ".ros/remote/**",
+      "registries/**",
+      ".echelon/**"
+    ],
+    "continuity": {
+      "requireDurableCheckpoint": true
+    },
+    "upstreamSync": {
+      "enabled": true,
+      "remote": "origin",
+      "branch": "main",
+      "maxAgeMinutes": 30
+    },
+    "qualityEvidence": {
+      "version": "1.0.0",
+      "description": "Rehearsal 009 (Indy-init tools/r9/governance.json): every work item needs a satisfied verification matrix produced by Dokimos at the candidate. Do not edit: CI compares this block with the authoritative copy.",
+      "dokimos": "off",
+      "ordoBoundary": "off",
+      "requiredFacets": [
+        "verification-matrix-satisfied"
+      ]
+    }
+  },
+  "provenance": {
+    "version": "1.0.0",
+    "enforce": true,
+    "requiredFrom": "2026-09-25",
+    "requireOriginator": [
+      "RQ"
+    ]
+  },
+  "telemetry": {
+    "version": "1.0.0",
+    "enabled": true,
+    "requireFinalization": true,
+    "executionRoot": ".ros/telemetry/executions",
+    "metricRegistry": "telemetry/metrics.json",
+    "allowRawTelemetry": true,
+    "maxRawPayloadBytes": 262144,
+    "maxRawSnapshotsPerExecution": 256,
+    "maxRawBytesPerExecution": 8388608,
+    "maxCapabilityHistoryEntries": 64
+  }
+}

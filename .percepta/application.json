@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "application": "indy-init-root-cause-investigator",
+  "sourceSpecification": "kemiller2002/Indy-init:docs/SCREEN-CONTRACTS.md",
+  "contracts": [
+    "screens/s01-investigation-start.json",
+    "screens/s02-investigation-workspace.json",
+    "screens/s03-hypothesis-battlefield.json",
+    "screens/s04-hypothesis-detail.json",
+    "screens/s05-evidence-capture.json",
+    "screens/s06-evidence-detail.json",
+    "screens/s07-evidence-dependency.json",
+    "screens/s08-epistemic-blocker-detail.json",
+    "screens/s09-action-experiment-designer.json",
+    "screens/s10-finding-result-capture.json",
+    "screens/s11-cause-review.json",
+    "screens/s12-corrective-action.json",
+    "screens/s13-verification.json",
+    "screens/s14-history-time-travel.json",
+    "screens/s15-semantic-diff.json",
+    "screens/s16-counterfactual-sandbox.json",
+    "screens/s17-multi-agent-panel.json",
+    "screens/s18-research-tournament.json",
+    "screens/s19-replay-spectator.json",
+    "screens/s20-factory-view.json",
+    "screens/s21-requirements-proof.json",
+    "screens/s22-report-preview.json",
+    "screens/s23-persistence-conflict-recovery.json",
+    "screens/s24-settings-semantic-manifest.json",
+    "screens/s25-demo-health.json"
+  ],
+  "completionRule": "Every implemented screen must validate its Percepta contract and required evidence; absent screens remain explicitly unimplemented rather than inferred complete."
+}

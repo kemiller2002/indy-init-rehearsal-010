@@ -1,0 +1,15 @@
+{
+  "schema": "conditor.branch-protection/v1",
+  "branch": "main",
+  "requiredStatusChecks": [
+    "build-and-test",
+    "foundations / verify-foundations",
+    "validate"
+  ],
+  "strictStatusChecks": false,
+  "enforceAdmins": true,
+  "requirePullRequest": true,
+  "requiredApprovingReviewCount": 0,
+  "allowForcePushes": false,
+  "allowDeletions": false
+}

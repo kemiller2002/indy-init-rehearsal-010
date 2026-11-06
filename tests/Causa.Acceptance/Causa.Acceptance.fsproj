@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Deterministic/AR014Tests.fs" />
+    <Compile Include="Deterministic/AR030Tests.fs" />
+    <Compile Include="Deterministic/AR035Tests.fs" />
+    <Compile Include="Deterministic/PERSIST001Tests.fs" />
+    <Compile Include="Deterministic/PERSIST007Tests.fs" />
+    <Compile Include="Deterministic/PERSIST010Tests.fs" />
+    <Compile Include="Deterministic/PERSIST011Tests.fs" />
+    <Compile Include="Deterministic/PERSIST012Tests.fs" />
+    <Compile Include="Deterministic/PERSIST015Tests.fs" />
+    <Compile Include="Deterministic/PERSIST016Tests.fs" />
+    <Compile Include="Deterministic/PERSIST023Tests.fs" />
+    <Compile Include="Deterministic/PERSIST026Tests.fs" />
+    <Compile Include="Deterministic/PERSIST045Tests.fs" />
+    <Compile Include="Deterministic/PERSIST047Tests.fs" />
+    <Compile Include="Deterministic/PERSIST051Tests.fs" />
+    <Compile Include="Deterministic/PERSIST052Tests.fs" />
+    <Compile Include="Deterministic/PERSIST053Tests.fs" />
+    <Compile Include="Deterministic/PERSIST055Tests.fs" />
+    <Compile Include="Deterministic/VER001Tests.fs" />
+    <Compile Include="Deterministic/VER002Tests.fs" />
+    <Compile Include="Deterministic/VER003Tests.fs" />
+    <Compile Include="Deterministic/VER004Tests.fs" />
+    <Compile Include="Deterministic/VER005Tests.fs" />
+    <Compile Include="Deterministic/VER006Tests.fs" />
+    <Compile Include="Deterministic/VER007Tests.fs" />
+    <Compile Include="Deterministic/VER008Tests.fs" />
+    <Compile Include="Deterministic/VER010Tests.fs" />
+    <Compile Include="Live/EXTDATA001Tests.fs" />
+    <Compile Include="Live/EXTDATA002Tests.fs" />
+    <Compile Include="Live/EXTDATA003Tests.fs" />
+    <Compile Include="Live/EXTDATA004Tests.fs" />
+    <Compile Include="Live/EXTDATA005Tests.fs" />
+    <Compile Include="Live/EXTDATA006Tests.fs" />
+    <Compile Include="Live/EXTDATA007Tests.fs" />
+    <Compile Include="Live/EXTDATA008Tests.fs" />
+    <Compile Include="Live/EXTDATA009Tests.fs" />
+    <Compile Include="Live/EXTDATA010Tests.fs" />
+    <Compile Include="Live/EXTDATA011Tests.fs" />
+    <Compile Include="Live/EXTDATA012Tests.fs" />
+    <Compile Include="Live/EXTDATA013Tests.fs" />
+    <Compile Include="Live/PERSIST005Tests.fs" />
+    <Compile Include="Live/PERSIST006Tests.fs" />
+    <Compile Include="Live/PERSIST007Tests.fs" />
+    <Compile Include="Live/PERSIST008Tests.fs" />
+    <Compile Include="Live/PERSIST009Tests.fs" />
+    <Compile Include="Live/PERSIST013Tests.fs" />
+    <Compile Include="Live/PERSIST014Tests.fs" />
+    <Compile Include="Live/PERSIST021Tests.fs" />
+    <Compile Include="Live/PERSIST025Tests.fs" />
+    <Compile Include="Live/PERSIST041Tests.fs" />
+    <Compile Include="Live/PERSIST042Tests.fs" />
+    <Compile Include="Live/PERSIST043Tests.fs" />
+    <Compile Include="Live/PF001Tests.fs" />
+    <Compile Include="Live/PF002Tests.fs" />
+    <Compile Include="Live/PF003Tests.fs" />
+    <Compile Include="Live/PF004Tests.fs" />
+    <Compile Include="Live/PF005Tests.fs" />
+    <Compile Include="Live/PF006Tests.fs" />
+    <Compile Include="Live/PF007Tests.fs" />
+    <Compile Include="Live/PF008Tests.fs" />
+    <Compile Include="Live/PF009Tests.fs" />
+    <Compile Include="Live/PF011Tests.fs" />
+    <Compile Include="Live/PF012Tests.fs" />
+    <Compile Include="Live/PF013Tests.fs" />
+    <Compile Include="Live/PF014Tests.fs" />
+    <Compile Include="Live/PF015Tests.fs" />
+    <Compile Include="Live/PF016Tests.fs" />
+    <Compile Include="Live/PF017Tests.fs" />
+    <Compile Include="Live/PF018Tests.fs" />
+    <Compile Include="Live/PF019Tests.fs" />
+    <Compile Include="Live/PF020Tests.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+    <ProjectReference Include="../../src/Causa.App/Causa.App.fsproj" />
+    <ProjectReference Include="../Causa.TestSupport/Causa.TestSupport.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+</Project>

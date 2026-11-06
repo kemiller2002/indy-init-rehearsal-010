@@ -1,0 +1,36 @@
+name: Praxis validation
+
+# One run per ref: a pull request's pushes run through `pull_request` only,
+# and a newer push cancels the superseded run. Pushing to every branch as well
+# ran each pull-request push twice, with no group, and no timeout; Rehearsal 6
+# started 144 of these runs in seven hours (Indy-init R7-REM-004,
+# `conditor ci-policy check` rules CIP-002, CIP-005 and CIP-006).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # ./praxis installs and runs the Praxis version this project pins; it
+      # needs only a POSIX shell and curl (no Node.js, npm or .NET).
+      - run: ./praxis registry check
+      - run: ./praxis validate
+        env:
+          PRAXIS_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # Compatibility: Praxis releases pinned from before the rename read
+          # only the legacy name (DF-ROS-2026-A050).
+          ROS_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}

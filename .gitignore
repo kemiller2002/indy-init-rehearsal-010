@@ -1,0 +1,48 @@
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# Generated transient work
+.ros/locks/
+work/staging/*
+work/review/*
+logs/*
+
+# Preserve directory markers and documentation
+!work/staging/.gitkeep
+!work/review/.gitkeep
+!logs/.gitkeep
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# conditor:build-outputs:start
+# Build, test, package and browser outputs (Conditor fsharp-limen-web scaffold)
+bin/
+obj/
+dist/
+TestResults/
+node_modules/
+test-results/
+playwright-report/
+# conditor:build-outputs:end
+# requirements-compiler v41 (v4.1.1 bootstrap)
+*.trx

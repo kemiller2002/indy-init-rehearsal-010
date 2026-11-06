@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Recordings.fs" />
+    <Compile Include="StatefulFake.fs" />
+    <Compile Include="UiFixtures/CausaDataExtract.g.fs" />
+    <Compile Include="UiFixtures/Scenarios.fs" />
+    <Compile Include="UiFixtures/FixtureBackend.fs" />
+    <Compile Include="UiFixtures/Scenarios.ui.fs" />
+    <Compile Include="UiFixtures/Scenarios.ui-2.fs" />
+    <Compile Include="UiFixtures/Scenarios.ui-3.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Domain/Causa.Domain.fsproj" />
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+    <ProjectReference Include="../../src/Causa.App/Causa.App.fsproj" />
+  </ItemGroup>
+</Project>
