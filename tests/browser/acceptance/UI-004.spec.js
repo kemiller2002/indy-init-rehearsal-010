@@ -60,6 +60,8 @@ test('UI-004-O6', async ({ page }) => {
   // No parallel policy engine: in a read-only catalog investigation (no write session) the record forms are absent
   // because the engine offers nothing there, and the page never shows a locally invented "allowed" state.
   await open(page, '#/investigation/workspaces%2Fdemo%2Fhistorical-v1/6f1b3c1e-8d7a-4c55-9a51-2f0b1d7e9c11/evidence');
+  await expect(page.getByRole('heading', { name: 'Evidence', level: 2 })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'This investigation is not open.' })).toBeVisible();
   await expect(button(page, 'Record evidence')).toHaveCount(0);
   await expect(button(page, 'Link evidence to a hypothesis')).toHaveCount(0);
 });

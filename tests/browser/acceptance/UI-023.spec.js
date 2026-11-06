@@ -8,6 +8,7 @@ test('UI-023-O1', async ({ page }) => {
   await investigationWithContent(page);
   for (const name of ['Overview', 'Causal Analysis', 'Evidence', 'Hypotheses', 'Timeline']) {
     await section(page, name);
+    await expect(page.getByRole('heading', { name, level: 2 }), name).toBeVisible();
     await expect(page.locator('main').getByText(/^Verified$/), name).toHaveCount(0);
   }
 });

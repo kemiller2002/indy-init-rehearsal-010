@@ -29,8 +29,14 @@ test('UI-001-O2', async ({ page }) => {
 
 test('UI-001-O3', async ({ page }) => {
   // The domain contract has no severity or owner: neither is shown, rather than invented.
-  await connect(page);
-  await expect(page.locator('.causa-investigations')).not.toContainText(/severity|owner:/i);
+  await investigationWithContent(page);
+  await page.getByRole('link', { name: 'Investigations', exact: true }).first().click();
+  const cardsShown = cards(page);
+  await expect(cardsShown.first()).toBeVisible();
+  for (const card of await cardsShown.all()) {
+    await expect(card.locator('dt')).toHaveText(['Status', 'Last activity', 'Hypotheses', 'Evidence', 'Unresolved contradictions']);
+    await expect(card).not.toContainText(/severity|owner/i);
+  }
 });
 
 test('UI-001-O4', async ({ page }) => {
@@ -52,6 +58,7 @@ test('UI-001-O5', async ({ page }) => {
   await expect(sort).toHaveValue('workspace');
   await sort.selectOption({ label: 'Title' });
   const titles = await cards(page).locator('h2').allTextContents();
+  expect(titles.length).toBeGreaterThan(0);
   expect(titles).toEqual([...titles].sort());
 });
 

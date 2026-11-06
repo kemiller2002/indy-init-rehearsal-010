@@ -30,6 +30,7 @@ test('UI-010-O3', async ({ page }) => {
   // No Retry is offered where it would do nothing (an unopened investigation, an unknown page).
   for (const route of [unopened, '#/no-such-page']) {
     await open(page, route);
+    await expect(page.getByText(/This investigation is not open\.|There is no page at/).first(), route).toBeVisible();
     await expect(page.getByRole('button', { name: /retry/i }), route).toHaveCount(0);
   }
 });
@@ -37,6 +38,7 @@ test('UI-010-O3', async ({ page }) => {
 test('UI-010-O4', async ({ page }) => {
   // Fail closed: an investigation that has not been verified shows no partial content and no record forms.
   await open(page, unopened);
+  await expect(page.getByRole('status').filter({ hasText: 'This investigation is not open.' })).toBeVisible();
   await expect(page.getByRole('article')).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
 });
