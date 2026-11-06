@@ -17,6 +17,7 @@ module CausaWire =
         | JStr of string
         | JNum of int64
         | JNull
+        | JBool of bool
         | JArr of J list
         | JObj of (string * J) list
 
@@ -25,6 +26,8 @@ module CausaWire =
         | JsonValueKind.String -> JStr(e.GetString() |> nonNull)
         | JsonValueKind.Number -> JNum(e.GetInt64())
         | JsonValueKind.Null -> JNull
+        | JsonValueKind.True -> JBool true
+        | JsonValueKind.False -> JBool false
         | JsonValueKind.Array -> JArr [ for x in e.EnumerateArray() -> ofElement x ]
         | JsonValueKind.Object -> JObj [ for p in e.EnumerateObject() -> p.Name, ofElement p.Value ]
         | k -> failwithf "unexpected JSON %A" k
@@ -53,6 +56,7 @@ module CausaWire =
         | JStr s -> "\"" + escape s + "\""
         | JNum n -> n.ToString(CultureInfo.InvariantCulture)
         | JNull -> "null"
+        | JBool v -> if v then "true" else "false"
         | JArr xs -> "[" + String.Join(",", xs |> List.map canonical) + "]"
         | JObj ps ->
             let sorted = ps |> List.sortWith (fun (a, _) (b, _) -> String.CompareOrdinal(a, b))
@@ -345,6 +349,9 @@ module CausaWire =
     /// One events.ndjson line as the domain envelope.
     let decode (line: string) : EventEnvelope =
         let o = parse line
+        // causa-storage v1.0.0 only: any other format or semantic version is incompatible data and fails closed.
+        for name in [ "formatVersion"; "semanticVersion" ] do
+            if str o name <> "1.0.0" then failwithf "unsupported %s '%s' (causa-storage v1.0.0 reads only 1.0.0)" name (str o name)
         let version = match field o "aggregateVersion" with JNum n -> n | j -> failwithf "%A" j
         { EventId = EventId(guid o "eventId")
           Investigation = InvestigationId(guid o "investigationId")
@@ -407,28 +414,11 @@ module CausaData =
           ExpectedVersion = (match field entry "expectedVersion" with JNum n -> n | j -> failwithf "%A" j)
           ExpectedLifecycle = str entry "expectedLifecycle" }
 
-    /// The five frozen scenarios, every case of every catalog manifest, and the everyday-v1 workspace (whose manifest
-    /// expectations come from its own investigation manifest).
+    /// The five frozen scenarios of the contract's conformance fixtures (the only causa-data files vendored here;
+    /// the catalog histories are read live by Causa.Acceptance.Live.EXTDATA011Tests, EXT-DATA-011-O1).
     let histories: History list =
-        let scenarios =
-            array (json "fixtures/v1.0.0/manifest.json") "investigations"
-            |> List.map (fun e -> expected e $"""fixtures/v1.0.0/investigations/{str e "investigationId"}""")
-        let catalogs =
-            Directory.GetDirectories(Path.Combine(root, "catalog"))
-            |> Array.sort
-            |> Array.toList
-            |> List.collect (fun d -> array (json (Path.GetRelativePath(root, Path.Combine(d, "manifest.json")))) "cases" |> List.map (fun e -> expected e (str e "path")))
-        let everyday =
-            Directory.GetDirectories(Path.Combine(root, "workspaces/demo/everyday-v1/investigations"))
-            |> Array.sort
-            |> Array.toList
-            |> List.map (fun d ->
-                let rel = Path.GetRelativePath(root, d).Replace('\\', '/')
-                let snapshot = field (json $"{rel}/snapshot.json") "state"
-                { Path = rel
-                  ExpectedVersion = (match field (json $"{rel}/manifest.json") "aggregateVersion" with JNum n -> n | j -> failwithf "%A" j)
-                  ExpectedLifecycle = str snapshot "lifecycle" })
-        scenarios @ catalogs @ everyday
+        array (json "fixtures/v1.0.0/manifest.json") "investigations"
+        |> List.map (fun e -> expected e $"""fixtures/v1.0.0/investigations/{str e "investigationId"}""")
 
     /// The lines of an events.ndjson file (each terminated by LF, CONTRACT section 2).
     let lines (events: string) =
@@ -704,13 +694,16 @@ module Producer =
             |> Array.map (fun f -> Path.GetRelativePath(CausaData.root, f).Replace('\\', '/'))
             |> Array.filter ((<>) "provenance.json")
             |> set
-        Assert.Equal<Set<string>>(listed |> List.map fst |> set, onDisk)
-        for path, sha in listed do
+        // Only the contract's conformance fixtures are vendored (EXT-DATA-011-O1); the catalog files are listed with
+        // their digests for the live test but are not in the repository.
+        let vendored = listed |> List.filter (fun (p, _) -> p.StartsWith "fixtures/v1.0.0/")
+        Assert.Equal<Set<string>>(vendored |> List.map fst |> set, onDisk)
+        Assert.True(listed |> List.exists (fun (p, _) -> p.StartsWith "workspaces/demo/demonstration-v1/"))
+        for path, sha in vendored do
             Assert.True((CausaData.sha256 (File.ReadAllBytes(Path.Combine(CausaData.root, path))) = sha), $"{path} does not match its recorded sha256")
-        // Every frozen scenario and catalog history decodes, re-encodes byte for byte, replays through the kernel to the
+        // Every frozen scenario decodes, re-encodes byte for byte, replays through the kernel to the
         // manifest's version and lifecycle, and equals the engine-generated snapshot.
         let histories = CausaData.histories
-        Assert.True(histories.Length >= 13, $"only {histories.Length} histories found")
         let problems =
             [ for h in histories do
                   match replayText (CausaData.read $"{h.Path}/events.ndjson") with
@@ -725,10 +718,9 @@ module Producer =
                       for d in CausaData.snapshotDifferences s (CausaWire.field (CausaData.json $"{h.Path}/snapshot.json") "state") |> List.truncate 5 do
                           yield $"{h.Path}: snapshot: {d}" ]
         Assert.True(problems.IsEmpty, String.Join("\n", problems))
-        // All of it was replayed: 5 scenarios (184 events), demonstration-v1 (4 cases, 1,363), historical-v1 (3, 1,315)
-        // and everyday-v1 (1, 48).
-        Assert.Equal(13, histories.Length)
-        Assert.Equal(184 + 1363 + 1315 + 48, histories |> List.sumBy (fun h -> int h.ExpectedVersion))
+        // All of it was replayed: the 5 scenarios, 184 events.
+        Assert.Equal(5, histories.Length)
+        Assert.Equal(184, histories |> List.sumBy (fun h -> int h.ExpectedVersion))
         // A deliberately invalid case fails for the intended reason: a stored event whose `from` contradicts the replayed
         // state (a forged transition) is refused by the kernel, and a byte-level change is detected by re-encoding.
         let scenario = (List.head histories).Path
