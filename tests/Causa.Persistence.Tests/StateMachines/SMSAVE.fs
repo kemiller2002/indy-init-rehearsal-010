@@ -573,3 +573,31 @@ module SMSAVE =
                 Assert.Equal(s, fault.State)
                 Assert.Equal(i, fault.Input)
                 Assert.False(String.IsNullOrWhiteSpace fault.Reason)
+
+    // ---- T20: saving when the GraphQL read is refused for the credential ----
+
+    [<Fact>]
+    let ``T20 the read-back and the stale-head file comparison read through REST when GraphQL reads are refused`` () =
+        let sc = SaveScenario.create ()
+        sc.Fake.Update(fun s -> { s with GraphQlReadRefusal = Some(403, Recordings.graphQlEndpointRefused) })
+        SaveScenario.edit sc 1
+        SaveScenario.input sc SaveInput.SaveRequested |> ignore
+        Assert.Equal("Saved", SaveScenario.stateName sc)
+        // The read-back named the new commit through REST (commit, then the three files at it), and confirmed.
+        let head = SaveScenario.head sc
+        let restReads = sc.Sent |> List.choose GitHubRequests.operationOf |> List.filter (function ReadFileAt(_, c) -> c = head | _ -> false)
+        Assert.Equal(3, restReads.Length)
+        match sc.Session.State with
+        | SaveState.Saved(Confirmed c) -> Assert.Equal(head, c.CommitOid)
+        | other -> failwithf "%A" other
+        // Another writer moves the branch; the stale save compares files at the fresh head through REST and saves.
+        SaveScenario.otherWriter sc [ "workspaces/demo/other/x.json", "{}"B ]
+        SaveScenario.edit sc 2
+        SaveScenario.input sc SaveInput.SaveRequested |> ignore
+        Assert.Equal("Saved", SaveScenario.stateName sc)
+        let fresh =
+            match sc.Events |> List.tryPick (function SaveInput.StaleHeadUnrelated h -> Some h | _ -> None) with
+            | Some h -> h
+            | None -> failwithf "the stale save was not compared at the fresh head: %A" sc.Events
+        let atFresh = sc.Sent |> List.choose GitHubRequests.operationOf |> List.filter (function ReadFileAt(_, c) -> c = fresh | _ -> false)
+        Assert.Equal(3, atFresh.Length)
