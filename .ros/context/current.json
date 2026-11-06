@@ -4,7 +4,7 @@
   "repository": "indy-init-rehearsal-010",
   "actor": "ui3",
   "startedAt": "2026-11-06T16:40:13.993Z",
-  "updatedAt": "2026-11-06T18:47:48Z",
+  "updatedAt": "2026-11-06T19:11:28Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -140,6 +140,17 @@
       "updatedAt": "2026-11-06T19:01:03Z",
       "telemetryExecutionIds": [
         "EXE-20261106T190103856Z-4955924b"
+      ]
+    },
+    {
+      "id": "WI-0014",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T19:11:28Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T191128786Z-59352c57"
       ]
     }
   ]
