@@ -6,6 +6,9 @@
     <template data-if="investigations.status">
       <p class="causa-note" data-text="investigations.status"></p>
     </template>
+    <template data-if="investigations.can-start">
+      <p class="ef-actions"><a class="ef-button" href="#/new">New investigation</a></p>
+    </template>
     <template data-if="investigations.loading">
       <p class="ef-spinner" role="status"><span class="ef-spinner__indicator" aria-hidden="true"></span><span class="ef-spinner__label" data-text="investigations.loadingText"></span></p>
     </template>

@@ -290,19 +290,8 @@ module Analysis =
     let action (p: AnalysisProjection) (id: string) : Availability =
         p.Actions |> Map.tryFind (ActionId id) |> Option.defaultValue NotOffered
 
-    /// The investigation the route names, as the loader verified it (SM-LOAD Loaded). Only the integration engine holds
-    /// the unsaved commands of a session; see the change request for the current-state source.
-    let loaded (state: AppState) : Investigation option =
-        match state.Route with
-        | WorkspaceRoute(target, _) ->
-            state.Model.Loads
-            |> Map.toList
-            |> List.tryPick (fun (r, load) ->
-                let (Workspace workspace) = r.Address.Workspace
-                match load with
-                | Loaded v when r.Id = target.Id && workspace = target.Workspace -> Some v.Investigation
-                | _ -> None)
-        | _ -> None
+    /// The investigation the route names: verified, with this tab's unsaved commands applied (integration, CR of ui-3).
+    let loaded (state: AppState) : Investigation option = UiAdapter.investigation state
 
     /// The actor capabilities are asked for.
     let actor: ActorContext = { ActorId = "causa" }

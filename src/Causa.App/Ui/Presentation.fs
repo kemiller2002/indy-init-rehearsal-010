@@ -110,6 +110,9 @@ module UiRoutes =
             let section =
                 match rest with
                 | [] -> Some Overview
+                // The report is an investigation page outside the frozen Section set: its route stands on the
+                // investigation (Overview) and View.shell shows the report instead (isReport).
+                | [ "report" ] -> Some Overview
                 | [ slug ] -> sectionOfSlug slug
                 | _ -> None
             match Guid.TryParse id, section with
@@ -137,6 +140,17 @@ module UiRoutes =
         | AdministrationRoute -> "administration"
         | SettingsRoute -> "settings"
         | NotFoundRoute _ -> "not-found"
+
+    /// Whether a hash is an investigation's report page (`#/investigation/<workspace>/<id>/report`).
+    let isReport (hash: string) : bool =
+        match Routes.segments hash with
+        | [ "investigation"; _; _; "report" ] -> true
+        | _ -> false
+
+    /// The report page of an investigation.
+    let reportHref (target: RouteTarget) : string =
+        let (InvestigationId id) = target.Id
+        Routes.ofSegments [ "investigation"; target.Workspace; id.ToString("D"); "report" ]
 
     /// Every screen name, in navigation order.
     let screenNames = [ "investigations"; "new"; "investigation"; "administration"; "settings"; "not-found" ]

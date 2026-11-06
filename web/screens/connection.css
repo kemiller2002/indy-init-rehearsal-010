@@ -1,0 +1,4 @@
+/* Owner: ui. connection (the data repository region of the Investigations destination). */
+.causa-connection-region { margin-block-start: var(--ef-space-6); }
+.causa-connection-region h2 { color: var(--causa-ink); }
+.causa-connection-form { max-inline-size: 36rem; }

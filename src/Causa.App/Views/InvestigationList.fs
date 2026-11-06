@@ -53,7 +53,10 @@ module InvestigationList =
             | Some(LoadFailed _), _ -> "Could not be opened"
             | _ -> "Not opened yet"
         { Key = workspace + "|" + Ids.text (Ids.investigation item.Ref.Id)
-          Title = item.Title |> Option.defaultValue "Untitled investigation"
+          Title =
+            Working.current model item.Ref |> Option.map (fun i -> i.Title.Value)
+            |> Option.orElse item.Title
+            |> Option.defaultValue "Untitled investigation"
           Where = (if role = WorkspaceRole.WorkingCopy then "Your working copy" else "Catalog, read only")
           Status = status
           LastActivity = verified |> Option.map (fun s -> Causa.App.Workspace.Words.instant s.UpdatedAt) |> Option.defaultValue unknownCount
@@ -66,12 +69,27 @@ module InvestigationList =
                 |> Map.count)
           Href = UiRoutes.href (WorkspaceRoute(target, Overview)) }
 
+    /// The investigations the engine listed, and those this tab created and the listing does not hold yet (merged from
+    /// T17: a started investigation is listed at once).
     let rows (model: Model) (sortBy: string) : Row list =
-        model.Listings
-        |> Map.toList
-        |> List.collect (fun (_, listing) -> listing.Investigations |> List.map (rowOf model))
+        let listed = model.Listings |> Map.toList |> List.collect (fun (_, listing) -> listing.Investigations)
+        let known = listed |> List.map (fun i -> i.Ref) |> Set.ofList
+        let created =
+            model.Sessions
+            |> Map.toList
+            |> List.map fst
+            |> List.filter (known.Contains >> not)
+            |> List.map (fun r -> { Ref = r; Path = RepoPath ""; Title = None; ExpectedStateSha256 = None })
+        created @ listed
+        |> List.map (rowOf model)
         |> List.distinctBy (fun r -> r.Key)
         |> if sortBy = "workspace" then List.sortBy (fun r -> r.Where, r.Title) else List.sortBy (fun r -> r.Title, r.Where)
+
+    /// New investigation is offered while a writable working copy is listed (merged from T17).
+    let canStart (model: Model) =
+        match model.Connection with
+        | Connected true -> model.Listings |> Map.exists (fun a _ -> a.Role = WorkspaceRole.WorkingCopy)
+        | _ -> false
 
     let view (state: AppState) : (string * ViewValue) list =
         let connected = match state.Model.Connection with Connected _ -> true | _ -> false
@@ -82,6 +100,7 @@ module InvestigationList =
         [ Bind.text "investigations.heading" "Investigations"
           Bind.flag "investigations.connected" connected
           Bind.text "investigations.status" (if connected then "" else notConnected)
+          Bind.flag "investigations.can-start" (canStart state.Model)
           Bind.flag "investigations.loading" listing
           Bind.text "investigations.loadingText" openingList
           Bind.flag "investigations.empty" (connected && listed && not listing && items.IsEmpty)

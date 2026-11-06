@@ -33,25 +33,14 @@
       ]
     },
     {
-      "id": "WI-0002",
+      "id": "WI-0009",
       "type": "task",
       "state": "active",
       "semanticState": "active",
       "evidence": [],
-      "updatedAt": "2026-11-06T17:19:11Z",
+      "updatedAt": "2026-11-06T17:16:08Z",
       "telemetryExecutionIds": [
-        "EXE-20261106T171912199Z-f6eebfae"
-      ]
-    },
-    {
-      "id": "WI-0007",
-      "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-06T17:25:28Z",
-      "telemetryExecutionIds": [
-        "EXE-20261106T172529170Z-c59a46dd"
+        "EXE-20261106T171608548Z-87460711"
       ]
     },
     {
@@ -66,6 +55,17 @@
       ]
     },
     {
+      "id": "WI-0002",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:19:11Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T171912199Z-f6eebfae"
+      ]
+    },
+    {
       "id": "WI-0005",
       "type": "task",
       "state": "active",
@@ -74,6 +74,17 @@
       "updatedAt": "2026-11-06T17:22:16Z",
       "telemetryExecutionIds": [
         "EXE-20261106T172216498Z-892104ac"
+      ]
+    },
+    {
+      "id": "WI-0007",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:25:28Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T172529170Z-c59a46dd"
       ]
     },
     {
@@ -99,6 +110,17 @@
       ]
     },
     {
+      "id": "WI-0010",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:32:18Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T173218407Z-a25885c8"
+      ]
+    },
+    {
       "id": "WI-0037",
       "type": "task",
       "state": "active",
@@ -107,6 +129,39 @@
       "updatedAt": "2026-11-06T17:46:36Z",
       "telemetryExecutionIds": [
         "EXE-20261106T174637212Z-e0830b32"
+      ]
+    },
+    {
+      "id": "WI-0036",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:47:27Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T174727982Z-77028d8c"
+      ]
+    },
+    {
+      "id": "WI-0008",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T17:56:27Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T175627848Z-20d677cd"
+      ]
+    },
+    {
+      "id": "WI-0013",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-11-06T18:01:02Z",
+      "telemetryExecutionIds": [
+        "EXE-20261106T180102508Z-d5bf9a7a"
       ]
     },
     {
