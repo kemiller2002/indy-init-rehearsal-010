@@ -352,10 +352,18 @@ module Program =
 
         let private relate (env: HostEnv) (state: AppState) (reassess: bool) : AppMsg list =
             let d = Drafts.get state
-            let evidence = d "investigation.link.evidence" |> guidOf |> Option.map EvidenceId
-            let hypothesis = d "investigation.link.hypothesis" |> guidOf |> Option.map HypothesisId
-            let kind = Causa.App.Workspace.Analysis.storedKindOf (d "investigation.link.kind")
             let current = UiAdapter.investigation state
+            // A choice with exactly one option is that option (the view shows it selected).
+            let only (keys: Guid list) = match keys with [ k ] -> Some k | _ -> None
+            let evidence =
+                d "investigation.link.evidence" |> guidOf
+                |> Option.orElse (current |> Option.bind (fun s -> s.Evidence |> Map.toList |> List.map (fst >> fun (EvidenceId g) -> g) |> only))
+                |> Option.map EvidenceId
+            let hypothesis =
+                d "investigation.link.hypothesis" |> guidOf
+                |> Option.orElse (current |> Option.bind (fun s -> s.Hypotheses |> Map.toList |> List.map (fst >> fun (HypothesisId g) -> g) |> only))
+                |> Option.map HypothesisId
+            let kind = Causa.App.Workspace.Analysis.storedKindOf (d "investigation.link.kind")
             match evidence, hypothesis, kind, optional 10000 (d "investigation.link.rationale") with
             | None, _, _, _ -> announce "Choose the evidence to link."
             | _, None, _, _ -> announce "Choose the hypothesis to link."
@@ -456,7 +464,12 @@ module Program =
                 | Error m, _
                 | _, Error m -> Some(announce m)
             | "investigation.evidence.record" ->
-                match bounded "Evidence content" 10000 (d "investigation.evidence.content"), bounded "Source" 2000 (d "investigation.evidence.source") with
+                // causa-storage v1.0.0 stores the evidence's content and source; the label has no field (OD-HC-06). With
+                // no content entered the label is the content; with no source entered, the source is this application.
+                let orElse (fallback: string) (v: string) = if System.String.IsNullOrWhiteSpace v then fallback else v
+                let content = d "investigation.evidence.content" |> orElse (d "investigation.evidence.label")
+                let source = d "investigation.evidence.source" |> orElse "Entered by the investigator in Causa"
+                match bounded "Evidence content" 10000 content, bounded "Source" 2000 source with
                 | Ok content, Ok source ->
                     Some(
                         onRoute env state
@@ -468,7 +481,7 @@ module Program =
                                   Category = EvidenceCategory.DirectObservation
                                   Source = source
                                   CapturedAt = None })
-                            [ "investigation.evidence.content"; "investigation.evidence.source" ]
+                            [ "investigation.evidence.content"; "investigation.evidence.source"; "investigation.evidence.label"; "investigation.evidence.url" ]
                     )
                 | Error m, _
                 | _, Error m -> Some(announce m)
