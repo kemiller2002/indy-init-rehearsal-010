@@ -90,3 +90,6 @@ body.causa { margin: 0; background: var(--causa-ivory); color: var(--causa-ink);
   .causa-masthead, .ef-navigation-shell__persistent, .causa-compact, .causa-skip { display: none; }
   body.causa { background: var(--causa-surface); }
 }
+
+/* Causa is a light application: pin native controls light too, whatever the OS scheme (Forma sets color-scheme: light dark). */
+html { color-scheme: light; }
